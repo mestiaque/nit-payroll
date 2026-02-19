@@ -1,0 +1,1 @@
+[03-Jan-2026 14:57:39 Asia/Dhaka] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 1048576 bytes) in /home/crmmonp/public_html/vendor/laravel/framework/src/Illuminate/Database/Connection.php on line 421

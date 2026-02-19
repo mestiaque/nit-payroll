@@ -1,0 +1,60 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+
+# Disable directory listing
+Options -Indexes
+
+# Block sensitive files (.env, composer, config, etc.)
+<FilesMatch "\.(env|json|config.js|md|gitignore|gitattributes|lock|composer.json|example|sql|bak|ini|sh)$">
+    Require all denied
+</FilesMatch>
+
+# Block artisan file
+<FilesMatch "(artisan)$">
+    Require all denied
+</FilesMatch>
+
+# Block Dangerous File Uploads (ZIP, EXE, Shell, etc.)
+<FilesMatch "\.(phtml|phar|exe|sh|bash|zip|gz|tar|cgi|pl|jsp|asp|aspx)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Disable PHP execution in dangerous folders
+<IfModule mod_php7.c>
+    <Directory "/storage">
+        php_flag engine off
+    </Directory>
+    <Directory "/bootstrap/cache">
+        php_flag engine off
+    </Directory>
+    <Directory "/public/uploads">
+        php_flag engine off
+    </Directory>
+    <Directory "/config">
+        php_flag engine off
+    </Directory>
+</IfModule>
+
+# Prevent access to hidden files and folders like .git or .env
+RedirectMatch 404 /(\.git|\.env|composer\.json|artisan|server\.php|readme\.md|storage|node_modules)

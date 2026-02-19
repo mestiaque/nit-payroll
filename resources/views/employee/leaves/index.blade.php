@@ -1,0 +1,207 @@
+@extends(employeeTheme().'layouts.app')
+@section('title')
+    <title>{{ websiteTitle('Leaves List') }}</title>
+@endsection
+@section('contents')
+@include(adminTheme().'alerts')
+<div class="flex-grow-1">
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Leaves List</h5>
+            <div>
+                <button class="btn btn-sm btn-success d-print-none" data-toggle="modal" data-target="#addLeaveModal"><i class="fa fa-plus"></i> Apply Leave</button>
+            </div>
+        </div>
+        <!-- Filter Section -->
+        <div class="card-body py-2">
+            <form method="GET" action="{{ route('customer.leaves.index') }}" class="row g-3">
+                <div class="col-md-2">
+                    <label for="leave_type_id">Leave Type</label>
+                    <select name="leave_type_id" id="leave_type_id" class="form-control form-control-sm">
+                        <option value="">Select Leave Type</option>
+                        @foreach($leaveTypes as $type)
+                            <option value="{{ $type->id }}" {{ request('leave_type_id') == $type->id ? 'selected' : '' }}>{{ $type->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="status">Status</label>
+                    <select name="status" id="status" class="form-control form-control-sm">
+                        <option value="">Select Status</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
+                        <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="start_date_from">From Date</label>
+                    <input type="date" name="start_date_from" id="start_date_from" class="form-control form-control-sm" placeholder="From Date" value="{{ request('start_date_from') }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="start_date_to">To Date</label>
+                    <input type="date" name="start_date_to" id="start_date_to" class="form-control form-control-sm" placeholder="To Date" value="{{ request('start_date_to') }}">
+                </div>
+                <div class="col-md-2 text-right align-self-end">
+                    <label for="">&nbsp;</label>
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="fa fa-filter"></i> Filter</button>
+                    <a href="{{ route('customer.leaves.index') }}" class="btn btn-sm btn-secondary"><i class="fa fa-times"></i> Reset</a>
+                </div>
+            </form>
+        </div>
+        <div class="card-body ">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped table-bordered ">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Employee ID</th>
+                            <th>Employee Name</th>
+                            <th>Department</th>
+                            <th>Type</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Days</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($leaves as $leave)
+                        <tr>
+                            <td>{{ $loop->iteration }}</td>
+                            <td>{{$leave->user->employee_id ?? 'N/A'}}</td>
+                            <td>{{$leave->user->name ?? 'N/A'}}</td>
+                            <td>{{$leave->user->department->name ?? 'N/A'}}</td>
+                            <td>{{$leave->leaveType->name ?? 'N/A'}}</td>
+                            <td>{{$leave->start_date->format('d M Y')}}</td>
+                            <td>{{$leave->end_date->format('d M Y')}}</td>
+                            <td>{{$leave->days}}</td>
+                            <td>
+                                @if($leave->status == 'approved')
+                                    <span class="badge badge-success">Approved</span>
+                                @elseif($leave->status == 'rejected')
+                                    <span class="badge badge-danger">Rejected</span>
+                                @else
+                                    <span class="badge badge-warning">Pending</span>
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                @if($leave->status == 'pending')
+                                <button type="button" class="btn btn-sm btn-custom success" data-toggle="modal" data-target="#editLeaveModal{{$leave->id}}"><i class="fa fa-edit"></i></button>
+                                <form action="{{route('customer.leaves.destroy', $leave->id)}}" method="POST" style="display:inline;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-custom danger" onclick="return confirm('Are you sure?')"><i class="fa fa-trash"></i></button>
+                                </form>
+                                @else
+                                 --
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                {{$leaves->links()}}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Add Leave Modal -->
+<div class="modal fade" id="addLeaveModal" tabindex="-1" role="dialog" aria-labelledby="addLeaveModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addLeaveModalLabel">Apply Leave</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{route('customer.leaves.store')}}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="leave_type_id">Leave Type</label>
+                        <select class="form-control" name="leave_type_id" required>
+                            <option value="">Select Leave Type</option>
+                            @foreach($leaveTypes as $type)
+                                <option value="{{$type->id}}">{{$type->name}}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="start_date">Start Date</label>
+                        <input type="date" class="form-control" name="start_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="end_date">End Date</label>
+                        <input type="date" class="form-control" name="end_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reason">Reason</label>
+                        <textarea class="form-control" name="reason" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Leave Modals -->
+@foreach($leaves as $leave)
+<div class="modal fade" id="editLeaveModal{{$leave->id}}" tabindex="-1" role="dialog" aria-labelledby="editLeaveModalLabel{{$leave->id}}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editLeaveModalLabel{{$leave->id}}">Edit Leave</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{route('customer.leaves.update', $leave->id)}}" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="leave_type_id">Leave Type</label>
+                        <select class="form-control" name="leave_type_id" required>
+                            @foreach($leaveTypes as $type)
+                                <option value="{{$type->id}}" {{$leave->leave_type_id == $type->id ? 'selected' : ''}}>{{$type->name}}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="start_date">Start Date</label>
+                        <input type="date" class="form-control" name="start_date" value="{{$leave->start_date->format('Y-m-d')}}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="end_date">End Date</label>
+                        <input type="date" class="form-control" name="end_date" value="{{$leave->end_date->format('Y-m-d')}}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reason">Reason</label>
+                        <textarea class="form-control" name="reason" rows="3">{{$leave->reason}}</textarea>
+                    </div>
+                    @if($leave->status == 'rejected')
+                    <div class="form-group">
+                        <label for="rejection_reason">Rejection Reason</label>
+                        <textarea class="form-control" name="rejection_reason" rows="2">{{$leave->rejection_reason}}</textarea>
+                    </div>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endforeach
+@endsection
