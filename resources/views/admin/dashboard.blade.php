@@ -101,7 +101,7 @@
                 {{number_format($reports['totalEmployee'])}}
             </h3>
             <div class="progress-list">
-                <p>Total <a href="#">View</a></p>
+                <p>Total <a href="{{route('admin.usersCustomer')}}">View</a></p>
             </div>
         </div>
     </div>
@@ -115,7 +115,7 @@
                 {{number_format($reports['present'])}}
             </h3>
             <div class="progress-list">
-                <p>Today <a href="#">View</a></p>
+                <p>Today <a href="{{route('admin.dailyAttendance')}}">View</a></p>
             </div>
         </div>
     </div>
@@ -131,7 +131,7 @@
             </h3>
             <div class="progress-list">
 
-                <p>Monthly <a href="#">View</a></p>
+                <p>Monthly <a href="{{route('admin.payroll.salarySheet')}}">View</a></p>
             </div>
         </div>
     </div>
@@ -145,7 +145,7 @@
                 {{number_format($reports['admin'])}}
             </h3>
             <div class="progress-list">
-                <p>Total <a href="#">View</a></p>
+                <p>Total <a href="{{route('admin.usersAdmin')}}">View</a></p>
             </div>
         </div>
     </div>
@@ -200,22 +200,27 @@
                             <tr>
                                 <td style="width: 150px;" >Designation</td>
                                 <td>{{number_format($reports['designation'])}}</td>
+                                <td><a href="{{route('admin.designations')}}" class="btn btn-sm btn-primary">View</a></td>
                             </tr>
                             <tr>
                                 <td>Division</td>
                                 <td>{{number_format($reports['division'])}}</td>
+                                <td><a href="{{route('admin.divisions')}}" class="btn btn-sm btn-primary">View</a></td>
                             </tr>
                             <tr>
                                 <td>Section</td>
                                 <td>{{number_format($reports['section'])}}</td>
+                                <td><a href="{{route('admin.sections')}}" class="btn btn-sm btn-primary">View</a></td>
                             </tr>
                             <tr>
                                 <td>Department</td>
                                 <td>{{number_format($reports['department'])}}</td>
+                                <td><a href="{{route('admin.departments')}}" class="btn btn-sm btn-primary">View</a></td>
                             </tr>
                             <tr>
                                 <td>Shift</td>
                                 <td>{{number_format($reports['shift'])}}</td>
+                                <td><a href="{{route('admin.shifts')}}" class="btn btn-sm btn-primary">View</a></td>
                             </tr>
                         </tbody>
                     </table>

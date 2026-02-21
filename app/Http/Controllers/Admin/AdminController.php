@@ -94,6 +94,7 @@ class AdminController extends Controller
         $employees=User::where('status',1)->where('admin',false)->count();
         $admin=User::where('status',1)->where('admin',true)->count();
 
+        // Today's attendance with employee count
         $attendances =Attendance::latest()->whereDate('in_time',Carbon::today())->limit(10)->get();
 
         $attendances = $attendances->map(function ($item) {
@@ -109,16 +110,91 @@ class AdminController extends Controller
             return $item;
         });
 
+        // Count present employees today (unique users with attendance)
+        $presentToday = Attendance::whereDate('in_time', Carbon::today())->distinct('user_id')->count('user_id');
+
+        // Calculate absent employees today
+        $absentToday = $employees - $presentToday;
+
+        // Calculate monthly salary (sum of gross_salary for all active employees)
+        $monthlySalary = User::where('status', 1)->where('admin', false)->sum('gross_salary');
+
+        // Count designations (type=2 in Attribute model)
+        $designationCount = Attribute::where('type', 2)->where('status', 'active')->count();
+
+        // Count divisions (type=11 in Attribute model based on User model divisionData relation)
+        $divisionCount = Attribute::where('type', 11)->where('status', 'active')->count();
+
+        // Count sections (type=14 in Attribute model based on User model section relation)
+        $sectionCount = Attribute::where('type', 14)->where('status', 'active')->count();
+
+        // Count departments (type=3 in Attribute model based on User model department relation)
+        $departmentCount = Attribute::where('type', 3)->where('status', 'active')->count();
+
+        // Count shifts from Shift model
+        $shiftCount = Shift::where('status', 1)->count();
+
+        // Count roles/permissions
+        $rolesCount = Permission::count();
+
+        // Count employee types (type=16 in Attribute model)
+        $employeeTypesCount = Attribute::where('type', 16)->where('status', 'active')->count();
+
+        // Count grades (type=12 in Attribute model)
+        $gradesCount = Attribute::where('type', 12)->where('status', 'active')->count();
+
+        // Count line numbers (type=13 in Attribute model)
+        $lineNumbersCount = Attribute::where('type', 13)->where('status', 'active')->count();
+
+        // Leave statistics
+        $pendingLeaves = Leave::where('status', 'pending')->count();
+        $approvedLeaves = Leave::where('status', 'approved')->count();
+        $rejectedLeaves = Leave::where('status', 'rejected')->count();
+        $totalLeaves = Leave::count();
+
+        // Monthly expenses total
+        $monthlyExpenses = Expense::where('status','<>','temp')
+            ->whereYear('created_at', Carbon::now()->year)
+            ->whereMonth('created_at', Carbon::now()->month)
+            ->sum('amount');
+
+        // New employees this month
+        $newEmployeesThisMonth = User::where('status', 1)
+            ->where('admin', false)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->whereMonth('created_at', Carbon::now()->month)
+            ->count();
+
+        // Gender wise employee count
+        $maleEmployees = User::where('status', 1)->where('admin', false)->where('gender', 'male')->count();
+        $femaleEmployees = User::where('status', 1)->where('admin', false)->where('gender', 'female')->count();
+
+        // Recent leaves (last 5)
+        $recentLeaves = Leave::with('user')->latest()->limit(5)->get();
+
         $reports=array(
                     "totalEmployee"=>$employees,
-                    "present"=>0,
-                    "salary"=>0,
+                    "present"=>$presentToday,
+                    "absent"=>$absentToday,
+                    "salary"=>$monthlySalary,
                     "admin"=>$admin,
-                    "designation"=>0,
-                    "division"=>0,
-                    "section"=>0,
-                    "department"=>0,
-                    "shift"=>0,
+                    "designation"=>$designationCount,
+                    "division"=>$divisionCount,
+                    "section"=>$sectionCount,
+                    "department"=>$departmentCount,
+                    "shift"=>$shiftCount,
+                    "roles"=>$rolesCount,
+                    "employeeTypes"=>$employeeTypesCount,
+                    "grades"=>$gradesCount,
+                    "lineNumbers"=>$lineNumbersCount,
+                    "pendingLeaves"=>$pendingLeaves,
+                    "approvedLeaves"=>$approvedLeaves,
+                    "rejectedLeaves"=>$rejectedLeaves,
+                    "totalLeaves"=>$totalLeaves,
+                    "monthlyExpenses"=>$monthlyExpenses,
+                    "newEmployeesThisMonth"=>$newEmployeesThisMonth,
+                    "maleEmployees"=>$maleEmployees,
+                    "femaleEmployees"=>$femaleEmployees,
                 );
 
         ///Reports  Summery Dashboard
@@ -135,7 +211,7 @@ class AdminController extends Controller
         $events =[];
 
 
-        return view(adminTheme().'dashboard',compact('reports','expenseTypes','expenses','paymentMethods','supplierDueList','attendances'));
+        return view(adminTheme().'dashboard',compact('reports','expenseTypes','expenses','paymentMethods','supplierDueList','attendances','recentLeaves'));
 
     }
 
