@@ -121,3 +121,4 @@
 [07-Feb-2026 18:09:39 Asia/Dhaka] PHP Fatal error:  Cannot use empty array elements in arrays in /home/payrool/public_html/app/Http/Controllers/Customer/CustomerController.php on line 191
 [07-Feb-2026 18:10:08 Asia/Dhaka] PHP Fatal error:  Cannot use empty array elements in arrays in /home/payrool/public_html/app/Http/Controllers/Customer/CustomerController.php on line 191
 [07-Feb-2026 18:10:12 Asia/Dhaka] PHP Fatal error:  Cannot use empty array elements in arrays in /home/payrool/public_html/app/Http/Controllers/Customer/CustomerController.php on line 191
+[19-Feb-2026 10:53:35 UTC] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.4.0". You are running 8.2.29. in /home/payrool/test.payrool.nitbd.com/vendor/composer/platform_check.php on line 22

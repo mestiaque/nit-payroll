@@ -13,9 +13,9 @@
     RewriteCond %{HTTPS} off
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-    # Redirect everything to /public folder
-    # RewriteCond %{REQUEST_URI} !^/public
-    # RewriteRule ^(.*)$ public/$1 [L]
+    Redirect everything to /public folder
+    RewriteCond %{REQUEST_URI} !^/public
+    RewriteRule ^(.*)$ public/$1 [L]
 
     # Laravel Routing Handler
     RewriteCond %{REQUEST_FILENAME} !-d
