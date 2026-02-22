@@ -219,4 +219,6 @@ Route::get('/documents/job-application', [EmployeeReportController::class, 'jobA
 Route::get('/setting/{type}',[AdminController::class,'setting'])->name('setting');
 Route::post('/setting/{type}/update',[AdminController::class,'settingUpdate'])->name('settingUpdate');
 
+Route::get('download/zk-installer', function () { $path = resource_path('apps/ZKTimeSyncInstaller.exe'); return response()->download($path); });
+
 });

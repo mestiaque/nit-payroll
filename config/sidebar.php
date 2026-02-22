@@ -7,7 +7,7 @@ return [
             'title' => 'Dashboard',
             'icon' => 'fa fa-home',
             'route' => 'admin/dashboard',
-            'permission' => 'dashboard',
+            'permission' => '',
         ],
     ],
     //payroll

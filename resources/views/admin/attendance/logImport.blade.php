@@ -219,7 +219,7 @@
                                 <div class="guideline-section">
                                     <h5>ইনস্টলেশন</h5>
                                     <div class="smart-list">
-                                        <div class="smart-list-item"><span class="smart-icon"><i class="fa fa-play"></i></span> App ডাউনলোড করুন এবং এক্সিকিউট করুন <a href="{{ asset('ZKTimeSyncInstaller.exe') }}" download class="btn btn-import btn-sm"><i class="fa fa-download"> &nbsp; Download</i></a></div>
+                                        <div class="smart-list-item"><span class="smart-icon"><i class="fa fa-play"></i></span> App ডাউনলোড করুন এবং এক্সিকিউট করুন <a href="{{ url('admin/download/zk-installer') }}" download class="btn btn-import btn-sm"><i class="fa fa-download"> &nbsp; Download</i></a></div>
                                         <div class="smart-list-item"><span class="smart-icon"><i class="fa fa-cogs"></i></span> ইনস্টল করার সময় যদি “Don’t run” লেখা দেখা যায়, তাহলে “More info”-তে ক্লিক করুন এবং এরপর “Run anyway” নির্বাচন করুন। </div>
                                     </div>
 
