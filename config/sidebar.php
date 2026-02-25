@@ -383,7 +383,7 @@ return [
                 [
                     'title' => 'Holiday',
                     'icon' => 'fa fa-calendar-day',
-                    'route' => 'admin/hr/holidays',
+                    'route' => 'admin/holidays',
                     'permission' => 'general',
                 ]
             ]
