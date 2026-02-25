@@ -829,58 +829,9 @@ class CustomerController extends Controller
 
         $leave->reason = $request->reason;
         $leave->status = 'pending';
-        $attendances = [];
-        $date = $startDate->copy();
-        $presentCount = $lateCount = $absentCount = $leaveCount = 0;
-        $totalMinutes = 0;
-        while ($date <= $endDate) {
-            $query = Attendance::where('user_id', $user->id)
-                ->whereDate('in_time', $date);
-            if ($status) {
-                $query->where('status', $status);
-            }
-            $att = $query->first();
+        $leave->save();
 
-            if ($att) {
-                if ($att->in_time && $att->out_time) {
-                    $inTime  = Carbon::parse($att->in_time);
-                    $outTime = Carbon::parse($att->out_time);
-                    $minutes = $outTime->diffInMinutes($inTime);
-                    $hour    = sprintf('%02d:%02d', floor($minutes / 60), $minutes % 60);
-                    $totalMinutes += $minutes;
-                } else {
-                    $hour = '--';
-                }
-                $attStatus = $att->status ?? 'Present';
-                if (strtolower($attStatus) == 'present') $presentCount++;
-                elseif (strtolower($attStatus) == 'late') $lateCount++;
-                elseif (strtolower($attStatus) == 'leave') $leaveCount++;
-                elseif (strtolower($attStatus) == 'absent') $absentCount++;
-                $attendances[] = [
-                    'date'     => $date->format('d M'),
-                    'in_time'  => $att->in_time ? Carbon::parse($att->in_time)->format('h:i A') : '--',
-                    'out_time' => $att->out_time ? Carbon::parse($att->out_time)->format('h:i A') : '--',
-                    'hour'     => $hour,
-                    'status'   => $attStatus,
-                ];
-            } else {
-                if (!$status || strtolower($status) == 'absent') {
-                    $absentCount++;
-                    $attendances[] = [
-                        'date'     => $date->format('d M'),
-                        'in_time'  => '--',
-                        'out_time' => '--',
-                        'hour'     => '--',
-                        'status'   => 'Absent',
-                    ];
-                }
-            }
-            $date->addDay();
-        }
-
-        $totalHours = sprintf('%02d:%02d', floor($totalMinutes / 60), $totalMinutes % 60);
-
-        return view(employeeTheme().'myAttendance', compact('attendances', 'presentCount', 'lateCount', 'absentCount', 'leaveCount', 'totalHours'));
+        return redirect()->route('customer.leaves.index')->with('success', 'Leave application submitted successfully!');
     }
 
     public function leaveDestroy($id)
