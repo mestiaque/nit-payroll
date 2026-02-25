@@ -223,7 +223,7 @@
 
                     <div class="card-profile-pic">
                         @php $userImage = $user->image(); @endphp
-                        @if(!$userImage)
+                        @if($userImage)
                         <img src="{{ asset($userImage) }}" alt="Profile Picture" style="width:100%;height:100%;object-fit:cover;">
                         @else
                             @if($user->gender == 'female')
