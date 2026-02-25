@@ -56,7 +56,23 @@ class LeaveController extends Controller
         $users = User::where('status', 1)->hideDev()->get();
         $departments = Attribute::where('type', 3)->where('status', 'active')->get();
 
-        return view(adminTheme().'leaves.index', compact('leaves', 'leaveTypes', 'users', 'departments'));
+        // Get leave balance for each user (approved leaves only)
+        $leaveBalances = [];
+        foreach ($users as $user) {
+            foreach ($leaveTypes as $type) {
+                $approvedDays = Leave::where('user_id', $user->id)
+                    ->where('leave_type_id', $type->id)
+                    ->where('status', 'approved')
+                    ->sum('days');
+                $leaveBalances[$user->id][$type->id] = [
+                    'allowed' => $type->qty ?? 0,
+                    'taken' => $approvedDays,
+                    'remaining' => ($type->qty ?? 0) - $approvedDays
+                ];
+            }
+        }
+
+        return view(adminTheme().'leaves.index', compact('leaves', 'leaveTypes', 'users', 'departments', 'leaveBalances'));
     }
 
     public function create()
@@ -181,11 +197,13 @@ class LeaveController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:191',
+            'qty' => 'required|integer|min:0',
             'status' => 'required|in:active,inactive',
         ]);
 
         $type = new Attribute();
         $type->name = $request->name;
+        $type->qty = $request->qty;
         $type->type = 20; // Leave Type
         $type->status = $request->status;
         $type->save();
@@ -198,10 +216,12 @@ class LeaveController extends Controller
         $type = Attribute::findOrFail($id);
         $request->validate([
             'name' => 'required|string|max:191',
+            'qty' => 'required|integer|min:0',
             'status' => 'required|in:active,inactive',
         ]);
 
         $type->name = $request->name;
+        $type->qty = $request->qty;
         $type->status = $request->status;
         $type->save();
 

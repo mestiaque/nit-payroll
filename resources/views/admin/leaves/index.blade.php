@@ -79,6 +79,7 @@
                             <th>Employee Name</th>
                             <th>Department</th>
                             <th>Type</th>
+                            <th>Leave Balance</th>
                             <th>Start Date</th>
                             <th>End Date</th>
                             <th>Days</th>
@@ -94,6 +95,19 @@
                             <td>{{$leave->user->name ?? 'N/A'}}</td>
                             <td>{{$leave->user->department->name ?? 'N/A'}}</td>
                             <td>{{$leave->leaveType->name ?? 'N/A'}}</td>
+                            <td>
+                                @if(isset($leaveBalances[$leave->user_id][$leave->leave_type_id]))
+                                    @php $balance = $leaveBalances[$leave->user_id][$leave->leave_type_id]; @endphp
+                                    <span class="text-success">{{ $balance['taken'] }}/{{ $balance['allowed'] }}</span>
+                                    @if($balance['remaining'] < 0)
+                                        <span class="text-danger">(Over: {{ abs($balance['remaining']) }})</span>
+                                    @else
+                                        <span class="text-muted">(Rem: {{ $balance['remaining'] }})</span>
+                                    @endif
+                                @else
+                                    N/A
+                                @endif
+                            </td>
                             <td>{{$leave->start_date->format('d M Y')}}</td>
                             <td>{{$leave->end_date->format('d M Y')}}</td>
                             <td>{{$leave->days}}</td>

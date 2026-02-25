@@ -18,6 +18,7 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Name</th>
+                                    <th>Qty (Days)</th>
                                     <th>Status</th>
                                     <th>Action</th>
                                 </tr>
@@ -27,6 +28,7 @@
                                 <tr>
                                     <td>{{$index + 1}}</td>
                                     <td>{{$type->name}}</td>
+                                    <td>{{$type->qty ?? 0}} Days</td>
                                     <td>
                                         @if($type->status == 'active')
                                             <span class="badge bg-success text-white">Active</span>
@@ -73,6 +75,10 @@
                                 <input type="text" class="form-control" name="name" value="{{$type->name}}" required>
                             </div>
                             <div class="form-group">
+                                <label for="qty">Quantity (Days)</label>
+                                <input type="number" class="form-control" name="qty" value="{{$type->qty ?? 0}}" min="0" required>
+                            </div>
+                            <div class="form-group">
                                 <label for="status">Status</label>
                                 <select class="form-control" name="status">
                                     <option value="active" {{$type->status == 'active' ? 'selected' : ''}}>Active</option>
@@ -106,6 +112,10 @@
                         <div class="form-group">
                             <label for="name">Name</label>
                             <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="qty">Quantity (Days)</label>
+                            <input type="number" class="form-control" name="qty" min="0" value="0" required>
                         </div>
                         <div class="form-group">
                             <label for="status">Status</label>

@@ -8,6 +8,7 @@ use App\Models\Roaster;
 use App\Models\Attendance;
 use App\Models\Shift;
 use App\Models\Attribute;
+use App\Models\Holiday;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -320,13 +321,21 @@ class AttendanceManagementController extends Controller
     {
         $date = $request->date ?? Carbon::today()->format('Y-m-d');
 
+        // Check if date is a holiday
+        $holiday = Holiday::getHoliday($date);
+        
+        // Get weekly offday from settings (default is Friday = 5)
+        $offdaySetting = Attribute::where('type', 21)->where('status', 'active')->first();
+        $offdayNumber = $offdaySetting ? array_search($offdaySetting->name, ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']) : 5;
+        $isWeeklyOff = Carbon::parse($date)->dayOfWeek == $offdayNumber;
+
         // Get machine logs for the date
         $machineLogs = DB::table('attendance_machine_logs')
             ->where('punch_date', $date)
             ->orderBy('punch_time')
             ->get();
 
-        if ($machineLogs->isEmpty()) {
+        if ($machineLogs->isEmpty() && !$holiday && !$isWeeklyOff) {
             return back()->with('error', 'No machine data found for this date!');
         }
 
@@ -334,7 +343,43 @@ class AttendanceManagementController extends Controller
         try {
             $processedData = [];
 
-            // Group by user
+            // If it's a holiday, mark all users as holiday
+            if ($holiday) {
+                $allUsers = User::where('status', 1)->get();
+                foreach ($allUsers as $user) {
+                    Attendance::updateOrCreate(
+                        [
+                            'user_id' => $user->id,
+                            'date' => $date,
+                        ],
+                        [
+                            'status' => 'holiday',
+                            'remarks' => 'Holiday: ' . $holiday->title,
+                        ]
+                    );
+                }
+                $processedData[] = 'Holiday: ' . $holiday->title;
+            }
+
+            // If it's weekly off day (configured in settings), mark all users as weekly_off
+            if ($isWeeklyOff && !$holiday) {
+                $allUsers = User::where('status', 1)->get();
+                foreach ($allUsers as $user) {
+                    Attendance::updateOrCreate(
+                        [
+                            'user_id' => $user->id,
+                            'date' => $date,
+                        ],
+                        [
+                            'status' => 'weekly_off',
+                            'remarks' => 'Weekly Off (' . ($offdaySetting ? $offdaySetting->name : 'Friday') . ')',
+                        ]
+                    );
+                }
+                $processedData[] = 'Weekly Off (' . ($offdaySetting ? $offdaySetting->name : 'Friday') . ')';
+            }
+
+            // Group by user for regular attendance processing
             $groupedLogs = $machineLogs->groupBy('user_id');
 
             foreach ($groupedLogs as $userId => $logs) {

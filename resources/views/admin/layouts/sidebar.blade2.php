@@ -322,6 +322,40 @@
                         </ul>
                     </li>
 
+                    <!-- Holiday Management -->
+                    <li class="nav-item-title">
+                        Holiday Management
+                    </li>
+
+
+                    <li class="nav-item {{Request::is('admin/holidays*')? 'mm-active' : ''}}">
+                        <a href="{{route('admin.holiday.index')}}" class="collapsed-nav-link nav-link" aria-expanded="false">
+                            <span class="icon"><i class="bx bx-calendar-star"></i></span>
+                            <span class="menu-title">Holidays</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item {{Request::is('admin/offday*')? 'mm-active' : ''}}">
+                        <a href="{{route('admin.offday.index')}}" class="collapsed-nav-link nav-link" aria-expanded="false">
+                            <span class="icon"><i class="bx bx-calendar-exclude"></i></span>
+                            <span class="menu-title">Weekly Offday</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item {{Request::is('admin/jobcard*')? 'mm-active' : ''}}">
+                        <a href="{{route('admin.jobcard.index')}}" class="collapsed-nav-link nav-link" aria-expanded="false">
+                            <span class="icon"><i class="bx bx-id-card"></i></span>
+                            <span class="menu-title">Job Card</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item {{Request::is('admin/idcard*')? 'mm-active' : ''}}">
+                        <a href="{{route('admin.idcard.index')}}" class="collapsed-nav-link nav-link" aria-expanded="false">
+                            <span class="icon"><i class="bx bx-id-card"></i></span>
+                            <span class="menu-title">ID Card</span>
+                        </a>
+                    </li>
+
                     <!-- Payroll Management -->
                     <li class="nav-item-title">
                         Payroll Management

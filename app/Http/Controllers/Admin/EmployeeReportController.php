@@ -370,9 +370,9 @@ class EmployeeReportController extends Controller
     {
         $employees = User::where('customer', '=', 1)->where('employee_status', '=', 'active')->hideDev()->get();
 
-        if ($request->has('employee_id')) {
-            $employee = User::findOrFail($request->employee_id);
-            return view(adminTheme().'documents.id_card', compact('employee', 'employees'));
+        if ($request->has('employee_ids')) {
+            $selectedEmployees = User::whereIn('id', $request->employee_ids)->get();
+            return view(adminTheme().'documents.id_card', compact('selectedEmployees', 'employees'));
         }
 
         return view(adminTheme().'documents.id_card', compact('employees'));

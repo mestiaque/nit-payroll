@@ -339,12 +339,6 @@ class User extends Authenticatable
         return $query->whereNotIn('id', $hiddenIds);
     }
 
-    // Employee Management Relationships
-    public function employeeInfo()
-    {
-        return $this->hasOne(EmployeeInfo::class);
-    }
-
     public function employeeEducation()
     {
         return $this->hasMany(EmployeeEducation::class);

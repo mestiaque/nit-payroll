@@ -141,28 +141,26 @@ class PayrollManagementController extends Controller
                 }
 
                 // Get attendance for the month
-                $attendances = Attendance::where('user_id', $employee->id)
-                    ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                    ->get();
+                // Use centralized function for accurate attendance calculation
+                $attendanceSummary = getMonthlyAttendanceSummary($employee->id, $year, $month);
+                
+                $presentDays = $attendanceSummary['present'];
+                $lateDays = $attendanceSummary['late'];
+                $leaveDays = $attendanceSummary['leave'];
+                $holidayDays = $attendanceSummary['holiday'];
+                $weeklyOffDays = $attendanceSummary['weekly_off'];
+                $absentDays = $attendanceSummary['absent'];
+                
+                // Present + Late + Leave + Holiday + Weekly Off = All counted as present (not absent)
+                $presentDays += $lateDays + $leaveDays + $holidayDays + $weeklyOffDays;
 
-                // Count attendance statuses - check multiple possible status values
-                $presentDays = $attendances->whereIn('status', ['present', 'Present', 'P'])->count();
-                $lateDays = $attendances->whereIn('status', ['late', 'Late', 'L'])->count();
-                $presentDays += $lateDays; // Late is still considered present
-
-                // Count leave, weekly_off, holiday, tour as present (not absent)
-                $leaveDays = $attendances->whereIn('status', ['leave', 'Leave'])->count();
-                $weeklyOffDays = $attendances->whereIn('status', ['weekly_off', 'Weekly Off'])->count();
-                $holidayDays = $attendances->whereIn('status', ['holiday', 'Holiday'])->count();
-                $tourDays = $attendances->whereIn('status', ['tour', 'Tour'])->count();
-
-                // Add these to present days
-                $presentDays += $leaveDays + $weeklyOffDays + $holidayDays + $tourDays;
-
-                // Absent days = working days - present days (for display purposes)
+                // Absent days = working days - present days
                 $absentDays = max(0, $workingDays - $presentDays);
 
                 // Calculate work hours and overtime
+                $attendances = Attendance::where('user_id', $employee->id)
+                    ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                    ->get();
                 $overtimeHours = $attendances->sum('overtime');
                 $overtimeMinutes = $attendances->sum('overtime_minutes');
 
@@ -171,8 +169,7 @@ class PayrollManagementController extends Controller
                     $overtimeHours += $overtimeMinutes / 60;
                 }
 
-                // Calculate approved leaves for the month (separate from attendance-based leave)
-                $approvedLeaveDays = $this->calculateApprovedLeaveDays($employee->id, $startDate, $endDate);
+                // Leave days are now calculated using centralized function (getMonthlyAttendanceSummary)
 
                 // Calculate weekend days
                 $weekendDays = $this->calculateWeekendDays($startDate, $endDate);
@@ -195,7 +192,7 @@ class PayrollManagementController extends Controller
                 $presentEarning = $presentDays * $dailyEarning;
                 $lateEarning = $lateDays * ($dailyEarning * 0.9); // 10% late deduction
                 $lateDeduction = $lateDays * ($dailyEarning * 0.1); // Late deduction amount
-                $leaveEarning = $approvedLeaveDays * $dailyEarning; // Approved leave = full pay
+                $leaveEarning = $leaveDays * $dailyEarning; // Approved leave = full pay
 
                 // Total earnings = present + late (reduced) + approved leave + overtime
                 // Note: This is the actual amount to be paid

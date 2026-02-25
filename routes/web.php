@@ -5,6 +5,11 @@ use App\Http\Controllers\Customer\CustomerController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\LeaveController;
+use App\Http\Controllers\Admin\HolidayController;
+use App\Http\Controllers\Admin\OffdayController;
+use App\Http\Controllers\Admin\JobCardController;
+use App\Http\Controllers\Admin\IdCardController;
+use App\Http\Controllers\Admin\LettersController;
 use App\Http\Controllers\Admin\EmployeePortalController;
 use App\Http\Controllers\Admin\PayrollManagementController;
 use App\Http\Controllers\Admin\AttendanceManagementController;
@@ -136,6 +141,25 @@ Route::post('/leaves/types', [LeaveController::class, 'typesStore'])->name('leav
 Route::put('/leaves/types/{id}', [LeaveController::class, 'typesUpdate'])->name('leaves.types.update');
 Route::delete('/leaves/types/{id}', [LeaveController::class, 'typesDestroy'])->name('leaves.types.destroy');
 
+// Holiday Management
+Route::get('/holidays', [HolidayController::class, 'index'])->name('holiday.index');
+Route::get('/holidays/create', [HolidayController::class, 'create'])->name('holiday.create');
+Route::post('/holidays', [HolidayController::class, 'store'])->name('holiday.store');
+Route::get('/holidays/{id}/edit', [HolidayController::class, 'edit'])->name('holiday.edit');
+Route::put('/holidays/{id}', [HolidayController::class, 'update'])->name('holiday.update');
+Route::delete('/holidays/{id}', [HolidayController::class, 'destroy'])->name('holiday.destroy');
+
+// Offday Management
+Route::get('/offday', [OffdayController::class, 'index'])->name('offday.index');
+Route::put('/offday', [OffdayController::class, 'update'])->name('offday.update');
+
+// Job Card Management
+Route::get('/jobcard', [JobCardController::class, 'index'])->name('jobcard.index');
+
+// ID Card Management
+Route::get('/idcard', [IdCardController::class, 'index'])->name('idcard.index');
+Route::get('/idcard/print', [IdCardController::class, 'print'])->name('idcard.print');
+
 // Attendance Management - Roaster
 Route::get('/attendance/roaster', [AttendanceManagementController::class, 'roasterIndex'])->name('attendance.roaster.index');
 Route::get('/attendance/roaster/create', [AttendanceManagementController::class, 'roasterCreate'])->name('attendance.roaster.create');
@@ -210,6 +234,43 @@ Route::get('/documents/resign-letter', [EmployeeReportController::class, 'resign
 Route::get('/documents/commitment-letter', [EmployeeReportController::class, 'commitmentLetter'])->name('documents.commitmentLetter');
 Route::get('/documents/settlement-letter', [EmployeeReportController::class, 'settlementLetter'])->name('documents.settlementLetter');
 Route::get('/documents/job-application', [EmployeeReportController::class, 'jobApplicationForm'])->name('documents.jobApplication');
+
+// Letter Management - Database Stored
+Route::get('/letters/appointment', [LettersController::class, 'appointmentIndex'])->name('letters.appointment.index');
+Route::get('/letters/appointment/create', [LettersController::class, 'appointmentCreate'])->name('letters.appointment.create');
+Route::post('/letters/appointment', [LettersController::class, 'appointmentStore'])->name('letters.appointment.store');
+Route::get('/letters/appointment/{id}/edit', [LettersController::class, 'appointmentEdit'])->name('letters.appointment.edit');
+Route::put('/letters/appointment/{id}', [LettersController::class, 'appointmentUpdate'])->name('letters.appointment.update');
+Route::get('/letters/appointment/{id}', [LettersController::class, 'appointmentShow'])->name('letters.appointment.show');
+Route::get('/letters/appointment/{id}/print', [LettersController::class, 'appointmentPrint'])->name('letters.appointment.print');
+Route::delete('/letters/appointment/{id}', [LettersController::class, 'appointmentDestroy'])->name('letters.appointment.destroy');
+
+Route::get('/letters/joining', [LettersController::class, 'joiningIndex'])->name('letters.joining.index');
+Route::get('/letters/joining/create', [LettersController::class, 'joiningCreate'])->name('letters.joining.create');
+Route::post('/letters/joining', [LettersController::class, 'joiningStore'])->name('letters.joining.store');
+Route::get('/letters/joining/{id}/edit', [LettersController::class, 'joiningEdit'])->name('letters.joining.edit');
+Route::put('/letters/joining/{id}', [LettersController::class, 'joiningUpdate'])->name('letters.joining.update');
+Route::get('/letters/joining/{id}', [LettersController::class, 'joiningShow'])->name('letters.joining.show');
+Route::get('/letters/joining/{id}/print', [LettersController::class, 'joiningPrint'])->name('letters.joining.print');
+Route::delete('/letters/joining/{id}', [LettersController::class, 'joiningDestroy'])->name('letters.joining.destroy');
+
+Route::get('/letters/confirmation', [LettersController::class, 'confirmationIndex'])->name('letters.confirmation.index');
+Route::get('/letters/confirmation/create', [LettersController::class, 'confirmationCreate'])->name('letters.confirmation.create');
+Route::post('/letters/confirmation', [LettersController::class, 'confirmationStore'])->name('letters.confirmation.store');
+Route::get('/letters/confirmation/{id}/edit', [LettersController::class, 'confirmationEdit'])->name('letters.confirmation.edit');
+Route::put('/letters/confirmation/{id}', [LettersController::class, 'confirmationUpdate'])->name('letters.confirmation.update');
+Route::get('/letters/confirmation/{id}', [LettersController::class, 'confirmationShow'])->name('letters.confirmation.show');
+Route::get('/letters/confirmation/{id}/print', [LettersController::class, 'confirmationPrint'])->name('letters.confirmation.print');
+Route::delete('/letters/confirmation/{id}', [LettersController::class, 'confirmationDestroy'])->name('letters.confirmation.destroy');
+
+Route::get('/letters/increment', [LettersController::class, 'incrementIndex'])->name('letters.increment.index');
+Route::get('/letters/increment/create', [LettersController::class, 'incrementCreate'])->name('letters.increment.create');
+Route::post('/letters/increment', [LettersController::class, 'incrementStore'])->name('letters.increment.store');
+Route::get('/letters/increment/{id}/edit', [LettersController::class, 'incrementEdit'])->name('letters.increment.edit');
+Route::put('/letters/increment/{id}', [LettersController::class, 'incrementUpdate'])->name('letters.increment.update');
+Route::get('/letters/increment/{id}', [LettersController::class, 'incrementShow'])->name('letters.increment.show');
+Route::get('/letters/increment/{id}/print', [LettersController::class, 'incrementPrint'])->name('letters.increment.print');
+Route::delete('/letters/increment/{id}', [LettersController::class, 'incrementDestroy'])->name('letters.increment.destroy');
 
 // ===========================================
 // END EMPLOYEE MANAGEMENT SYSTEM ROUTES

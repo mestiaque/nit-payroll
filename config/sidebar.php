@@ -199,8 +199,8 @@ return [
                 [
                     'title' => 'ID Card',
                     'icon' => 'fa fa-id-card',
-                    'route' => 'admin/documents/id-card',
-                    'permission' => 'id_card',
+                    'route' => 'admin/idcard',
+                    'permission' => 'sms',
                 ],
                 [
                     'title' => 'Pay Slip',
@@ -214,30 +214,71 @@ return [
                     'route' => 'admin/documents/personal-info',
                     'permission' => 'personal_info',
                 ],
+                // [
+                //     'title' => 'Appointment Letter',
+                //     'icon' => 'fa fa-envelope',
+                //     'route' => 'admin/documents/appointment-letter',
+                //     'permission' => 'appointment_letter',
+                // ],
+                // [
+                //     'title' => 'Joining Letter',
+                //     'icon' => 'fa fa-sign-in',
+                //     'route' => 'admin/documents/joining-letter',
+                //     'permission' => 'joining_letter',
+                // ],
+                // [
+                //     'title' => 'Increment Letter',
+                //     'icon' => 'fa fa-arrow-up',
+                //     'route' => 'admin/documents/increment-letter',
+                //     'permission' => 'increment_letter',
+                // ],
+                // [
+                //     'title' => 'Confirmation Letter',
+                //     'icon' => 'fa fa-check-circle',
+                //     'route' => 'admin/documents/confirmation-letter',
+                //     'permission' => 'confirmation_letter',
+                // ],
                 [
-                    'title' => 'Appointment Letter',
+                    'title' => 'Job Card',
+                    'icon' => 'fa fa-id-card',
+                    'route' => 'admin/jobcard',
+                    'permission' => 'sms',
+                ]
+            ]
+        ]
+    ],
+    // Letters Management
+    [
+        'group_title' => '',
+        [
+            'title' => 'Letters Management',
+            'icon' => 'fa fa-envelope-open',
+            'permission' => '',
+            'children' => [
+                [
+                    'title' => 'Appointment Letters',
                     'icon' => 'fa fa-envelope',
-                    'route' => 'admin/documents/appointment-letter',
-                    'permission' => 'appointment_letter',
+                    'route' => 'admin/letters/appointment',
+                    'permission' => 'sms',
                 ],
                 [
-                    'title' => 'Joining Letter',
+                    'title' => 'Joining Letters',
                     'icon' => 'fa fa-sign-in',
-                    'route' => 'admin/documents/joining-letter',
-                    'permission' => 'joining_letter',
+                    'route' => 'admin/letters/joining',
+                    'permission' => 'sms',
                 ],
                 [
-                    'title' => 'Increment Letter',
-                    'icon' => 'fa fa-arrow-up',
-                    'route' => 'admin/documents/increment-letter',
-                    'permission' => 'increment_letter',
-                ],
-                [
-                    'title' => 'Confirmation Letter',
+                    'title' => 'Confirmation Letters',
                     'icon' => 'fa fa-check-circle',
-                    'route' => 'admin/documents/confirmation-letter',
-                    'permission' => 'confirmation_letter',
+                    'route' => 'admin/letters/confirmation',
+                    'permission' => 'sms',
                 ],
+                [
+                    'title' => 'Salary Increments',
+                    'icon' => 'fa fa-arrow-up',
+                    'route' => 'admin/letters/increment',
+                    'permission' => 'sms',
+                ]
             ]
         ]
     ],
@@ -333,6 +374,12 @@ return [
                     'route' => 'admin/leaves/types',
                     'permission' => 'sms',
                 ],
+                [
+                    'title' => 'Holiday',
+                    'icon' => 'fa fa-calendar-day',
+                    'route' => 'admin/hr/holidays',
+                    'permission' => 'general',
+                ]
             ]
         ]
 

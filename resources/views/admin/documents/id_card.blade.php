@@ -67,9 +67,9 @@
             /* Hide all UI elements */
             .no-print, .breadcrumb-area, .doc-card, form, button, .btn,
             .sidebar, .sidenav, .main-menu, .header-navbar, .footer,
-            .sidebar-wrapper, .app-sidebar, .app-header, .app-footer,
+            .sidebar-wrapper, .app-sidebar, .app-footer,
             .sidemenu-area, .sidemenu-header, .sidemenu-body,
-            .navbar, .top-navbar, .footer-area,
+            nav, header, .navbar, .top-navbar, .footer-area,
             nav, header, .navbar { display: none !important; }
 
             /* Show only document content */
@@ -181,26 +181,35 @@
 
     <div class="doc-card no-print">
         <form action="{{ route('admin.documents.idCard') }}" method="GET" class="row g-3">
-            <div class="col-md-6">
-                <label>Select Employee</label>
-                <select name="employee_id" class="form-control" required>
-                    <option value="">Choose Employee</option>
+            <div class="col-md-5">
+                <label>Select Employees (Hold Ctrl/Cmd to select multiple)</label>
+                <select name="employee_ids[]" class="form-control" multiple size="8">
                     @foreach($employees ?? [] as $emp)
-                    <option value="{{ $emp->id }}" {{ request('employee_id') == $emp->id ? 'selected' : '' }}>
+                    <option value="{{ $emp->id }}" {{ in_array($emp->id, request()->employee_ids ?? []) ? 'selected' : '' }}>
                         {{ $emp->employee_id }} - {{ $emp->name }}
                     </option>
                     @endforeach
                 </select>
+                <small class="text-muted">Select multiple employees to print at once</small>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-3">
                 <label>&nbsp;</label>
                 <button type="submit" class="btn btn-primary w-100"><i class="bx bx-id-card"></i> Generate</button>
+            </div>
+            <div class="col-md-4">
+                <label>&nbsp;</label>
+                <div class="mt-2">
+                    @if(count(request()->employee_ids ?? []) > 0)
+                    <button type="button" onclick="window.print()" class="btn btn-success w-100"><i class="bx bx-printer"></i> Print ID Cards</button>
+                    @endif
+                </div>
             </div>
         </form>
     </div>
 
-    @if($employee ?? false)
+    @if(count($selectedEmployees ?? []) > 0)
     <div class="text-center">
+        @foreach($selectedEmployees as $employee)
         <div class="d-inline-block">
             <!-- Front Side -->
             <div class="id-card">
@@ -240,10 +249,11 @@
                 </p>
             </div>
         </div>
+        @endforeach
     </div>
 
     <div class="text-center mt-4 no-print">
-        <button onclick="window.print()" class="btn btn-success btn-lg"><i class="bx bx-printer"></i> Print ID Card</button>
+        <button onclick="window.print()" class="btn btn-success btn-lg"><i class="bx bx-printer"></i> Print ID Cards</button>
         <a href="{{ route('admin.documents.idCard') }}" class="btn btn-secondary btn-lg">Generate Another</a>
     </div>
     @endif
