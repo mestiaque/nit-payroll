@@ -268,4 +268,63 @@ class LeaveController extends Controller
 
         return redirect()->route('leaves.index')->with('success', 'Leave created successfully.');
     }
+
+    /**
+     * Leave Summary - shows all employees' leave balance and taken leaves (Yearly)
+     */
+    public function summary(Request $request)
+    {
+        $year = $request->year ?? Carbon::now()->year;
+        
+        $users = User::where('status', 1)->hideDev()
+            ->with(['department', 'designation'])
+            ->get();
+        
+        $leaveTypes = Attribute::where('type', 20)->where('status', 'active')->get();
+        
+        // Get all approved leaves for the selected year
+        $leaves = Leave::where('status', 'approved')
+            ->whereYear('start_date', $year)
+            ->get();
+        
+        // Organize leaves by user and type
+        $userLeaves = [];
+        foreach ($leaves as $leave) {
+            $userId = $leave->user_id;
+            $typeId = $leave->leave_type_id;
+            if (!isset($userLeaves[$userId])) {
+                $userLeaves[$userId] = [];
+            }
+            if (!isset($userLeaves[$userId][$typeId])) {
+                $userLeaves[$userId][$typeId] = 0;
+            }
+            $userLeaves[$userId][$typeId] += $leave->days;
+        }
+        
+        // Build summary data
+        $summaryData = [];
+        foreach ($users as $user) {
+            $userData = [
+                'user' => $user,
+                'leaves' => [],
+                'total_taken' => 0,
+            ];
+            
+            foreach ($leaveTypes as $type) {
+                $taken = $userLeaves[$user->id][$type->id] ?? 0;
+                $allowed = $type->qty ?? 0;
+                $userData['leaves'][] = [
+                    'type' => $type,
+                    'allowed' => $allowed,
+                    'taken' => $taken,
+                    'remaining' => $allowed - $taken,
+                ];
+                $userData['total_taken'] += $taken;
+            }
+            
+            $summaryData[] = $userData;
+        }
+        
+        return view(adminTheme().'leaves.summary', compact('summaryData', 'leaveTypes', 'year'));
+    }
 }

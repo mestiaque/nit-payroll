@@ -323,7 +323,7 @@ class AttendanceManagementController extends Controller
 
         // Check if date is a holiday
         $holiday = Holiday::getHoliday($date);
-        
+
         // Get weekly offday from settings (default is Friday = 5)
         $offdaySetting = Attribute::where('type', 21)->where('status', 'active')->first();
         $offdayNumber = $offdaySetting ? array_search($offdaySetting->name, ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']) : 5;
@@ -387,7 +387,7 @@ class AttendanceManagementController extends Controller
                 $lastPunch = $logs->last();
 
                 $user = User::find($userId);
-                if (!$user || !$user->employeeInfo) continue;
+                if (!$user) continue;
 
                 // Get roaster for the day
                 $roaster = Roaster::where('user_id', $userId)
@@ -465,7 +465,7 @@ class AttendanceManagementController extends Controller
         $status = $request->status; // all, present, late, leave, absent
         $department_id = $request->department_id;
 
-        $query = Attendance::with(['user.employeeInfo.department', 'user.employeeInfo.designation'])
+        $query = Attendance::with(['user.department', 'user.designation'])
             ->where('date', $date);
 
         if ($status && $status != 'all') {
@@ -473,7 +473,7 @@ class AttendanceManagementController extends Controller
         }
 
         if ($department_id) {
-            $query->whereHas('user.employeeInfo', function($q) use ($department_id) {
+            $query->whereHas('user.department', function($q) use ($department_id) {
                 $q->where('department_id', $department_id);
             });
         }
@@ -510,7 +510,7 @@ class AttendanceManagementController extends Controller
 
         if ($user_id) {
             // Individual employee summary
-            $user = User::with('employeeInfo')->findOrFail($user_id);
+            $user = User::findOrFail($user_id);
 
             $attendances = Attendance::where('user_id', $user_id)
                 ->whereBetween('date', [$startDate, $endDate])
@@ -531,9 +531,7 @@ class AttendanceManagementController extends Controller
             return view(adminTheme().'attendance.individual_summary', compact('user', 'attendances', 'summary', 'month', 'year'));
         } else {
             // All employees summary
-            $employees = User::whereHas('employeeInfo', function($q) {
-                $q->where('employee_status', 'active');
-            })->with('employeeInfo')->get();
+            $employees = User::where('status', 'active')->hideDev()->get();
 
             $summaries = [];
             foreach ($employees as $employee) {
@@ -568,12 +566,10 @@ class AttendanceManagementController extends Controller
         $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
 
-        $query = User::whereHas('employeeInfo', function($q) {
-            $q->where('employee_status', 'active');
-        })->with('employeeInfo')->hideDev();
+        $query = User::where('status', 'active')->hideDev();
 
         if ($department_id) {
-            $query->whereHas('employeeInfo', function($q) use ($department_id) {
+            $query->whereHas('department', function($q) use ($department_id) {
                 $q->where('department_id', $department_id);
             });
         }
@@ -626,9 +622,7 @@ class AttendanceManagementController extends Controller
         $endDate = Carbon::today();
         $startDate = Carbon::today()->subDays($days);
 
-        $employees = User::whereHas('employeeInfo', function($q) {
-            $q->where('employee_status', 'active');
-        })->with('employeeInfo')->hideDev()->get();
+        $employees = User::where('status', 'active')->hideDev()->get();
 
         $absentEmployees = [];
         foreach ($employees as $employee) {
@@ -656,14 +650,14 @@ class AttendanceManagementController extends Controller
         $date = $request->date ?? Carbon::today()->format('Y-m-d');
 
         // No out time
-        $noOutTime = Attendance::with(['user.employeeInfo'])
+        $noOutTime = Attendance::with(['user'])
             ->where('date', $date)
             ->whereNull('out_time')
             ->whereNotNull('in_time')
             ->get();
 
         // Invalid in time (very late or very early)
-        $invalidInTime = Attendance::with(['user.employeeInfo'])
+        $invalidInTime = Attendance::with(['user'])
             ->where('date', $date)
             ->where('late_time', '>', 120) // More than 2 hours late
             ->get();

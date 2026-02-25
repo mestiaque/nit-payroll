@@ -166,6 +166,12 @@ return [
                     'route' => 'admin/leaves/report',
                     'permission' => 'payroll_report',
                 ],
+                [
+                    'title' => 'Leave Summary',
+                    'icon' => 'fa fa-bar-chart',
+                    'route' => 'admin/leaves/summary',
+                    'permission' => 'payroll_report',
+                ],
                 // [
                 //     'title' => 'Absent Report',
                 //     'icon' => 'fa fa-user-times',

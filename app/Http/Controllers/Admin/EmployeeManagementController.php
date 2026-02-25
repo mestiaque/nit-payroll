@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\EmployeeInfo;
 use App\Models\EmployeeEducation;
 use App\Models\EmployeeTraining;
 use App\Models\EmployeeExperience;
@@ -98,7 +97,7 @@ class EmployeeManagementController extends Controller
             'email' => 'nullable|email|unique:users,email',
             'mobile' => 'required|string|unique:users,mobile',
             'password' => 'required|string|min:6',
-            'employee_id' => 'nullable|unique:employee_info,employee_id',
+            'employee_id' => 'nullable|unique:users,employee_id',
             'date_of_birth' => 'nullable|date',
             'joining_date' => 'required|date',
         ]);

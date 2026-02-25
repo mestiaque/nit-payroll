@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\EmployeeInfo;
 use App\Models\EmployeeIncrement;
 use App\Models\Attribute;
 use App\Models\Leave;
@@ -23,7 +22,7 @@ class EmployeeReportController extends Controller
         $departments = Attribute::where('type', 3)->where('status', 'active')->get();
         $designations = Attribute::where('type', 4)->where('status', 'active')->get();
 
-        $query = User::with(['employeeInfo.department', 'employeeInfo.designation'])
+        $query = User::with(['department', 'designation'])
             ->hideDev();
 
         // Search filters
@@ -37,13 +36,13 @@ class EmployeeReportController extends Controller
         }
 
         if ($request->department_id) {
-            $query->whereHas('employeeInfo', function($q) use ($request) {
+            $query->whereHas('department', function($q) use ($request) {
                 $q->where('department_id', $request->department_id);
             });
         }
 
         if ($request->designation_id) {
-            $query->whereHas('employeeInfo', function($q) use ($request) {
+            $query->whereHas('designation', function($q) use ($request) {
                 $q->where('designation_id', $request->designation_id);
             });
         }
@@ -289,7 +288,7 @@ class EmployeeReportController extends Controller
         $user_id = $request->user_id;
         $status = $request->status;
 
-        $query = Leave::with(['user.employeeInfo', 'leaveType', 'approver']);
+        $query = Leave::with(['user', 'leaveType', 'approver']);
 
         if ($month && $year) {
             $query->whereMonth('start_date', $month)->whereYear('start_date', $year);
@@ -310,7 +309,7 @@ class EmployeeReportController extends Controller
         $leaves = $query->paginate(50);
 
         $leaveTypes = Attribute::where('type', 20)->where('status', 'active')->get();
-        $employees = User::whereHas('employeeInfo')->hideDev()->get();
+        $employees = User::hideDev()->get();
 
         return view(adminTheme().'reports.leave_report', compact('leaves', 'leaveTypes', 'employees', 'month', 'year'));
     }
@@ -473,7 +472,7 @@ class EmployeeReportController extends Controller
      */
     public function ageIdentificationLetter($userId)
     {
-        $employee = User::with('employeeInfo')->hideDev()->findOrFail($userId);
+        $employee = User::hideDev()->findOrFail($userId);
 
         $pdf = PDF::loadView('admin.documents.age_identification', compact('employee'));
         return $pdf->stream('age_identification_' . $employee->name . '.pdf');
@@ -485,7 +484,7 @@ class EmployeeReportController extends Controller
     public function jobLedger($userId)
     {
         $employee = User::with([
-            'employeeInfo', 'attendances', 'leaves', 'salarySheets', 'increments'
+            'attendances', 'leaves', 'salarySheets', 'increments'
         ])->hideDev()->findOrFail($userId);
 
         $pdf = PDF::loadView('admin.documents.job_ledger', compact('employee'));
@@ -497,7 +496,7 @@ class EmployeeReportController extends Controller
      */
     public function nomineeForm($userId)
     {
-        $employee = User::with('employeeInfo')->hideDev()->findOrFail($userId);
+        $employee = User::hideDev()->findOrFail($userId);
 
         $pdf = PDF::loadView('admin.documents.nominee_form', compact('employee'));
         return $pdf->stream('nominee_form_' . $employee->name . '.pdf');
@@ -508,7 +507,7 @@ class EmployeeReportController extends Controller
      */
     public function resignLetter($userId)
     {
-        $employee = User::with('employeeInfo')->hideDev()->findOrFail($userId);
+        $employee = User::hideDev()->findOrFail($userId);
 
         $pdf = PDF::loadView('admin.documents.resign_letter', compact('employee'));
         return $pdf->stream('resign_letter_' . $employee->name . '.pdf');
@@ -519,7 +518,7 @@ class EmployeeReportController extends Controller
      */
     public function commitmentLetter($userId)
     {
-        $employee = User::with('employeeInfo')->hideDev()->findOrFail($userId);
+        $employee = User::hideDev()->findOrFail($userId);
 
         $pdf = PDF::loadView('admin.documents.commitment_letter', compact('employee'));
         return $pdf->stream('commitment_letter_' . $employee->name . '.pdf');
@@ -530,9 +529,9 @@ class EmployeeReportController extends Controller
      */
     public function settlementLetter($userId)
     {
-        $employee = User::with('employeeInfo')->hideDev()->findOrFail($userId);
+        $employee = User::hideDev()->findOrFail($userId);
 
-        if (!$employee->employeeInfo || !in_array($employee->employeeInfo->employee_status, ['retired', 'resigned'])) {
+        if (!$employee || !in_array($employee->employee_status, ['retired', 'resigned'])) {
             return back()->with('error', 'Settlement letter only for retired/resigned employees!');
         }
 
@@ -546,7 +545,7 @@ class EmployeeReportController extends Controller
     public function jobApplicationForm($userId)
     {
         $employee = User::with([
-            'employeeInfo', 'employeeEducation', 'employeeExperience'
+             'employeeEducation', 'employeeExperience'
         ])->hideDev()->findOrFail($userId);
 
         $pdf = PDF::loadView('admin.documents.job_application', compact('employee'));

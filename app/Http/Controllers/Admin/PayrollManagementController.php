@@ -143,14 +143,14 @@ class PayrollManagementController extends Controller
                 // Get attendance for the month
                 // Use centralized function for accurate attendance calculation
                 $attendanceSummary = getMonthlyAttendanceSummary($employee->id, $year, $month);
-                
+
                 $presentDays = $attendanceSummary['present'];
                 $lateDays = $attendanceSummary['late'];
                 $leaveDays = $attendanceSummary['leave'];
                 $holidayDays = $attendanceSummary['holiday'];
                 $weeklyOffDays = $attendanceSummary['weekly_off'];
                 $absentDays = $attendanceSummary['absent'];
-                
+
                 // Present + Late + Leave + Holiday + Weekly Off = All counted as present (not absent)
                 $presentDays += $lateDays + $leaveDays + $holidayDays + $weeklyOffDays;
 
@@ -316,8 +316,8 @@ class PayrollManagementController extends Controller
         }
 
         // Fall back to shift from employee info
-        if ($employee->employeeInfo && $employee->employeeInfo->shift) {
-            return $employee->employeeInfo->shift;
+        if ($employee && $employee->shift) {
+            return $employee->shift;
         }
 
         return null;
@@ -464,8 +464,8 @@ class PayrollManagementController extends Controller
         }
 
         if ($department_id) {
-            $query->whereHas('user.employeeInfo', function ($q) use ($department_id) {
-                $q->where('department_id', $department_id);
+            $query->whereHas('user.department', function ($q) use ($department_id) {
+                $q->where('id', $department_id);
             });
         }
 
@@ -549,7 +549,7 @@ class PayrollManagementController extends Controller
     {
         $date = $request->date ?? Carbon::today()->format('Y-m-d');
 
-        $attendances = Attendance::with(['user.employeeInfo'])
+        $attendances = Attendance::with(['user'])
             ->where('date', $date)
             ->get();
 
@@ -570,7 +570,7 @@ class PayrollManagementController extends Controller
 
             $dailySalaries[] = [
                 'user' => $user,
-                'employeeInfo' => $user->employeeInfo,
+                'employeeInfo' => $user,
                 'attendance' => $attendance,
                 'daily_salary' => $perDaySalary,
             ];
@@ -626,7 +626,7 @@ class PayrollManagementController extends Controller
         $month = $request->month ?? Carbon::now()->month;
         $year = $request->year ?? Carbon::now()->year;
 
-        $salaries = SalarySheet::with(['user.employeeInfo.department', 'user.employeeInfo.designation'])
+        $salaries = SalarySheet::with(['user.department', 'user.designation'])
             ->where('month', $month)
             ->where('year', $year)
             ->get();
@@ -643,7 +643,7 @@ class PayrollManagementController extends Controller
         $month = $request->month ?? Carbon::now()->month;
         $year = $request->year ?? Carbon::now()->year;
 
-        $salaries = SalarySheet::with(['user.employeeInfo.department', 'user.employeeInfo.designation'])
+        $salaries = SalarySheet::with(['user.department', 'user.designation'])
             ->where('month', $month)
             ->where('year', $year)
             ->get();
@@ -692,7 +692,7 @@ class PayrollManagementController extends Controller
         $month = $request->month ?? Carbon::now()->month;
         $year = $request->year ?? Carbon::now()->year;
 
-        $heldSalaries = SalarySheet::with(['user.employeeInfo'])
+        $heldSalaries = SalarySheet::with(['user'])
             ->where('month', $month)
             ->where('year', $year)
             ->where('payment_status', 'held')

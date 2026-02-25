@@ -207,6 +207,9 @@ Route::get('/reports/payroll', [PayrollManagementController::class, 'payrollRepo
 // Leave Report
 Route::get('/leaves/report', [EmployeeReportController::class, 'leaveReport'])->name('leaves.report');
 
+// Leave Summary
+Route::get('/leaves/summary', [LeaveController::class, 'summary'])->name('leaves.summary');
+
 // Employee Reports
 Route::get('/reports/employees', [EmployeeReportController::class, 'index'])->name('reports.employees.index');
 Route::get('/reports/employees/gender-wise', [EmployeeReportController::class, 'genderWiseReport'])->name('reports.employees.genderWise');
