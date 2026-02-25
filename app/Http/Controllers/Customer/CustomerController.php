@@ -11,6 +11,7 @@ use App\Models\Shift;
 use App\Models\User;
 use App\Models\UserLocation;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use File;
 use Hash;
 use Illuminate\Http\Request;
@@ -832,6 +833,33 @@ class CustomerController extends Controller
         $leave->save();
 
         return redirect()->route('customer.leaves.index')->with('success', 'Leave application submitted successfully!');
+    }
+
+
+    public function leaveUpdate(Request $request, $id)
+    {
+        $leave = Leave::findOrFail($id);
+            // Update details logic
+        $request->validate([
+            'leave_type_id' => 'required|exists:attributes,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'reason' => 'nullable|string',
+        ]);
+
+        $leave->leave_type_id = $request->leave_type_id;
+        $leave->start_date = $request->start_date;
+        $leave->end_date = $request->end_date;
+
+        $start = Carbon::parse($request->start_date);
+        $end = Carbon::parse($request->end_date);
+        $leave->days = $start->diffInDays($end) + 1;
+
+        $leave->reason = $request->reason;
+
+        $leave->save();
+
+        return redirect()->route('customer.leaves.index')->with('success', 'Leave updated successfully.');
     }
 
     public function leaveDestroy($id)

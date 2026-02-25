@@ -42,12 +42,12 @@ class Leave extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    protected static function booted()
-    {
-        static::addGlobalScope('hideUser7', function (Builder $builder) {
-            $builder->where('user_id', '!=', 7);
-        });
-    }
+    // protected static function booted()
+    // {
+    //     static::addGlobalScope('hideUser7', function (Builder $builder) {
+    //         $builder->where('user_id', '!=', 7);
+    //     });
+    // }
 
 
 }
