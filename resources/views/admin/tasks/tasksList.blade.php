@@ -5,7 +5,7 @@
 @endpush @section('contents')
 
 <div class="flex-grow-1">
-    
+
 
 <!-- Start -->
 <div class="card mb-30">
@@ -17,7 +17,7 @@
                  <i class="bx bx-plus"></i> Task
              </a>
              @endisset
-             
+
              <a href="{{route('admin.tasks')}}" class="btn-custom yellow">
                  <i class="bx bx-rotate-left"></i>
              </a>
@@ -60,7 +60,7 @@
                     <!--</div>-->
                 </div>
                 <div class="col-md-8">
-                    <ul class="statuslist">
+                    <ul class="statuslist mb-0">
                         <li><a href="{{route('admin.tasks')}}">All ({{$totals->total}})</a></li>
                         <li><a href="{{route('admin.tasks',['status'=>'pending'])}}">Pending ({{$totals->pending}})</a></li>
                         <li><a href="{{route('admin.tasks',['status'=>'in progress'])}}">In progress ({{$totals->progress}})</a></li>
@@ -148,7 +148,7 @@
                                     <i class="bx bx-edit"></i>
                                 </a>
                                 @endisset
-                                
+
                                 @isset(json_decode(Auth::user()->permission->permission, true)['tasks']['delete'])
                                 <a href="{{route('admin.tasksAction',['delete',$task->id])}}" class="btn-custom danger" onclick="return confirm('Are You Want To Delete?')"><i class="bx bx-trash"></i></a>
                                 @endisset
@@ -160,8 +160,8 @@
                 {{$tasks->links('pagination')}}
             </div>
         </form>
-        
-        
+
+
     </div>
 </div>
 </div>
@@ -362,12 +362,12 @@
 
 
 
-@endsection 
-@push('js') 
+@endsection
+@push('js')
 
 <script>
     $(document).ready(function(){
-        
+
         $('.select2').select2({
             dropdownParent: $('#AddDesignations'),
             placeholder: $('.select2').data('placeholder'),
@@ -380,7 +380,7 @@
             width: '100%',
             allowClear: true
         });
-        
+
         @foreach($tasks as $i=>$data)
         $('.select2_{{$data->id}}').select2({
             dropdownParent: $('#EditDesignations_{{$data->id}}'),
@@ -395,7 +395,7 @@
             allowClear: true
         });
         @endforeach
-        
+
     });
 </script>
 

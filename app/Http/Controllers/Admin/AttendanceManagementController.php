@@ -165,7 +165,7 @@ class AttendanceManagementController extends Controller
 
         $departments = Attribute::where('type', 3)->where('status', 'active')->get();
         $shifts = Shift::where('status', 'active')->get();
-        $employees = User::where('employee_status', 'active')->hideDev()->get();
+        $employees = User::where('employee_status', 'active')->filterBy('employee')->get();
 
         return view(adminTheme().'attendance.roaster_index', compact('roasters', 'departments', 'shifts', 'employees', 'date'));
     }
@@ -177,7 +177,7 @@ class AttendanceManagementController extends Controller
     {
         $employees = User::where('employee_status', 'active')
             ->with(['department', 'designation'])
-            ->hideDev()
+            ->filterBy('employee')
             ->get();
 
         $shifts = Shift::where('status', 'active')->get();
@@ -531,7 +531,7 @@ class AttendanceManagementController extends Controller
             return view(adminTheme().'attendance.individual_summary', compact('user', 'attendances', 'summary', 'month', 'year'));
         } else {
             // All employees summary
-            $employees = User::where('status', 'active')->hideDev()->get();
+            $employees = User::where('status', 'active')->filterBy('employee')->get();
 
             $summaries = [];
             foreach ($employees as $employee) {
@@ -566,7 +566,7 @@ class AttendanceManagementController extends Controller
         $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
 
-        $query = User::where('status', 'active')->hideDev();
+        $query = User::where('status', 'active')->filterBy('employee');
 
         if ($department_id) {
             $query->whereHas('department', function($q) use ($department_id) {
@@ -622,7 +622,7 @@ class AttendanceManagementController extends Controller
         $endDate = Carbon::today();
         $startDate = Carbon::today()->subDays($days);
 
-        $employees = User::where('status', 'active')->hideDev()->get();
+        $employees = User::where('status', 'active')->filterBy('employee')->get();
 
         $absentEmployees = [];
         foreach ($employees as $employee) {
@@ -683,7 +683,7 @@ class AttendanceManagementController extends Controller
             $query->where('date', $request->date);
         }
         $attendances = $query->orderBy('date', 'desc')->paginate(2);
-        $employees = User::where('status', 1)->hideDev()->get();
+        $employees = User::where('status', 1)->filterBy('employee')->get();
         $departments = Attribute::where('type', 3)->where('status', 'active')->get();
         return view('admin.attendance.manual_index', compact('attendances', 'employees', 'departments'));
     }
@@ -693,7 +693,7 @@ class AttendanceManagementController extends Controller
      */
     public function manualCreate()
     {
-        $employees = User::where('status', 1)->hideDev()->get();
+        $employees = User::where('status', 1)->filterBy('employee')->get();
         return view('admin.attendance.manual_create', compact('employees'));
     }
 
@@ -748,7 +748,7 @@ class AttendanceManagementController extends Controller
     public function manualEdit($id)
     {
         $attendance = \App\Models\Attendance::findOrFail($id);
-        $employees = \App\Models\User::where('status', 1)->hideDev()->get();
+        $employees = \App\Models\User::where('status', 1)->filterBy('employee')->get();
         return view('admin.attendance.manual_edit', compact('attendance', 'employees'));
     }
 

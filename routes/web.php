@@ -114,18 +114,24 @@ Route::any('/hr/sections/{action}/{id?}',[AdminController::class,'sectionsAction
 Route::get('/hr/shifts',[AdminController::class,'shifts'])->name('shifts');
 Route::any('/hr/shifts/{action}/{id?}',[AdminController::class,'shiftsAction'])->name('shiftsAction');
 
-
-
 Route::get('/users/admin/',[AdminController::class,'usersAdmin'])->name('usersAdmin');
 Route::any('/users/admin/{action}/{id?}',[AdminController::class,'usersAdminAction'])->name('usersAdminAction');
-Route::get('/users/customer/',[AdminController::class,'usersCustomer'])->name('usersCustomer');
-Route::any('/users/customer/{action}/{id?}',[AdminController::class,'usersCustomerAction'])->name('usersCustomerAction');
+
+// Admin Creation Routes
+Route::get('/users/admin/create', [AdminController::class, 'createAdmin'])->name('users.admin.create');
+Route::post('/users/admin/create', [AdminController::class, 'storeAdmin'])->name('users.admin.store');
+
+// Super Admin Creation Routes
+Route::get('/users/super-admin/create', [AdminController::class, 'createSuperAdmin'])->name('users.superadmin.create');
+Route::post('/users/super-admin/create', [AdminController::class, 'storeSuperAdmin'])->name('users.superadmin.store');
+
+Route::get('/users/employee/',[AdminController::class,'usersCustomer'])->name('usersCustomer');
+Route::any('/users/employee/{action}/{id?}',[AdminController::class,'usersCustomerAction'])->name('usersCustomerAction');
 Route::get('/suppliers',[AdminController::class,'usersSuppliers'])->name('usersSuppliers');
 Route::any('/suppliers/{action}/{id?}',[AdminController::class,'usersSuppliersAction'])->name('usersSuppliersAction');
 Route::get('/users/roles',[AdminController::class,'userRoles'])->name('userRoles');
 Route::any('/users/roles/{action}/{id?}',[AdminController::class,'userRoleAction'])->name('userRoleAction');
 Route::get('/subscribes',[AdminController::class,'subscribes'])->name('subscribes');
-
 
 // Leave Management
 Route::get('/leaves', [LeaveController::class, 'index'])->name('leaves.index');

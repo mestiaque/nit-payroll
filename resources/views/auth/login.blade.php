@@ -1,7 +1,7 @@
-@extends(welcomeTheme().'layouts.app') 
+@extends(welcomeTheme().'layouts.app')
 @section('title')
 <title>{{websiteTitle('Login')}}</title>
-@endsection 
+@endsection
 @section('SEO')
 <meta name="description" content="{!!general()->meta_description!!}" />
 <meta name="keywords" content="{{general()->meta_keyword}}" />
@@ -10,12 +10,12 @@
 <meta property="og:image" content="{!!general()->meta_description!!}" />
 <meta property="og:url" content="{{route('login')}}" />
 <link rel="canonical" href="{{route('login')}}">
-@endsection 
+@endsection
 @push('css')
 <style>
 
 </style>
-@endpush 
+@endpush
 @section('contents')
          <!-- Start Login Area -->
          <div class="login-area">
@@ -33,16 +33,19 @@
                  <form action="{{route('login')}}" method="post">
                      @csrf
                      <div class="form-group">
-                         <input type="email" class="form-control" name="email" placeholder="Email" value="{{old('email')}}" required="" />
+                         <input type="text" class="form-control" name="email" placeholder="Email/Id" value="{{old('email')}}" required="" />
                          <span class="label-title"><i class='bx bx-user'></i></span>
                          @if($errors->has('email'))
                             <span style="color:red;display: block;">{{ $errors->first('email') }}</span>
                         @endif
                      </div>
-                    
+
                      <div class="form-group">
                          <input type="password" class="form-control" name="password" placeholder="Password" value="{{old('password')}}" required="" />
                          <span class="label-title"><i class='bx bx-lock'></i></span>
+                         @if($errors->has('password'))
+                            <span style="color:red;display: block;">{{ $errors->first('password') }}</span>
+                        @endif
                      </div>
 
                      <div class="form-group">
@@ -61,5 +64,5 @@
              </div>
          </div>
          <!-- End Login Area -->
-@endsection 
+@endsection
 @push('js') @endpush

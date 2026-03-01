@@ -1,11 +1,11 @@
-@extends(adminTheme().'layouts.app') 
+@extends(adminTheme().'layouts.app')
 @section('title')
 <title>{{websiteTitle('Posts List')}}</title>
-@endsection 
+@endsection
 
 @push('css')
 <style type="text/css"></style>
-@endpush 
+@endpush
 
 @section('contents')
 
@@ -102,7 +102,7 @@
                                     </div>
                                     <div class="col-md-4"></div>
                                     <div class="col-md-4">
-                                        <ul class="statuslist">
+                                        <ul class="statuslist mb-0">
                                             <li><a href="{{route('admin.posts')}}">All ({{$totals->total}})</a></li>
                                             <li><a href="{{route('admin.posts',['status'=>'active'])}}">Active ({{$totals->active}})</a></li>
                                             <li><a href="{{route('admin.posts',['status'=>'inactive'])}}">Inactive ({{$totals->inactive}})</a></li>
@@ -156,7 +156,7 @@
                                                     @foreach($post->postCategories as $i=>$ctg) {{$i==0?'':'-'}} {{$ctg->name}} @endforeach
                                                 </td>
                                                 <td style="padding: 5px; text-align: center;">
-                                                    
+
                                                     <a href="{{route('admin.postsAction',['edit',$post->id])}}" class="btn btn-sm btn-info">Edit</a>
 
                                                     @isset(json_decode(Auth::user()->permission->permission, true)['posts']['delete'])
@@ -185,10 +185,10 @@
     <!-- Basic Inputs end -->
 </div>
 
-@endsection 
+@endsection
 
 @push('js')
 <script type="text/javascript">
-    
+
 </script>
 @endpush

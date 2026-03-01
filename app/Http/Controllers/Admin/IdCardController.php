@@ -13,7 +13,7 @@ class IdCardController extends Controller
      */
     public function index(Request $request)
     {
-        $users = User::where('status', 1)->hideDev()->get();
+        $users = User::where('status', 1)->filterBy('employee')->get();
 
         $selectedUsers = [];
         if ($request->user_ids) {
@@ -30,7 +30,7 @@ class IdCardController extends Controller
      */
     public function print(Request $request)
     {
-        $users = User::where('status', 1)->hideDev()->get();
+        $users = User::where('status', 1)->filterBy('employee')->get();
 
         $selectedUsers = [];
         if ($request->user_ids) {

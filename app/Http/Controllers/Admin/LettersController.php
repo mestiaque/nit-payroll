@@ -24,7 +24,7 @@ class LettersController extends Controller
 
     public function appointmentCreate()
     {
-        $employees = User::where('customer', 1)->where('employee_status', 'active')->hideDev()->get();
+        $employees = User::where('customer', 1)->where('employee_status', 'active')->filterBy('employee')->get();
         return view('admin.letters.appointment.create', compact('employees'));
     }
 
@@ -55,14 +55,14 @@ class LettersController extends Controller
     public function appointmentEdit($id)
     {
         $letter = AppointmentLetter::findOrFail($id);
-        $employees = User::where('customer', 1)->where('employee_status', 'active')->hideDev()->get();
+        $employees = User::where('customer', 1)->where('employee_status', 'active')->filterBy('employee')->get();
         return view('admin.letters.appointment.edit', compact('letter', 'employees'));
     }
 
     public function appointmentUpdate(Request $request, $id)
     {
         $letter = AppointmentLetter::findOrFail($id);
-        
+
         $request->validate([
             'user_id' => 'required',
             'letter_date' => 'required|date',
@@ -105,7 +105,7 @@ class LettersController extends Controller
 
     public function joiningCreate()
     {
-        $employees = User::where('customer', 1)->where('employee_status', 'active')->hideDev()->get();
+        $employees = User::where('customer', 1)->where('employee_status', 'active')->filterBy('employee')->get();
         return view('admin.letters.joining.create', compact('employees'));
     }
 
@@ -133,14 +133,14 @@ class LettersController extends Controller
     public function joiningEdit($id)
     {
         $letter = JoiningLetter::findOrFail($id);
-        $employees = User::where('customer', 1)->where('employee_status', 'active')->hideDev()->get();
+        $employees = User::where('customer', 1)->where('employee_status', 'active')->filterBy('employee')->get();
         return view('admin.letters.joining.edit', compact('letter', 'employees'));
     }
 
     public function joiningUpdate(Request $request, $id)
     {
         $letter = JoiningLetter::findOrFail($id);
-        
+
         $request->validate([
             'user_id' => 'required',
             'letter_date' => 'required|date',
@@ -180,7 +180,7 @@ class LettersController extends Controller
 
     public function confirmationCreate()
     {
-        $employees = User::where('customer', 1)->where('employee_status', 'active')->hideDev()->get();
+        $employees = User::where('customer', 1)->where('employee_status', 'active')->filterBy('employee')->get();
         return view('admin.letters.confirmation.create', compact('employees'));
     }
 
@@ -208,14 +208,14 @@ class LettersController extends Controller
     public function confirmationEdit($id)
     {
         $letter = ConfirmationLetter::findOrFail($id);
-        $employees = User::where('customer', 1)->where('employee_status', 'active')->hideDev()->get();
+        $employees = User::where('customer', 1)->where('employee_status', 'active')->filterBy('employee')->get();
         return view('admin.letters.confirmation.edit', compact('letter', 'employees'));
     }
 
     public function confirmationUpdate(Request $request, $id)
     {
         $letter = ConfirmationLetter::findOrFail($id);
-        
+
         $request->validate([
             'user_id' => 'required',
             'letter_date' => 'required|date',
@@ -280,7 +280,7 @@ class LettersController extends Controller
 
     public function incrementCreate()
     {
-        $employees = User::where('customer', 1)->where('employee_status', 'active')->hideDev()->get();
+        $employees = User::where('customer', 1)->where('employee_status', 'active')->filterBy('employee')->get();
         return view('admin.letters.increment.create', compact('employees'));
     }
 
@@ -313,14 +313,14 @@ class LettersController extends Controller
     public function incrementEdit($id)
     {
         $increment = EmployeeIncrement::findOrFail($id);
-        $employees = User::where('customer', 1)->where('employee_status', 'active')->hideDev()->get();
+        $employees = User::where('customer', 1)->where('employee_status', 'active')->filterBy('employee')->get();
         return view('admin.letters.increment.edit', compact('increment', 'employees'));
     }
 
     public function incrementUpdate(Request $request, $id)
     {
         $increment = EmployeeIncrement::findOrFail($id);
-        
+
         $request->validate([
             'user_id' => 'required',
             'increment_date' => 'required|date',

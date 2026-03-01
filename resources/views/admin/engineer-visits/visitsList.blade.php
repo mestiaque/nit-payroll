@@ -52,7 +52,7 @@
                         </div>
                     </div>
                     <div class="col-md-8">
-                        <!--<ul class="statuslist">-->
+                        <!--<ul class="statuslist mb-0">-->
                         <!--    <li><a href="{{route('admin.engineerVisits')}}">All ({{$totals->total}})</a></li>-->
                         <!--    <li><a href="{{route('admin.engineerVisits',['status'=>'Not Potential'])}}">Not Potential ({{$totals->nonPotential}})</a></li>-->
                         <!--    <li><a href="{{route('admin.engineerVisits',['status'=>'Potential'])}}">Potential ({{$totals->potential}})</a></li>-->
@@ -73,7 +73,7 @@
                                                  <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
                                              </svg>
                                          </span>
-                                         All <span class="checkCounter"></span> 
+                                         All <span class="checkCounter"></span>
                                      </label>
                                     </div>
                                 </th>
@@ -115,14 +115,14 @@
                                 <td>{{$visit->fullAddress()}}</td>
                                 <td> {{ collect(json_decode($visit->company_ids ?? '[]', true))->count() }} Company</td>
                                 <td>{{$visit->engineer?$visit->engineer->name:''}}</td>
-                                
+
                                 <td class="center">
                                     @isset(json_decode(Auth::user()->permission->permission, true)['visits']['add'])
                                     <a href="{{route('admin.engineerVisitsAction',['edit',$visit->id])}}"  class="btn-custom success">
                                         <i class="bx bx-edit"></i>
                                     </a>
                                     @endisset
-                                    
+
                                     @isset(json_decode(Auth::user()->permission->permission, true)['visits']['delete'])
                                     <a href="{{route('admin.engineerVisitsAction',['delete',$visit->id])}}" class="btn-custom danger" onclick="return confirm('Are You Want To Delete?')"><i class="bx bx-trash"></i></a>
                                     @endisset
@@ -217,7 +217,7 @@
              	<div class="row">
              	    <div class="col-md-6 form-group">
                       <label>Visit Date*</label>
-                      <input type="datetime-local" class="form-control {{$errors->has('visit_date')?'error':''}}" name="visit_date"  required="" value="{{ old('visit_date', Carbon\Carbon::parse($data->visit_date)->format('Y-m-d\TH:i')) }}" > 
+                      <input type="datetime-local" class="form-control {{$errors->has('visit_date')?'error':''}}" name="visit_date"  required="" value="{{ old('visit_date', Carbon\Carbon::parse($data->visit_date)->format('Y-m-d\TH:i')) }}" >
                       @if ($errors->has('visit_date'))
             			<p style="color: red; margin: 0; font-size: 10px;">{{ $errors->first('visit_date') }}</p>
             		  @endif
@@ -295,12 +295,12 @@
 
 
 
-@endsection 
-@push('js') 
+@endsection
+@push('js')
 
 <script>
     $(document).ready(function(){
-        
+
         $('.select2').select2({
             dropdownParent: $('#AddDesignations'),
             placeholder: $('.select2').data('placeholder'),

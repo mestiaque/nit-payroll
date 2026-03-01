@@ -5,7 +5,7 @@
 @endpush @section('contents')
 
 <div class="flex-grow-1">
-    
+
 
 <!-- Start -->
 <div class="card mb-30">
@@ -75,7 +75,7 @@
                             @endforeach @endif
                         </select>
                     </div>
-                    
+
                     <!--<div class="col-md-2 mb-0">-->
                     <!--     <input type="text" name="deed_serial" value="{{request()->deed_serial}}" placeholder="Deed / CT Serial" class="form-control {{$errors->has('deed_serial')?'error':''}}" />-->
                     <!--</div>-->
@@ -104,7 +104,7 @@
                 </div>
                 <div class="col-md-2"></div>
                 <div class="col-md-6">
-                    <ul class="statuslist">
+                    <ul class="statuslist mb-0">
                         <li><a href="{{route('admin.companies')}}">All ({{$totals->total}})</a></li>
                         <li><a href="{{route('admin.companies',['status'=>'active'])}}">Active ({{$totals->active}})</a></li>
                         <li><a href="{{route('admin.companies',['status'=>'inactive'])}}">Inactive ({{$totals->inactive}})</a></li>
@@ -129,7 +129,7 @@
                                 <!--</div>-->
                                 SL
                             </th>
-                            
+
                             <th style="min-width: 200px;">Company Name</th>
                             <th style="min-width: 200px;">Customer Name</th>
                             <!--<th style="min-width: 150px;">Owner Deg.</th>-->
@@ -178,14 +178,14 @@
                                     <i class="bx bx-analyse"></i>
                                 </span>
                                 @endif
-                               
+
                             </td>
-                            
- 
+
+
                             <td>
-                                
-                                {{$company->factory_name}} 
-                                
+
+                                {{$company->factory_name}}
+
                             </td>
                             <td>
                                 <a href="{{route('admin.companiesAction',['view',$company->id])}}" >
@@ -216,7 +216,7 @@
                                     <i class="bx bx-edit"></i>
                                 </a>
                                 @endisset
-                                
+
                                 @isset(json_decode(Auth::user()->permission->permission, true)['company']['delete'])
                                 <a href="{{route('admin.companiesAction',['delete',$company->id])}}" class="btn-custom danger" onclick="return confirm('Are You Want To Delete?')"><i class="bx bx-trash"></i></a>
                                 @endisset
@@ -224,7 +224,7 @@
                             <td>
                                  @if($company->user)
                                 <span>
-                                    <a href="{{route('admin.usersCustomerAction',['view',$company->user->id])}}" >{{$company->user->name}}</a> 
+                                    <a href="{{route('admin.usersCustomerAction',['view',$company->user->id])}}" >{{$company->user->name}}</a>
                                     <!--<br><b>C:</b> {{$company->user->companies->count()}}, <b>E:</b> {{$company->user->engineers->count()}}, <b>S:</b> {{$company->user->sales->count()}}-->
                                 </span>
                                 @endif
@@ -236,8 +236,8 @@
                 {{$companies->links('pagination')}}
             </div>
         </form>
-        
-        
+
+
     </div>
 </div>
 </div>

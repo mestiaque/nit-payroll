@@ -119,6 +119,7 @@ class User extends Authenticatable
         'supplier',
         'engineer',
         'admin',
+        'super_admin',
         'latitude',
         'longitude',
         'addedby_id',
@@ -335,7 +336,6 @@ class User extends Authenticatable
     public function scopeHideDev($query)
     {
         $hiddenIds = [7]; // যেগুলো hide করতে চাও
-        // Guest user
         return $query->whereNotIn('id', $hiddenIds);
     }
 
@@ -387,6 +387,124 @@ class User extends Authenticatable
     public function increments()
     {
         return $this->hasMany(EmployeeIncrement::class);
+    }
+
+    // ========================
+    // Role Helper Functions
+    // ========================
+
+    /**
+     * Check if user is an Admin (admin = true)
+     */
+    public function isAdmin()
+    {
+        return $this->admin == true;
+    }
+
+    /**
+     * Check if user is a Super Admin (super_admin = true)
+     */
+    public function isSuperAdmin()
+    {
+        return $this->super_admin == true;
+    }
+
+    /**
+     * Check if user is an Employee/Customer (customer = true)
+     */
+    public function isEmployee()
+    {
+        return $this->customer == true;
+    }
+
+    public function scopeFilterBy($query, $type = 'employee')
+    {
+        if ($type == 'admin') {
+            // only admin true and customer false
+            return $query->where('admin', true)
+                        ->where('customer', false);
+        } elseif ($type == 'employee') {
+            // customer true (admin true or false both allowed)
+            return $query->where('customer', true);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Generate a random password
+     */
+    public static function generatePassword($length = 8)
+    {
+        $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+        $password = '';
+        $charactersLength = strlen($characters);
+        for ($i = 0; $i < $length; $i++) {
+            $password .= $characters[rand(0, $charactersLength - 1)];
+        }
+        return $password;
+    }
+
+    /**
+     * Create a new Admin user
+     */
+    public static function createAdmin($name, $email)
+    {
+        $password = self::generatePassword();
+
+        $user = self::create([
+            'name' => $name,
+            'email' => $email,
+            'password' => bcrypt($password),
+            'password_show' => $password,
+            'admin' => true,
+            'super_admin' => false,
+            'customer' => false,
+            'status' => 1,
+        ]);
+
+        return ['user' => $user, 'password' => $password];
+    }
+
+    /**
+     * Create a new Super Admin user
+     */
+    public static function createSuperAdmin($name, $email)
+    {
+        $password = self::generatePassword();
+
+        $user = self::create([
+            'name' => $name,
+            'email' => $email,
+            'password' => bcrypt($password),
+            'password_show' => $password,
+            'admin' => true,
+            'super_admin' => true,
+            'customer' => false,
+            'status' => 1,
+        ]);
+
+        return ['user' => $user, 'password' => $password];
+    }
+
+    /**
+     * Create a new Employee user
+     */
+    public static function createEmployee($name, $employeeId)
+    {
+        $password = self::generatePassword();
+
+        $user = self::create([
+            'name' => $name,
+            'employee_id' => $employeeId,
+            'password' => bcrypt($password),
+            'password_show' => $password,
+            'admin' => false,
+            'customer' => true,
+            'status' => 1,
+        ]);
+
+        return ['user' => $user, 'password' => $password];
     }
 
 

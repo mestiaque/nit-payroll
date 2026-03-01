@@ -11,7 +11,6 @@ use App\Models\Shift;
 use App\Models\User;
 use App\Models\UserLocation;
 use Carbon\Carbon;
-use Carbon\CarbonPeriod;
 use File;
 use Hash;
 use Illuminate\Http\Request;
@@ -245,7 +244,38 @@ class CustomerController extends Controller
             $startDate->addDay();
         }
 
-        return view(employeeTheme() . 'dashboard', compact('today', 'attendances'));
+        // ================= LEAVE SUMMARY =================
+        $user = Auth::user();
+        $currentYear = Carbon::now()->year;
+        
+        // Get all active leave types (type = 20)
+        $leaveTypes = Attribute::where('type', 20)
+            ->where('status', 'active')
+            ->get();
+        
+        // Get all approved leaves for current user in current year
+        $approvedLeaves = Leave::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->whereYear('start_date', $currentYear)
+            ->get();
+        
+        // Calculate used days by leave type
+        $leaveSummary = [];
+        foreach ($leaveTypes as $type) {
+            $usedDays = $approvedLeaves
+                ->where('leave_type_id', $type->id)
+                ->sum('days');
+            
+            $leaveSummary[] = [
+                'id' => $type->id,
+                'name' => $type->name,
+                'total_days' => $type->qty ?? 0,
+                'used_days' => $usedDays,
+                'remaining_days' => ($type->qty ?? 0) - $usedDays,
+            ];
+        }
+
+        return view(employeeTheme() . 'dashboard', compact('today', 'attendances', 'leaveSummary'));
     }
 
 

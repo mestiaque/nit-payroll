@@ -5,7 +5,7 @@
 @endpush @section('contents')
 
 <div class="flex-grow-1">
-    
+
 
 <!-- Start -->
 <div class="card mb-30">
@@ -80,7 +80,7 @@
                 </div>
                 <div class="col-md-4"></div>
                 <div class="col-md-4">
-                    <ul class="statuslist">
+                    <ul class="statuslist mb-0">
                         <li><a href="{{route('admin.services')}}">All ({{$totals->total}})</a></li>
                         <li><a href="{{route('admin.services',['status'=>'active'])}}">Active ({{$totals->active}})</a></li>
                         <li><a href="{{route('admin.services',['status'=>'inactive'])}}">Inactive ({{$totals->inactive}})</a></li>
@@ -100,7 +100,7 @@
                                              <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
                                          </svg>
                                      </span>
-                                     All <span class="checkCounter"></span> 
+                                     All <span class="checkCounter"></span>
                                  </label>
                                 </div>
                             </th>
@@ -144,7 +144,7 @@
                             <td>
                                 <span>{{$service->unit?$service->unit->name:'No Unit'}}</span>
                             </td>
-                           
+
                             <td>
                                 <span>{{$service->category?$service->category->name:'No Category'}}</span>
                             </td>
@@ -162,8 +162,8 @@
                 {{$services->links('pagination')}}
             </div>
         </form>
-        
-        
+
+
     </div>
 </div>
 </div>

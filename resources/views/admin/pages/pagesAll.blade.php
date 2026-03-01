@@ -1,10 +1,10 @@
-@extends(adminTheme().'layouts.app') 
+@extends(adminTheme().'layouts.app')
 @section('title')
 <title>{{websiteTitle('Pages List')}}</title>
-@endsection 
+@endsection
 @push('css')
 <style type="text/css"></style>
-@endpush 
+@endpush
 @section('contents')
 
 <div class="content-header row">
@@ -21,7 +21,7 @@
     </div>
     <div class="content-header-right col-md-6 col-12 mb-md-0 mb-2">
         <div class="btn-group float-md-right" role="group" aria-label="Button group with nested dropdown">
-        	<!-- 
+        	<!--
 					//// Permission Page Add
           -->
         	@isset(json_decode(Auth::user()->permission->permission, true)['pages']['add'])
@@ -102,10 +102,10 @@
                                         </div>
                                     </div>
                                     <div class="col-md-4">
-                                        
+
                                     </div>
                                     <div class="col-md-4">
-                                        <ul class="statuslist">
+                                        <ul class="statuslist mb-0">
                                             <li><a href="{{route('admin.pages')}}">All ({{$totals->total}})</a></li>
                                             <li><a href="{{route('admin.pages',['status'=>'active'])}}">Active ({{$totals->active}})</a></li>
                                             <li><a href="{{route('admin.pages',['status'=>'inactive'])}}">Inactive ({{$totals->inactive}})</a></li>
@@ -133,7 +133,7 @@
                                                     <input class="checkbox" type="checkbox" name="checkid[]" value="{{$page->id}}" /><br />
 
                                                     {{$pages->currentpage()==1?$i+1:$i+($pages->perpage()*($pages->currentpage() - 1))+1}}
-                                                    
+
                                                 </td>
                                                 <td>
                                                     <span>
@@ -169,18 +169,18 @@
                                                 <td>
                                                     <a href="{{route('admin.pagesAction',['edit',$page->id])}}" class="btn btn-md btn-info">
                                                        Edit
-                                                    </a>   
-                                                    <!-- 
+                                                    </a>
+                                                    <!--
 												    //// Permission Page Delete
-                                                    --> 
+                                                    -->
                                                     @isset(json_decode(Auth::user()->permission->permission, true)['pages']['delete'])
                                                      <a href="{{route('admin.pagesAction',['delete',$page->id])}}" onclick="return confirm('Are You Want To Delete')" class="btn btn-md btn-danger">
                                                        <i class="fa fa-trash"></i>
-                                                     </a> 
+                                                     </a>
                                                     @endisset
-                                                     <!-- 
+                                                     <!--
 													//// Permission Page Delete
-                                                    --> 
+                                                    -->
 
                                                 </td>
                                             </tr>

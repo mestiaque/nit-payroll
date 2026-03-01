@@ -82,7 +82,7 @@
                         <!--@endisset-->
                     </div>
                     <div class="col-md-4">
-                        <ul class="statuslist">
+                        <ul class="statuslist mb-0">
                             <li><a href="{{route('admin.engineers')}}">All ({{$totals->total}})</a></li>
                             <li><a href="{{route('admin.engineers',['status'=>'active'])}}">Active ({{$totals->active}})</a></li>
                             <li><a href="{{route('admin.engineers',['status'=>'inactive'])}}">Inactive ({{$totals->inactive}})</a></li>
@@ -102,7 +102,7 @@
                                                  <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
                                              </svg>
                                          </span>
-                                         All <span class="checkCounter"></span> 
+                                         All <span class="checkCounter"></span>
                                      </label>
                                     </div>
                                 </th>
@@ -154,7 +154,7 @@
                                         <i class="bx bx-edit"></i>
                                     </a>
                                     @endisset
-                                    
+
                                     @isset(json_decode(Auth::user()->permission->permission, true)['engineers']['delete'])
                                     <a href="{{route('admin.engineersAction',['delete',$supplier->id])}}" class="btn-custom danger" onclick="return confirm('Are You Want To Delete?')"><i class="bx bx-trash"></i></a>
                                     @endisset
@@ -166,8 +166,8 @@
                     {{$engineers->links('pagination')}}
                 </div>
             </form>
-            
-            
+
+
         </div>
     </div>
 </div>

@@ -60,10 +60,20 @@ class AuthController extends Controller
 
             $remember_me  = ( !empty( $r->remember ) )? TRUE : FALSE;
             
-            $user =User::where('email',$r->email)->first();
+            $loginInput = $r->email; // This can be email or employee_id
+            $password = $r->password;
+
+            // First, check if input contains @ symbol (likely email for admin)
+            if (strpos($loginInput, '@') !== false) {
+                // Try to find user by email (Admin login)
+                $user = User::where('email', $loginInput)->first();
+            } else {
+                // Try to find user by employee_id (Employee login)
+                $user = User::where('employee_id', $loginInput)->first();
+            }
 
             if($user){
-                if(Hash::check($r->password, $user->password)){
+                if(Hash::check($password, $user->password)){
                     Auth::login($user, $remember_me);
 
                     $redirect =Session::get('url.intended');
@@ -72,6 +82,15 @@ class AuthController extends Controller
                         return Redirect::to($redirect);
                     }
 
+                    // Redirect based on user role
+                    if($user->super_admin == true) {
+                        return Redirect()->route('admin.dashboard');
+                    } elseif($user->admin == true) {
+                        return Redirect()->route('admin.dashboard');
+                    } elseif($user->customer == true) {
+                        return Redirect()->route('customer.dashboard');
+                    }
+                    
                     return Redirect()->route('admin.dashboard');
                     
                 }else{

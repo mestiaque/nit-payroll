@@ -2,7 +2,7 @@
 <title>{{websiteTitle('Due Bill Collections')}}</title>
 @endsection @push('css')
 <style type="text/css"></style>
-@endpush 
+@endpush
 
 @section('contents')
 
@@ -13,7 +13,7 @@
     <div class="card-header d-flex justify-content-between align-items-center">
          <h3>Due Bill Collections</h3>
          <div class="dropdown">
-             
+
              <a href="{{ route('admin.billDueCollection', [
     'export' => 'report',
     'startDate' => request()->startDate,
@@ -58,7 +58,7 @@
                 <div class="col-md-4">
                 </div>
                 <div class="col-md-8">
-                    <ul class="statuslist">
+                    <ul class="statuslist mb-0">
                         <li><a href="{{route('admin.billDueCollection',['status'=>'all'])}}">All ({{$billcollections->total()}})</a></li>
                     </ul>
                 </div>
@@ -136,6 +136,6 @@
 </div>
 </div>
 
-@endsection 
-@push('js') 
+@endsection
+@push('js')
 @endpush

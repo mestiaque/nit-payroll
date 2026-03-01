@@ -2,12 +2,12 @@
 <title>{{websiteTitle('Leads List')}}</title>
 @endsection @push('css')
 <style type="text/css">
-    
+
 </style>
 @endpush @section('contents')
 
 <div class="flex-grow-1">
-    
+
 <!-- Start -->
 <div class="card mb-30">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -66,7 +66,7 @@
                         @endforeach @endif
                     </select>
                 </div>
-                
+
                 <div class="col-md-3 mb-1">
                     <select  class="form-control" name="employee">
                         <option value="">Select Employee</option>
@@ -104,7 +104,7 @@
                 <div class="col-md-2">
                 </div>
                 <div class="col-md-10">
-                    <ul class="statuslist">
+                    <ul class="statuslist mb-0">
                         <li><a href="{{route('admin.leads',['status'=>'all'])}}">All ({{$totals->total}})</a></li>
                         <li><a href="{{route('admin.leads',['status'=>'Not Potential'])}}">Not Potential ({{$totals->nonPotential}})</a></li>
                         <li><a href="{{route('admin.leads',['status'=>'Potential'])}}">Potential ({{$totals->potential}})</a></li>
@@ -147,11 +147,11 @@
                             <td>{{$lead->factory_name}}</td>
                             <td>{{$lead->mobile}}</td>
                             <td>{{$lead->fullAddress()}}</td>
-                            
-                            
-                           
+
+
+
                             <td>
-         
+
                                 @if($lead->customer_status=='Not Potential')
                                 <span class="badge" style="background: #9baaff;font-size: 14px;color: white;" >Not Potential</span>
                                 @elseif($lead->customer_status=='Potential')
@@ -162,7 +162,7 @@
                             </td>
                              <td>
                                 <span style="color: {{
-                                        ($nextVisit = $lead->next_visit_day ? \Carbon\Carbon::parse($lead->next_visit_day) : null) 
+                                        ($nextVisit = $lead->next_visit_day ? \Carbon\Carbon::parse($lead->next_visit_day) : null)
                                         && \Carbon\Carbon::today()->gte($nextVisit->copy()->subDay(2)) ? 'red' : 'black'
                                     }}">
                                     {{ $nextVisit ? $nextVisit->format('d-m-Y') : '' }}
@@ -176,7 +176,7 @@
                             <td>
                                 @if($lead->assineeUser)
                                 <a href="{{route('admin.usersCustomerAction',['view',$lead->assineeUser->id])}}" >{{$lead->assineeUser->name}}</a>
-                                @endif    
+                                @endif
                             </td>
                             <td>{{$lead->created_at->format('d-m-Y')}}</td>
                             <td class="center">
@@ -185,7 +185,7 @@
                                     <i class="bx bx-edit"></i>
                                 </a>
                                 @endisset
-                                
+
                                 @isset(json_decode(Auth::user()->permission->permission, true)['leads']['delete'])
                                 <a href="{{route('admin.leadsAction',['delete',$lead->id])}}" class="btn-custom danger" onclick="return confirm('Are You Want To Delete?')"><i class="bx bx-trash"></i></a>
                                 @endisset
@@ -197,8 +197,8 @@
                 {{$leads->links('pagination')}}
             </div>
         </form>
-        
-        
+
+
     </div>
 </div>
 </div>

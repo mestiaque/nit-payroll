@@ -62,7 +62,7 @@
             <!-- Start -->
             <div class="card mb-30">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                     <h3>Profile Edit <button class="btn btn-sm btn-light copyBtn ms-2" id="copyBtn">Copy Login</button></h3>
+                     <h3>Profile Edit <button class="btn btn-sm btn-light copyBtn ms-2 d-none" id="copyBtn">Copy Login</button></h3>
                      <div class="d-none">
                         <p>email: <span id="email">{{ $user?->email }}</span></p>
                         <p>password: <span id="password">{{ $user?->password_show }}</span></p>
@@ -1228,9 +1228,10 @@ function updateSalaries() {
 <script>
 $(document).ready(function() {
     $("#copyBtn").click(function() {
-        const email = $("#email").text();
-        const password = $("#password").text();
-        const finalText = `email: ${email}\npassword: ${password}`;
+        const email = $(this).data('id');
+        const password = $(this).data('password');
+        const loginUrl = "{{route('login')}}";
+        const finalText = `email: ${email}\npassword: ${password}\nlogin: ${loginUrl}`;
 
         navigator.clipboard.writeText(finalText).then(() => {
             const $btn = $(this);

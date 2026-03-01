@@ -58,7 +58,7 @@
                     </div>
                     <div class="col-md-4"></div>
                     <div class="col-md-4">
-                        <ul class="statuslist">
+                        <ul class="statuslist mb-0">
                             <li><a href="{{route('admin.merchandisers')}}">All ({{$totals->total}})</a></li>
                             <li><a href="{{route('admin.merchandisers',['status'=>'active'])}}">Active ({{$totals->active}})</a></li>
                             <li><a href="{{route('admin.merchandisers',['status'=>'inactive'])}}">Inactive ({{$totals->inactive}})</a></li>
@@ -78,7 +78,7 @@
                                                  <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
                                              </svg>
                                          </span>
-                                         All <span class="checkCounter"></span> 
+                                         All <span class="checkCounter"></span>
                                      </label>
                                     </div>
                                 </th>
@@ -115,11 +115,11 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <div class= "media" > 
-                                         <img src= "{{asset($merchandiser->image())}}"   class= "mr-3"  style="max-height: 30px;max-width:100px;"  alt= "{{$merchandiser->name}}" > 
-                                         <div   class= "media-body" > 
+                                    <div class= "media" >
+                                         <img src= "{{asset($merchandiser->image())}}"   class= "mr-3"  style="max-height: 30px;max-width:100px;"  alt= "{{$merchandiser->name}}" >
+                                         <div   class= "media-body" >
                                             {{$merchandiser->name}}
-                                         </div> 
+                                         </div>
                                      </div>
                                 </td>
                                 <td>{{$merchandiser->slug}}</td>
@@ -142,8 +142,8 @@
                     {{$merchandisers->links('pagination')}}
                 </div>
             </form>
-            
-            
+
+
         </div>
     </div>
 </div>
@@ -197,10 +197,10 @@
                  	    <div class="image">
                  	        <img class="image_00" src="" style="max-height: 100px;max-width:100%;">
                  	    </div>
-                 	    
+
                  	</div>
              	</div>
-             	
+
     	   </div>
     	   <div class="modal-footer">
     		 <button type="button" class="btn grey btn-outline-secondary" data-dismiss="modal">Close </button>
@@ -261,7 +261,7 @@
                  	    <div class="image">
                  	        <img class="image_{{$dpm->id}}" src="{{asset($dpm->image())}}" style="max-height: 100px;max-width:100%;">
                  	    </div>
-                 	    
+
                  	</div>
              	</div>
              	<div class="row">

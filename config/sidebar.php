@@ -297,9 +297,9 @@ return [
             'permission' => '',
             'children' => [
                 [
-                    'title' => 'Users',
+                    'title' => 'Employees',
                     'icon' => 'fa fa-user-circle',
-                    'route' => 'admin/users/customer',
+                    'route' => 'admin/users/employee',
                     'permission' => 'users',
                 ],
                 [

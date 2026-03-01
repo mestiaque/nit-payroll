@@ -20,7 +20,7 @@ class JobCardController extends Controller
      */
     public function index(Request $request)
     {
-        $users = User::where('status', 1)->hideDev()->get();
+        $users = User::where('status', 1)->filterBy('employee')->get();
 
         $selectedUser = null;
         $month = $request->month ?? Carbon::now()->format('Y-m');
@@ -55,10 +55,10 @@ class JobCardController extends Controller
 
             foreach ($dates as $date) {
                 $dateStr = $date->format('Y-m-d');
-                
+
                 // Use centralized function for attendance status
                 $status = getAttendanceStatus($request->user_id, $date);
-                
+
                 $statusCode = $status['status'];
                 $inTime = $status['in_time'] ? (is_string($status['in_time']) ? substr($status['in_time'], 0, 5) : Carbon::parse($status['in_time'])->format('H:i')) : '-';
                 $outTime = $status['out_time'] ? (is_string($status['out_time']) ? substr($status['out_time'], 0, 5) : Carbon::parse($status['out_time'])->format('H:i')) : '-';

@@ -81,7 +81,7 @@ class PayrollManagementController extends Controller
         // Get all active employees - using User table directly since salary info is there
         $employees = User::where('employee_status', 'active')
             ->where('status', 1)
-            ->hideDev()
+            ->filterBy('employee')
             ->get();
 
         if ($employees->isEmpty()) {
@@ -485,7 +485,7 @@ class PayrollManagementController extends Controller
 
         $departments = Attribute::where('type', 3)->where('status', 'active')->get();
         $designations = Attribute::where('type', 4)->where('status', 'active')->get();
-        $employees = User::where('status', 1)->hideDev()->get();
+        $employees = User::where('status', 1)->filterBy('employee')->get();
 
         return view(adminTheme().'payroll.salary_sheet', compact('salaries', 'summary', 'month', 'year', 'departments', 'designations', 'employees'));
     }

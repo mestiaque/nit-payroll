@@ -26,7 +26,7 @@ class EmployeeManagementController extends Controller
     public function index(Request $request)
     {
         // Query employees directly from users table
-        $query = User::query()->hideDev();
+        $query = User::query()->filterBy('employee');
 
         // Filter by employee status
         if ($request->employee_status) {

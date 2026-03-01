@@ -53,7 +53,7 @@ class LeaveController extends Controller
 
         // For modal forms and filters
         $leaveTypes = Attribute::where('type', 20)->where('status', 'active')->get();
-        $users = User::where('status', 1)->hideDev()->get();
+        $users = User::where('status', 1)->filterBy('employee')->get();
         $departments = Attribute::where('type', 3)->where('status', 'active')->get();
 
         // Get leave balance for each user (approved leaves only)
@@ -78,7 +78,7 @@ class LeaveController extends Controller
     public function create()
     {
         $leaveTypes = Attribute::where('type', 20)->where('status', 'active')->get();
-        $users = User::where('status', 1)->hideDev()->get(); // For admin to apply on behalf of user
+        $users = User::where('status', 1)->filterBy('employee')->get(); // For admin to apply on behalf of user
         return view(adminTheme().'leaves.create', compact('leaveTypes', 'users'));
     }
 
@@ -241,7 +241,7 @@ class LeaveController extends Controller
      */
     public function manualCreate()
     {
-        $employees = \App\Models\User::where('status', 1)->hideDev()->get();
+        $employees = \App\Models\User::where('status', 1)->filterBy('employee')->get();
         return view('admin.leaves.manual_create', compact('employees'));
     }
 
@@ -275,18 +275,18 @@ class LeaveController extends Controller
     public function summary(Request $request)
     {
         $year = $request->year ?? Carbon::now()->year;
-        
-        $users = User::where('status', 1)->hideDev()
+
+        $users = User::where('status', 1)->filterBy('employee')
             ->with(['department', 'designation'])
             ->get();
-        
+
         $leaveTypes = Attribute::where('type', 20)->where('status', 'active')->get();
-        
+
         // Get all approved leaves for the selected year
         $leaves = Leave::where('status', 'approved')
             ->whereYear('start_date', $year)
             ->get();
-        
+
         // Organize leaves by user and type
         $userLeaves = [];
         foreach ($leaves as $leave) {
@@ -300,7 +300,7 @@ class LeaveController extends Controller
             }
             $userLeaves[$userId][$typeId] += $leave->days;
         }
-        
+
         // Build summary data
         $summaryData = [];
         foreach ($users as $user) {
@@ -309,7 +309,7 @@ class LeaveController extends Controller
                 'leaves' => [],
                 'total_taken' => 0,
             ];
-            
+
             foreach ($leaveTypes as $type) {
                 $taken = $userLeaves[$user->id][$type->id] ?? 0;
                 $allowed = $type->qty ?? 0;
@@ -321,10 +321,10 @@ class LeaveController extends Controller
                 ];
                 $userData['total_taken'] += $taken;
             }
-            
+
             $summaryData[] = $userData;
         }
-        
+
         return view(adminTheme().'leaves.summary', compact('summaryData', 'leaveTypes', 'year'));
     }
 }

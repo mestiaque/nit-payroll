@@ -201,6 +201,32 @@
             </div>
 
         </div>
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header">Leave Summary</div>
+                    <div class="card-body">
+                        @forelse($leaveSummary as $summary)
+                            @php
+                                $percentage = $summary['total_days'] > 0 ? ($summary['used_days'] / $summary['total_days']) * 100 : 0;
+                                $progressClass = $percentage >= 100 ? 'bg-danger' : ($percentage >= 75 ? 'bg-warning' : 'bg-success');
+                            @endphp
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="font-weight-semibold">{{ $summary['name'] }}</span>
+                                    <span class="text-muted">{{ $summary['used_days'] }}/{{ $summary['total_days'] }}</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar {{ $progressClass }}" role="progressbar" style="width: {{ $percentage }}%;"></div>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-muted">No leave summary found.</p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

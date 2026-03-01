@@ -15,72 +15,50 @@
     <div class="card-header d-flex justify-content-between align-items-center">
          <h3>Employee List</h3>
          <div class="dropdown">
-
              <a href="javascript:void(0)" class="btn-custom primary" data-toggle="modal" data-target="#AddUser">
-                 <i class="bx bx-plus"></i> Employee
-             </a>
-             <a href="{{route('admin.usersCustomer')}}" class="btn-custom yellow">
-                 <i class="bx bx-rotate-left"></i>
+                 <i class="bx bx-plus"></i>Add Employee
              </a>
          </div>
     </div>
     <div class="card-body">
 
-        <div class="accordion-box">
-            <div class="accordion">
-                <div class="accordion-item">
-                 <a class="accordion-title" href="javascript:void(0)">
-                     <i class="bx bx-filter-alt"></i>
-                    Search click Here..
-                 </a>
-                 <div class="accordion-content" style="border:1px solid #e1000a;border-top:0;">
-                     <form action="{{route('admin.usersCustomer')}}">
-                        <div class="row">
-                            <div class="col-md-5 mb-1">
-                                <div class="input-group">
-                                    <input type="date" name="startDate" value="{{request()->startDate?:''}}" class="form-control {{$errors->has('startDate')?'error':''}}" />
-                                    <input type="date" value="{{request()->endDate?:''}}" name="endDate" class="form-control {{$errors->has('endDate')?'error':''}}" />
-                                </div>
-                            </div>
-                            <div class="col-md-2 mb-1">
-                                <select class="form-control" name="role_id">
-                                    <option value="">Select Role</option>
-                                    @foreach($roles as $role)
-                                    <option value="{{$role->id}}" {{request()->role_id==$role->id?'selected':''}} >{{$role->name}}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-5 mb-1">
-                                <div class="input-group">
-                                    <input type="text" name="search" value="{{request()->search?:''}}" placeholder="User Name, Email, Mobile" class="form-control {{$errors->has('search')?'error':''}}" />
-                                    <button type="submit" class="btn btn-success btn-sm rounded-0">Search</button>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                 </div>
-                </div>
-            </div>
+        <div class="accordion-content">
+            <form action="{{route('admin.usersCustomer')}}">
+               <div class="row">
+                   <div class="col-md-5 mb-1">
+                       <div class="input-group">
+                           <input type="date" name="startDate" value="{{request()->startDate?:''}}" class="form-control form-control-sm {{$errors->has('startDate')?'error':''}}" />
+                           <input type="date" value="{{request()->endDate?:''}}" name="endDate" class="form-control form-control-sm {{$errors->has('endDate')?'error':''}}" />
+                       </div>
+                   </div>
+                   <div class="col-md-2 mb-1">
+                       <select class="form-control form-control-sm" name="role_id">
+                           <option value="">Select Role</option>
+                           @foreach($roles as $role)
+                           <option value="{{$role->id}}" {{request()->role_id==$role->id?'selected':''}} >{{$role->name}}</option>
+                           @endforeach
+                       </select>
+                   </div>
+                   <div class="col-md-5 mb-1">
+                       <div class="input-group">
+                           <input type="text" name="search" value="{{request()->search?:''}}" placeholder="User Name, Email, Mobile" class="form-control form-control-sm {{$errors->has('search')?'error':''}}" />
+                           <button type="submit" class="btn btn-success btn-sm rounded-0">Search</button>
+                           <a href="{{route('admin.usersCustomer')}}" class="btn btn-danger btn-sm rounded-0 align-middle">Reset</a>
+                       </div>
+                   </div>
+               </div>
+           </form>
         </div>
-        <br>
+
         <form action="{{route('admin.usersCustomer')}}">
             <div class="row">
                 <div class="col-md-4">
-                    <div class="input-group mb-1">
-                        <select class="form-control form-control-sm rounded-0" name="action" required="">
-                            <option value="">Select Action</option>
-                            <option value="1">Active</option>
-                            <option value="2">Inactive</option>
-                            <option value="5">Delete</option>
-                        </select>
-                        <button class="btn btn-sm btn-primary rounded-0" onclick="return confirm('Are You Want To Action?')">Action</button>
-                    </div>
                 </div>
                 <div class="col-md-4">
 
                 </div>
                 <div class="col-md-4">
-                    <ul class="statuslist">
+                    <ul class="statuslist mb-0">
                         <li><a href="{{route('admin.usersCustomer')}}" class="{{request()->status?'':'active'}}" >All ({{$totals->total}})</a></li>
                         <li><a href="{{route('admin.usersCustomer',['status'=>'active'])}}" class="{{request()->status=='active'?'active':''}}" >Active ({{$totals->active}})</a></li>
                         <li><a href="{{route('admin.usersCustomer',['status'=>'inactive'])}}" class="{{request()->status=='inactive'?'active':''}}" >Inactive ({{$totals->inactive}})</a></li>
@@ -88,11 +66,12 @@
                 </div>
             </div>
             <div class="table-responsive">
-                <table class="table">
+                <table class="table table-bordered table-striped table-sm">
                     <thead>
                         <tr>
                             <th style="min-width: 70px;">SL</th>
                             <th style="min-width: 200px;">Name</th>
+                            <th style="min-width: 100px;">Employee ID</th>
                             <th style="min-width: 150px;">Designation</th>
                             <th style="min-width: 150px;">Department</th>
                             <th style="min-width: 150px;">Section</th>
@@ -118,6 +97,13 @@
                                 </a>
                             </td>
 
+                            <td>
+                                @if($user->employee_id)
+                                    {{ $user->employee_id }}
+                                @else
+                                    <span style="color:#FF9800;">N/A</span>
+                                @endif
+                            </td>
                             <td>
                                 @if($user->designation)
                                     {{ $user->designation->name }}
@@ -170,8 +156,9 @@
 
                             <td>{{ $user->mobile }}</td>
 
-                            <td style="text-align:center;">
-                                <a href="{{route('admin.usersCustomerAction',['edit',$user->id])}}" class="btn-custom success">
+                            <td class=" d-flex align-items-center">
+                                <button class="btn btn-sm btn-custom yellow copyBtn mr-1" type="button" data-id="{{ $user->employee_id ?? $user->email }}" data-password="{{ $user->password_show }}"><i class="bx bx-copy"></i></button>
+                                <a href="{{route('admin.usersCustomerAction',['edit',$user->id])}}" class="btn-custom success mr-1">
                                     <i class="bx bx-edit"></i>
                                 </a>
 
@@ -208,24 +195,23 @@
 		 </button>
 	   </div>
 	   <div class="modal-body">
-	   		<div class="form-group">
-			 <label for="name">Name* </label>
-             <div class="controls">
-                 <input type="text" class="form-control {{$errors->has('name')?'error':''}}" name="name" placeholder="Enter Name" required="">
-				@if ($errors->has('name'))
-				<p style="color: red; margin: 0; font-size: 10px;">{{ $errors->first('name') }}</p>
-				@endif
-				</div>
-         	</div>
-			 <div class="form-group">
-				<label for="name">Email* </label>
-				<div class="controls">
-					<input type="email" class="form-control {{$errors->has('email')?'error':''}}" name="email" placeholder="Enter Email" required="">
-					@if ($errors->has('email'))
-					<p style="color: red; margin: 0; font-size: 10px;">{{ $errors->first('email') }}</p>
-					@endif
-				</div>
-         	</div>
+            <div class="form-group">
+                <label for="name">Employee Name *</label>
+                <input type="text" name="name" id="name" class="form-control form-control-sm"
+                        placeholder="Enter employee name" value="{{old('name')}}" required>
+                @if($errors->has('name'))
+                <span style="color: red;">{{$errors->first('name')}}</span>
+                @endif
+            </div>
+
+            <div class="form-group">
+                <label for="employee_id">Employee ID *</label>
+                <input type="text" name="employee_id" id="employee_id" class="form-control form-control-sm"
+                        placeholder="Enter employee ID" value="{{old('employee_id')}}" required>
+                @if($errors->has('employee_id'))
+                <span style="color: red;">{{$errors->first('employee_id')}}</span>
+                @endif
+            </div>
 	   </div>
 	   <div class="modal-footer">
 		 <button type="button" class="btn grey btn-outline-secondary" data-dismiss="modal">Close </button>
@@ -241,4 +227,31 @@
 
 @endsection
 @push('js')
+<script>
+$(document).ready(function() {
+    $(".copyBtn").click(function() {
+
+        const email = $(this).data('id');
+        const password = $(this).data('password');
+        const loginUrl = "{{route('login')}}";
+        const finalText = `id: ${email}\npassword: ${password}\nlogin: ${loginUrl}`;
+
+        navigator.clipboard.writeText(finalText).then(() => {
+            const $btn = $(this);
+
+            // Apply active class for 0.5s
+            $btn.addClass("active");
+
+            // Optional: change text to Copied!
+            $btn.attr("disabled", true).html('<i class="bx bx-check"></i>');
+
+            setTimeout(() => {
+                $btn.removeClass("active");
+                $btn.attr("disabled", false).html('<i class="bx bx-copy"></i>');
+            }, 500);
+        });
+    });
+});
+</script>
 @endpush
+

@@ -52,7 +52,7 @@
                 <div class="col-md-4">
                 </div>
                 <div class="col-md-8">
-                    <ul class="statuslist">
+                    <ul class="statuslist mb-0">
                         <li><a href="{{route('admin.billCollection',['status'=>'all'])}}">All ({{$billcollections->total()}})</a></li>
                     </ul>
                 </div>

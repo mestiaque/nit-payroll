@@ -89,6 +89,10 @@
             padding: 5px;
             border-bottom: 1px solid #e3d9d9;
         }
+        table thead tr th {
+            background: #0a3c9b !important;
+            color: white !important;
+        }
      </style>
 
      @stack('css')
