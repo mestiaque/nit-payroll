@@ -137,15 +137,57 @@
     </div>
     <div class="col-lg-3 col-md-6">
         <div class="stats-card-box">
-            <div class="icon-box">
-                <i class="bx bx-user"></i>
+            <div class="icon-box" style="background: #e74c3c;">
+                <i class="bx bx-user-x"></i>
             </div>
-            <span class="sub-title">Admin</span>
+            <span class="sub-title">Absent</span>
             <h3>
-                {{number_format($reports['admin'])}}
+                {{number_format($reports['absent'])}}
             </h3>
             <div class="progress-list">
-                <p>Total <a href="{{route('admin.usersAdmin')}}">View</a></p>
+                <p>Today <a href="{{route('admin.attendance.absent.report')}}">View</a></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stats-card-box">
+            <div class="icon-box" style="background: #f39c12;">
+                <i class="bx bx-calendar-week"></i>
+            </div>
+            <span class="sub-title">Pending Leaves</span>
+            <h3>
+                {{number_format($reports['pendingLeaves'])}}
+            </h3>
+            <div class="progress-list">
+                <p>Total <a href="{{route('admin.leaves.index')}}">View</a></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stats-card-box">
+            <div class="icon-box" style="background: #27ae60;">
+                <i class="bx bx-user-plus"></i>
+            </div>
+            <span class="sub-title">New Employees</span>
+            <h3>
+                {{number_format($reports['newEmployeesThisMonth'])}}
+            </h3>
+            <div class="progress-list">
+                <p>This Month <a href="{{route('admin.usersCustomer')}}">View</a></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stats-card-box">
+            <div class="icon-box" style="background: #8e44ad;">
+                <i class="bx bx-dollar"></i>
+            </div>
+            <span class="sub-title">Monthly Expenses</span>
+            <h3>
+                {{priceFormat($reports['monthlyExpenses'])}}
+            </h3>
+            <div class="progress-list">
+                <p>This Month</p>
             </div>
         </div>
     </div>
@@ -261,6 +303,105 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leave Statistics Section -->
+<div class="row">
+    <div class="col-lg-4 col-md-6">
+        <div class="card mb-30">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3>Leave Statistics</h3>
+                <a href="{{ route('admin.leaves.index') }}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <td style="width: 150px;">Pending</td>
+                                <td><span class="badge badge-warning">{{ number_format($reports['pendingLeaves']) }}</span></td>
+                            </tr>
+                            <tr>
+                                <td>Approved</td>
+                                <td><span class="badge badge-success">{{ number_format($reports['approvedLeaves']) }}</span></td>
+                            </tr>
+                            <tr>
+                                <td>Rejected</td>
+                                <td><span class="badge badge-danger">{{ number_format($reports['rejectedLeaves']) }}</span></td>
+                            </tr>
+                            <tr>
+                                <td>Total</td>
+                                <td><span class="badge badge-primary">{{ number_format($reports['totalLeaves']) }}</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6">
+        <div class="card mb-30">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3>Gender Distribution</h3>
+                <a href="{{route('admin.usersCustomer')}}" class="btn btn-sm btn-primary">View</a>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bx bx-user" style="font-size: 48px; color: #3498db;"></i>
+                    <h4 class="mt-2">{{ number_format($reports['maleEmployees']) }}</h4>
+                    <p class="text-muted">Male Employees</p>
+                </div>
+                <hr>
+                <div class="mt-3">
+                    <i class="bx bx-user" style="font-size: 48px; color: #e91e63;"></i>
+                    <h4 class="mt-2">{{ number_format($reports['femaleEmployees']) }}</h4>
+                    <p class="text-muted">Female Employees</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-12">
+        <div class="card mb-30">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3>Recent Leaves</h3>
+                <a href="{{ route('admin.leaves.index') }}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                @if(isset($recentLeaves) && $recentLeaves->count() > 0)
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <tbody>
+                            @foreach($recentLeaves as $leave)
+                            <tr>
+                                <td>
+                                    <strong>{{ $leave->user->name ?? 'N/A' }}</strong><br>
+                                    <small class="text-muted">{{ $leave->leave_type ?? 'Leave' }}</small>
+                                </td>
+                                <td>
+                                    {{ Carbon\Carbon::parse($leave->start_date)->format('d M') }} - {{ Carbon\Carbon::parse($leave->end_date)->format('d M') }}
+                                </td>
+                                <td>
+                                    @if($leave->status == 'pending')
+                                        <span class="badge badge-warning">Pending</span>
+                                    @elseif($leave->status == 'approved')
+                                        <span class="badge badge-success">Approved</span>
+                                    @elseif($leave->status == 'rejected')
+                                        <span class="badge badge-danger">Rejected</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @else
+                <p class="text-center text-muted">No recent leaves</p>
+                @endif
             </div>
         </div>
     </div>

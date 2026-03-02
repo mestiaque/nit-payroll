@@ -470,15 +470,21 @@ return [
     [
         'group_title' => '',
         [
-            'title' => 'System',
-            'icon' => 'fa fa-cogs',
+            'title' => 'ZKTeco Integration',
+            'icon' => 'fa-brands fa-accusoft',
             'permission' => '',
             'children' => [
                 [
-                    'title' => 'ZKTeco Data Import',
+                    'title' => 'Data Import',
                     'icon' => 'fa fa-file-import',
                     'route' => 'admin/zkteco-data-import',
-                    'permission' => '',
+                    'permission' => 'sms',
+                ],
+                [
+                    'title' => 'Software Integration',
+                    'icon' => 'fa fa-download',
+                    'route' => 'admin/zkteco-software-integration',
+                    'permission' => 'sms',
                 ]
             ]
         ]

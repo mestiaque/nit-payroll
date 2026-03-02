@@ -122,6 +122,7 @@ Route::get('live-location-tracking', [AdminController::class,'liveLocationTracki
 
 Route::get('/zkteco-data-import',[ZKTecoPushController::class,'import'])->name('importZkteco');
 Route::post('/import-zkteco-data',[ZKTecoPushController::class,'importAction'])->name('importZktecoAction');
+Route::get('/zkteco-software-integration',[ZKTecoPushController::class,'softwareIntegration'])->name('softwareIntegration');
 Route::get('salary-report', [AdminController::class, 'gradeWiseSalaryReport'])->name('salaryReport');
 Route::get('/hr/departments',[AdminController::class,'departments'])->name('departments');
 Route::any('/hr/departments/{action}/{id?}',[AdminController::class,'departmentsAction'])->name('departmentsAction');

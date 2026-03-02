@@ -242,4 +242,9 @@ class ZKTecoPushController extends Controller
     {
         return view(adminTheme().'attendance.logImport');
     }
+
+    public function softwareIntegration()
+    {
+        return view(adminTheme().'attendance.softwareIntegration');
+    }
 }

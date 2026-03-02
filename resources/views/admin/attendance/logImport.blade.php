@@ -193,11 +193,11 @@
         </div>
 
         <!-- ZKTimeSync Tutorial Modal Trigger Button -->
-        <div class="text-center my-4">
+        {{-- <div class="text-center my-4">
             <button type="button" class="btn btn-import btn-sm shado text-dark" data-bs-toggle="modal" data-bs-target="#zkTutorialModal" style="background: #bfc1d03b; border: 1px dashed #56d2ff;">
                 <i class="fa fa-book mr-2"></i> ZKTimeSync App
             </button>
-        </div>
+        </div> --}}
 
         <!-- ZKTimeSync Tutorial Modal -->
         <div class="modal fade" id="zkTutorialModal" tabindex="-1" aria-labelledby="zkTutorialModalLabel" aria-hidden="true">
