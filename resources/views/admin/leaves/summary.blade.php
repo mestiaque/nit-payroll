@@ -68,8 +68,19 @@
                         <tr>
                             <td class="text-center">{{ $sl++ }}</td>
                             <td>
-                                <strong>{{ $data['user']->name }}</strong><br>
-                                <small class="text-muted">{{ $data['user']->employee_id ?? 'N/A' }}</small>
+                                <div class="d-flex align-items-center">
+                                    @if($data['user'] && $data['user']->photo)
+                                        <img src="{{ asset('uploads/user_photo/' . $data['user']->photo) }}" alt="{{ $data['user']->name }}" class="rounded-circle" style="width: 35px; height: 35px; object-fit: cover; margin-right: 10px;">
+                                    @else
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold" style="width: 35px; height: 35px; background-color: {{ random_color($data['user']->id ?? 0) }}; margin-right: 10px;">
+                                            {{ strtoupper(substr($data['user']->name ?? 'U', 0, 1)) }}
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <strong>{{ $data['user']->name }}</strong><br>
+                                        <small class="text-muted">{{ $data['user']->employee_id ?? 'N/A' }}</small>
+                                    </div>
+                                </div>
                             </td>
                             <td>{{ optional($data['user']->department)->name ?? '-' }}</td>
                             <td>{{ optional($data['user']->designation)->name ?? '-' }}</td>

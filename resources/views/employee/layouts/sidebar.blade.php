@@ -26,6 +26,12 @@
                     <span class="menu-title">Dashboard </span>
                 </a>
             </li>
+            <li class="nav-item {{Request::is('employee/notices')? 'mm-active' : ''}}">
+                <a href="{{route('customer.notices')}}" class="nav-link">
+                    <span class="icon"><i class='bx bxs-notification'></i></span>
+                    <span class="menu-title">Notices </span>
+                </a>
+            </li>
             <li class="nav-item {{Request::is('employee/profile')? 'mm-active' : ''}}">
                 <a href="{{route('customer.myProfile')}}" class="nav-link">
                     <span class="icon"><i class="bx bx-user"></i></span>
@@ -42,6 +48,12 @@
                 <a href="{{route('customer.myAttendance')}}" class="nav-link">
                     <span class="icon"><i class="bx bx-calendar"></i></span>
                     <span class="menu-title">My Attendance </span>
+                </a>
+            </li>
+            <li class="nav-item {{Request::is('employee/share-location')? 'mm-active' : ''}}">
+                <a href="{{route('customer.shareLocation')}}" class="nav-link">
+                    <span class="icon"><i class="bx bx-map"></i></span>
+                    <span class="menu-title">Share Location </span>
                 </a>
             </li>
 

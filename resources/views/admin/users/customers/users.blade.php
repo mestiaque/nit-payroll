@@ -3,7 +3,23 @@
 <title>{{websiteTitle('Employee Users')}}</title>
 @endsection
 @push('css')
-
+<style>
+@media print {
+    .btn, .pagination, .no-print { display: none !important; }
+    .table { font-size: 12px; }
+    .table td, .table th { padding: 4px !important; }
+    img.rounded-circle {
+        width: 30px !important;
+        height: 30px !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    div[rounded-circle] {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+</style>
 @endpush
 @section('contents')
 
@@ -15,7 +31,13 @@
     <div class="card-header d-flex justify-content-between align-items-center">
          <h3>Employee List</h3>
          <div class="dropdown">
-             <a href="javascript:void(0)" class="btn-custom primary" data-toggle="modal" data-target="#AddUser">
+            <a href="{{ route('admin.usersCustomerExport', request()->all()) }}" class="btn btn-sm btn-secondary mr-2" target="_blank">
+                <i class="fa fa-file-excel"></i> Export to Excel
+            </a>
+            <a href="{{ route('admin.usersCustomerPrint', request()->all()) }}" class="btn btn-sm btn-info mr-2" target="_blank">
+                <i class="fa fa-print"></i> Print
+            </a>
+             <a href="javascript:void(0)" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#AddUser">
                  <i class="bx bx-plus"></i>Add Employee
              </a>
          </div>
@@ -70,7 +92,7 @@
                     <thead>
                         <tr>
                             <th style="min-width: 70px;">SL</th>
-                            <th style="min-width: 200px;">Name</th>
+                            <th style="min-width: 250px;">Photo & Name</th>
                             <th style="min-width: 100px;">Employee ID</th>
                             <th style="min-width: 150px;">Designation</th>
                             <th style="min-width: 150px;">Department</th>
@@ -92,9 +114,18 @@
                             </td>
 
                             <td>
-                                <a href="{{route('admin.usersCustomerAction',['view',$user->id])}}" target="_blank" class="invoice-action-view mr-1">
-                                    {{ $user->name }}
-                                </a>
+                                <div class="d-flex align-items-center">
+                                    @if($user->photo)
+                                        <img src="{{ asset('uploads/user_photo/' . $user->photo) }}" alt="{{ $user->name }}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover; margin-right: 10px;">
+                                    @else
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold" style="width: 40px; height: 40px; background-color: {{ random_color($user->id ?? 0) }}; margin-right: 10px;">
+                                            {{ strtoupper(substr($user->name ?? 'U', 0, 1)) }}
+                                        </div>
+                                    @endif
+                                    <a href="{{route('admin.usersCustomerAction',['view',$user->id])}}" target="_blank" class="invoice-action-view mr-1">
+                                        {{ $user->name }}
+                                    </a>
+                                </div>
                             </td>
 
                             <td>

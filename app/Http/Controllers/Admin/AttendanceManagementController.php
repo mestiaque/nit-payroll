@@ -9,6 +9,7 @@ use App\Models\Attendance;
 use App\Models\Shift;
 use App\Models\Attribute;
 use App\Models\Holiday;
+use App\Models\Leave;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -611,6 +612,406 @@ class AttendanceManagementController extends Controller
         $departments = Attribute::where('type', 3)->where('status', 'active')->get();
 
         return view(adminTheme().'attendance.monthly_report', compact('reportData', 'month', 'year', 'departments'));
+    }
+
+    /**
+     * Monthly Attendance Summary (Grid View with Date Range)
+     */
+    public function monthlyAttendanceSummary(Request $request)
+    {
+        // Default to current month
+        $startDate = $request->start_date ? Carbon::parse($request->start_date) : Carbon::now()->startOfMonth();
+        $endDate = $request->end_date ? Carbon::parse($request->end_date) : Carbon::now()->endOfMonth();
+        $employee_id = $request->employee_id;
+        $department_id = $request->department_id;
+
+        // Get employees - same as daily attendance
+        $query = User::filterBy('employee')->whereIn('status', [0, 1]);
+        
+        if ($employee_id) {
+            $query->where('id', $employee_id);
+        }
+        
+        if ($department_id) {
+            $query->where('department_id', $department_id);
+        }
+
+        $employees = $query->orderBy('employee_id')->get();
+
+        // Get holidays for the date range (using from_date and to_date)
+        $holidays = Holiday::where('status', 'active')
+            ->whereDate('from_date', '<=', $endDate->format('Y-m-d'))
+            ->whereDate('to_date', '>=', $startDate->format('Y-m-d'))
+            ->get();
+
+        // Build holiday dates array
+        $holidayDates = [];
+        foreach ($holidays as $holiday) {
+            $current = Carbon::parse($holiday->from_date);
+            $toDate = Carbon::parse($holiday->to_date);
+            while ($current->lte($toDate)) {
+                $holidayDates[$current->format('Y-m-d')] = $holiday->title;
+                $current->addDay();
+            }
+        }
+
+        // Get leaves for the date range
+        $leaves = Leave::where('status', 'approved')
+            ->where(function($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->orWhereBetween('end_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                ->orWhere(function($q) use ($startDate, $endDate) {
+                    $q->where('start_date', '<=', $startDate->format('Y-m-d'))
+                        ->where('end_date', '>=', $endDate->format('Y-m-d'));
+                });
+            })
+            ->get();
+
+        // Get weekly offday
+        $offdaySetting = Attribute::where('type', 21)->where('status', 'active')->first();
+        $offdayNumber = $offdaySetting ? array_search($offdaySetting->name, ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']) : 5;
+
+        // Build date range array
+        $dateRange = [];
+        $currentDate = $startDate->copy();
+        while ($currentDate->lte($endDate)) {
+            $dateRange[] = $currentDate->copy();
+            $currentDate->addDay();
+        }
+
+        // Get attendance data - using in_time like daily attendance
+        $attendances = Attendance::whereIn('user_id', $employees->pluck('id'))
+            ->whereDate('in_time', '>=', $startDate->format('Y-m-d'))
+            ->whereDate('in_time', '<=', $endDate->format('Y-m-d'))
+            ->get()
+            ->groupBy(function ($item) {
+                return $item->user_id . '_' . Carbon::parse($item->in_time)->format('Y-m-d');
+            });
+
+        // Build report data
+        $reportData = [];
+        foreach ($employees as $employee) {
+            $dailyData = [];
+            $presentCount = 0;
+            $absentCount = 0;
+            $leaveCount = 0;
+            $holidayCount = 0;
+            $weeklyOffCount = 0;
+
+            foreach ($dateRange as $date) {
+                $dateStr = $date->format('Y-m-d');
+                $dayOfWeek = $date->dayOfWeek;
+                
+                // Check if it's a holiday
+                $isHoliday = isset($holidayDates[$dateStr]);
+                
+                // Check if it's weekly off
+                $isWeeklyOff = ($dayOfWeek == $offdayNumber);
+
+                // Get attendance record using the same key format as daily attendance
+                $key = $employee->id . '_' . $dateStr;
+                $attendance = $attendances->get($key)?->first();
+
+                // Get leave for this employee on this date
+                $leave = $leaves->where('user_id', $employee->id)
+                    ->filter(function($l) use ($date) {
+                        return $date->between($l->start_date, $l->end_date);
+                    })->first();
+
+                // Determine status
+                $status = '';
+                $statusClass = '';
+                
+                if ($leave) {
+                    $status = 'L';
+                    $statusClass = 'leave';
+                    $leaveCount++;
+                } elseif ($attendance) {
+                    if (in_array($attendance->status, ['present', 'late'])) {
+                        $status = 'P';
+                        $statusClass = 'present';
+                        $presentCount++;
+                    } elseif ($attendance->status == 'absent') {
+                        $status = 'A';
+                        $statusClass = 'absent';
+                        $absentCount++;
+                    } elseif ($attendance->status == 'holiday') {
+                        $status = 'H';
+                        $statusClass = 'holiday';
+                        $holidayCount++;
+                    } elseif ($attendance->status == 'weekly_off') {
+                        $status = 'H';
+                        $statusClass = 'holiday';
+                        $weeklyOffCount++;
+                    } else {
+                        // Any other status, show as present
+                        $status = 'P';
+                        $statusClass = 'present';
+                        $presentCount++;
+                    }
+                } elseif ($isHoliday) {
+                    $status = 'H';
+                    $statusClass = 'holiday';
+                    $holidayCount++;
+                } elseif ($isWeeklyOff) {
+                    $status = 'H';
+                    $statusClass = 'holiday';
+                    $weeklyOffCount++;
+                } else {
+                    $status = '-';
+                    $statusClass = 'absent';
+                    $absentCount++;
+                }
+
+                $dailyData[] = [
+                    'date' => $date,
+                    'day' => $date->format('j'),
+                    'dayName' => $date->format('d M'),
+                    'status' => $status,
+                    'status_class' => $statusClass,
+                ];
+            }
+
+            $reportData[] = [
+                'employee' => $employee,
+                'daily_data' => $dailyData,
+                'present_count' => $presentCount,
+                'absent_count' => $absentCount,
+                'leave_count' => $leaveCount,
+                'holiday_count' => $holidayCount + $weeklyOffCount,
+                'total_days' => count($dateRange),
+            ];
+        }
+
+        $departments = Attribute::where('type', 3)->where('status', 'active')->get();
+        $allEmployees = User::filterBy('employee')->whereIn('status', [0, 1])->orderBy('employee_id')->get();
+
+        return view(adminTheme().'attendance.monthly_summary', compact(
+            'reportData',
+            'dateRange',
+            'startDate',
+            'endDate',
+            'departments',
+            'allEmployees',
+            'employee_id',
+            'department_id'
+        ));
+    }
+
+    public function attendanceExport(Request $request)
+    {
+        $startDate = Carbon::parse($request->start_date ?? Carbon::now()->startOfMonth());
+        $endDate = Carbon::parse($request->end_date ?? Carbon::now()->endOfMonth());
+        $department_id = $request->department_id;
+        $employee_id = $request->employee_id;
+        
+        // Get employees
+        $employees = User::filterBy('employee')
+            ->whereIn('status', [0, 1])
+            ->with(['designation', 'department']);
+            
+        if ($department_id) {
+            $employees = $employees->where('department_id', $department_id);
+        }
+        if ($employee_id) {
+            $employees = $employees->where('id', $employee_id);
+        }
+        $employees = $employees->get();
+        
+        // Get attendances
+        $attendances = Attendance::whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->whereIn('status', ['present', 'absent', 'late'])
+            ->get();
+        
+        // Return Excel export
+        $export = new \App\Exports\AttendanceExport(
+            $attendances,
+            $startDate->format('m'),
+            $startDate->format('Y')
+        );
+        
+        return \Maatwebsite\Excel\Facades\Excel::download($export, 'attendance_'.$startDate->format('Ym').'.xlsx');
+    }
+
+    /**
+     * Individual Employee Attendance Report (Grid View)
+     */
+    public function individualAttendanceReport(Request $request)
+    {
+        $employee_id = $request->employee_id;
+        $month = $request->month ?? Carbon::now()->format('Y-m');
+        
+        // Parse month
+        $startDate = Carbon::parse($month)->startOfMonth();
+        $endDate = Carbon::parse($month)->endOfMonth();
+
+        // Get all employees for dropdown
+        $employees = User::where('customer', 1)
+            ->where('employee_status', 'active')
+            ->orderBy('name')
+            ->get();
+
+        $employee = null;
+        $dailyData = [];
+        $summary = null;
+
+        if ($employee_id) {
+            $employee = User::with(['department', 'designation'])->findOrFail($employee_id);
+
+            // Get holidays
+            $holidays = Holiday::where('status', 'active')
+                ->whereDate('from_date', '<=', $endDate->format('Y-m-d'))
+                ->whereDate('to_date', '>=', $startDate->format('Y-m-d'))
+                ->get();
+
+            $holidayDates = [];
+            foreach ($holidays as $holiday) {
+                $current = Carbon::parse($holiday->from_date);
+                $toDate = Carbon::parse($holiday->to_date);
+                while ($current->lte($toDate)) {
+                    $holidayDates[$current->format('Y-m-d')] = $holiday->title;
+                    $current->addDay();
+                }
+            }
+
+            // Get weekly offday
+            $offdaySetting = Attribute::where('type', 21)->where('status', 'active')->first();
+            $offdayNumber = $offdaySetting ? array_search($offdaySetting->name, ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']) : 5;
+
+            // Get leaves
+            $leaves = Leave::where('user_id', $employee_id)
+                ->where('status', 'approved')
+                ->where(function($q) use ($startDate, $endDate) {
+                    $q->whereBetween('start_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                    ->orWhereBetween('end_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                    ->orWhere(function($q) use ($startDate, $endDate) {
+                        $q->where('start_date', '<=', $startDate->format('Y-m-d'))
+                            ->where('end_date', '>=', $endDate->format('Y-m-d'));
+                    });
+                })
+                ->get();
+
+            // Get attendance records
+            $attendances = Attendance::where('user_id', $employee_id)
+                ->whereDate('in_time', '>=', $startDate->format('Y-m-d'))
+                ->whereDate('in_time', '<=', $endDate->format('Y-m-d'))
+                ->get()
+                ->groupBy(function ($item) {
+                    return Carbon::parse($item->in_time)->format('Y-m-d');
+                });
+
+            // Build date range
+            $dateRange = [];
+            $currentDate = $startDate->copy();
+            while ($currentDate->lte($endDate)) {
+                $dateRange[] = $currentDate->copy();
+                $currentDate->addDay();
+            }
+
+            // Calculate daily data
+            $presentCount = 0;
+            $absentCount = 0;
+            $leaveCount = 0;
+            $holidayCount = 0;
+            $lateCount = 0;
+
+            foreach ($dateRange as $date) {
+                $dateStr = $date->format('Y-m-d');
+                $dayOfWeek = $date->dayOfWeek;
+
+                // Check holiday
+                $isHoliday = isset($holidayDates[$dateStr]);
+                $isWeeklyOff = ($dayOfWeek == $offdayNumber);
+
+                // Check leave
+                $leave = $leaves->filter(function($l) use ($date) {
+                    return $date->between($l->start_date, $l->end_date);
+                })->first();
+
+                // Get attendance
+                $attendance = $attendances->get($dateStr)?->first();
+
+                $status = '';
+                $statusClass = '';
+                $inTime = '-';
+                $outTime = '-';
+
+                if ($leave) {
+                    $status = 'L';
+                    $statusClass = 'leave';
+                    $leaveCount++;
+                } elseif ($attendance) {
+                    if (in_array($attendance->status, ['present', 'late'])) {
+                        $status = $attendance->status == 'late' ? 'LT' : 'P';
+                        $statusClass = $attendance->status == 'late' ? 'late' : 'present';
+                        $presentCount++;
+                        if ($attendance->status == 'late') $lateCount++;
+                        
+                        // Get times
+                        if ($attendance->in_time) {
+                            $inTime = is_string($attendance->in_time) ? 
+                                substr($attendance->in_time, 0, 5) : 
+                                Carbon::parse($attendance->in_time)->format('H:i');
+                        }
+                        if ($attendance->out_time) {
+                            $outTime = is_string($attendance->out_time) ? 
+                                substr($attendance->out_time, 0, 5) : 
+                                Carbon::parse($attendance->out_time)->format('H:i');
+                        }
+                    } elseif ($attendance->status == 'absent') {
+                        $status = 'A';
+                        $statusClass = 'absent';
+                        $absentCount++;
+                    } elseif (in_array($attendance->status, ['holiday', 'weekly_off'])) {
+                        $status = 'H';
+                        $statusClass = 'holiday';
+                        $holidayCount++;
+                    }
+                } elseif ($isHoliday) {
+                    $status = 'H';
+                    $statusClass = 'holiday';
+                    $holidayCount++;
+                } elseif ($isWeeklyOff) {
+                    $status = 'WO';
+                    $statusClass = 'holiday';
+                    $holidayCount++;
+                } else {
+                    $status = 'A';
+                    $statusClass = 'absent';
+                    $absentCount++;
+                }
+
+                $dailyData[] = [
+                    'date' => $date,
+                    'day' => $date->format('j'),
+                    'day_name' => $date->format('D'),
+                    'status' => $status,
+                    'status_class' => $statusClass,
+                    'in_time' => $inTime,
+                    'out_time' => $outTime,
+                ];
+            }
+
+            $summary = [
+                'present' => $presentCount,
+                'late' => $lateCount,
+                'absent' => $absentCount,
+                'leave' => $leaveCount,
+                'holiday' => $holidayCount,
+                'total' => count($dateRange),
+            ];
+        }
+
+        return view(adminTheme().'attendance.individual_report', compact(
+            'employee',
+            'employees',
+            'employee_id',
+            'month',
+            'dailyData',
+            'summary',
+            'startDate',
+            'endDate'
+        ));
     }
 
     /**

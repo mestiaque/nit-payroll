@@ -7,11 +7,12 @@
 <style>
     @media print {
         .no-print { display: none !important; }
-        .card { border: none !important; box-shadow: none !important; }
-        .card-body { padding: 0 !important; }
-        body { font-size: 12px; }
+        .card { border: none !important; box-shadow: none !important; margin: 0 !important; }
+        .card-body { padding: 5px !important; }
+        body { font-size: 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         table { font-size: 10px; }
         .badge { border: 1px solid #000 !important; color: #000 !important; background: none !important; }
+        @page { margin: 0.5cm; }
     }
     .job-card-table th, .job-card-table td {
         text-align: center;
@@ -24,6 +25,13 @@
     .status-L { background: #cce5ff; }
     .status-H { background: #d1ecf1; }
     .status-WO { background: #e2e3e5; }
+    .employee-photo {
+        width: 120px;
+        height: 140px;
+        object-fit: cover;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+    }
 </style>
 @endpush
 
@@ -60,53 +68,123 @@
 
     @if($selectedUser && $summary)
     <!-- Job Card Header -->
-    <div class="card">
-        <div class="card-body" id="printableArea">
+    <div class="card" id="printableArea">
+        <div class="card-body">
             <div class="text-center mb-3">
                 <h4 style="margin-bottom: 5px;"><strong> JOB CARD </strong></h4>
-                <p style="margin: 0;">Monthly Attendance Report</p>
+                <p style="margin: 0;">Employee Information & Monthly Attendance Report</p>
             </div>
 
+            <!-- Employee Basic Info with Photo -->
             <table class="table table-bordered table-sm" style="margin-bottom: 15px;">
                 <tr>
-                    <td width="15%"><strong>Employee Name:</strong></td>
+                    <td width="15%" rowspan="5" class="text-center">
+                        @if($selectedUser->photo)
+                            <img src="{{ asset($selectedUser->photo) }}" alt="Photo" class="employee-photo">
+                        @else
+                            <img src="{{ asset('images/no-image.png') }}" alt="Photo" class="employee-photo">
+                        @endif
+                    </td>
+                    <td width="20%"><strong>Employee Name:</strong></td>
                     <td width="25%">{{ $selectedUser->name }}</td>
                     <td width="15%"><strong>Employee ID:</strong></td>
-                    <td width="15%">{{ $selectedUser->employee_id ?? $selectedUser->id }}</td>
-                    <td width="15%"><strong>Month:</strong></td>
-                    <td width="15%">{{ Carbon\Carbon::parse($month)->format('F Y') }}</td>
+                    <td width="25%">{{ $selectedUser->employee_id ?? $selectedUser->id }}</td>
                 </tr>
                 <tr>
                     <td><strong>Department:</strong></td>
-                    <td>{{ $selectedUser->department->name ?? 'N/A' }}</td>
+                    <td>{{ $selectedUser->department ? $selectedUser->department->name : 'N/A' }}</td>
                     <td><strong>Designation:</strong></td>
-                    <td>{{ $selectedUser->designation->name ?? 'N/A' }}</td>
+                    <td>{{ $selectedUser->designation ? $selectedUser->designation->name : 'N/A' }}</td>
+                </tr>
+                <tr>
                     <td><strong>Join Date:</strong></td>
                     <td>{{ $selectedUser->joining_date ? \Carbon\Carbon::parse($selectedUser->joining_date)->format('d M Y') : 'N/A' }}</td>
+                    <td><strong>Shift:</strong></td>
+                    <td>{{ $selectedUser->shift ? $selectedUser->shift->name : 'N/A' }}</td>
                 </tr>
                 <tr>
-                    <td><strong>Basic Salary:</strong></td>
-                    <td>{{ number_format($selectedUser->basic_salary ?? 0, 2) }}</td>
-                    <td><strong>House Rent:</strong></td>
-                    <td>{{ number_format($selectedUser->house_rent ?? 0, 2) }}</td>
-                    <td><strong>Medical Allowance:</strong></td>
-                    <td>{{ number_format($selectedUser->medical_allowance ?? 0, 2) }}</td>
+                    <td><strong>Line Number:</strong></td>
+                    <td>{{ $selectedUser->line ? $selectedUser->line->name : 'N/A' }}</td>
+                    <td><strong>Grade:</strong></td>
+                    <td>{{ $selectedUser->grade ? $selectedUser->grade->name : 'N/A' }}</td>
                 </tr>
                 <tr>
-                    <td><strong>Transport Allowance:</strong></td>
-                    <td>{{ number_format($selectedUser->transport_allowance ?? 0, 2) }}</td>
-                    <td><strong>Other Allowance:</strong></td>
-                    <td>{{ number_format($selectedUser->other_allowance ?? 0, 2) }}</td>
-                    <td><strong>Total Salary:</strong></td>
-                    <td>{{ number_format(($selectedUser->basic_salary ?? 0) + ($selectedUser->house_rent ?? 0) + ($selectedUser->medical_allowance ?? 0) + ($selectedUser->transport_allowance ?? 0) + ($selectedUser->other_allowance ?? 0), 2) }}</td>
+                    <td><strong>Section:</strong></td>
+                    <td>{{ $selectedUser->section ? $selectedUser->section->name : 'N/A' }}</td>
+                    <td><strong>Division:</strong></td>
+                    <td>{{ $selectedUser->divisionData ? $selectedUser->divisionData->name : 'N/A' }}</td>
                 </tr>
             </table>
+
+            <!-- Contact Information -->
+            <table class="table table-bordered table-sm" style="margin-bottom: 15px;">
+                <tr>
+                    <th colspan="4" class="table-secondary text-center">Contact Information</th>
+                </tr>
+                <tr>
+                    <td width="25%"><strong>Mobile:</strong></td>
+                    <td width="25%">{{ $selectedUser->mobile ?? 'N/A' }}</td>
+                    <td width="25%"><strong>Email:</strong></td>
+                    <td width="25%">{{ $selectedUser->email ?? 'N/A' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Address:</strong></td>
+                    <td colspan="3">
+                        {{ $selectedUser->address_line1 ?? '' }} 
+                        {{ $selectedUser->address_line2 ? ', ' . $selectedUser->address_line2 : '' }}
+                        {{ $selectedUser->city ? ', ' . $selectedUser->city : '' }}
+                        {{ $selectedUser->district ? ', ' . $selectedUser->district : '' }}
+                        {{ $selectedUser->divisionData && $selectedUser->divisionData->name ? ', ' . $selectedUser->divisionData->name : '' }}
+                        {{ $selectedUser->country ? ', ' . $selectedUser->country : '' }}
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Salary Information -->
+            <table class="table table-bordered table-sm" style="margin-bottom: 15px;">
+                <tr>
+                    <th colspan="6" class="table-secondary text-center">Salary Information</th>
+                </tr>
+                <tr>
+                    <td><strong>Basic Salary:</strong><br>{{ number_format($selectedUser->basic_salary ?? 0, 2) }}</td>
+                    <td><strong>House Rent:</strong><br>{{ number_format($selectedUser->house_rent ?? 0, 2) }}</td>
+                    <td><strong>Medical Allowance:</strong><br>{{ number_format($selectedUser->medical_allowance ?? 0, 2) }}</td>
+                    <td><strong>Transport Allowance:</strong><br>{{ number_format($selectedUser->transport_allowance ?? 0, 2) }}</td>
+                    <td><strong>Other Allowance:</strong><br>{{ number_format($selectedUser->other_allowance ?? 0, 2) }}</td>
+                    <td><strong>Total Salary:</strong><br>{{ number_format(($selectedUser->basic_salary ?? 0) + ($selectedUser->house_rent ?? 0) + ($selectedUser->medical_allowance ?? 0) + ($selectedUser->transport_allowance ?? 0) + ($selectedUser->other_allowance ?? 0), 2) }}</td>
+                </tr>
+            </table>
+
+            <!-- Increment History -->
+            @if(isset($increments) && $increments->count() > 0)
+            <table class="table table-bordered table-sm" style="margin-bottom: 15px;">
+                <tr>
+                    <th colspan="5" class="table-secondary text-center">Increment History</th>
+                </tr>
+                <tr>
+                    <th>Date</th>
+                    <th>Previous Salary</th>
+                    <th>Increment Amount</th>
+                    <th>New Salary</th>
+                    <th>Remarks</th>
+                </tr>
+                @foreach($increments as $increment)
+                <tr>
+                    <td>{{ \Carbon\Carbon::parse($increment->increment_date)->format('d M Y') }}</td>
+                    <td>{{ number_format($increment->previous_salary ?? 0, 2) }}</td>
+                    <td>{{ number_format($increment->increment_amount ?? 0, 2) }}</td>
+                    <td>{{ number_format($increment->new_salary ?? 0, 2) }}</td>
+                    <td>{{ $increment->remarks ?? 'N/A' }}</td>
+                </tr>
+                @endforeach
+            </table>
+            @endif
 
             <!-- Monthly Summary -->
             <table class="table table-bordered table-sm" style="margin-bottom: 15px;">
                 <thead>
                     <tr class="table-secondary">
-                        <th colspan="6" class="text-center">Monthly Summary</th>
+                        <th colspan="6" class="text-center">Attendance Summary - {{ Carbon\Carbon::parse($month)->format('F Y') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -193,9 +271,11 @@
 
     <!-- Print Button -->
     <div class="text-center no-print mt-3">
-        <button class="btn btn-primary" onclick="window.print()">
+        @if($selectedUser && $summary)
+        <a href="{{ route('admin.jobcard.print', ['user_id' => $selectedUser->id, 'month' => $month]) }}" target="_blank" class="btn btn-primary">
             <i class="fa fa-print"></i> Print Job Card
-        </button>
+        </a>
+        @endif
     </div>
     @else
     <div class="card">

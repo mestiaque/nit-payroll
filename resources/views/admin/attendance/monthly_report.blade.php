@@ -78,8 +78,19 @@
                     <tr>
                         <td>{{ $i + 1 }}</td>
                         <td>
-                            <small>{{ $employee->name }}</small><br>
-                            <small class="text-muted">{{ $employee->employee_id }}</small>
+                            <div class="d-flex align-items-center">
+                                @if($employee->photo)
+                                    <img src="{{ asset('uploads/user_photo/' . $employee->photo) }}" alt="{{ $employee->name }}" class="rounded-circle" style="width: 35px; height: 35px; object-fit: cover; margin-right: 8px;">
+                                @else
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold" style="width: 35px; height: 35px; background-color: {{ random_color($employee->id ?? 0) }}; margin-right: 8px; flex-shrink: 0;">
+                                        {{ strtoupper(substr($employee->name ?? 'U', 0, 1)) }}
+                                    </div>
+                                @endif
+                                <div>
+                                    <small class="font-weight-bold">{{ $employee->name }}</small><br>
+                                    <small class="text-muted">{{ $employee->employee_id }}</small>
+                                </div>
+                            </div>
                         </td>
                         <td><small>{{ $employee->department_name ?? 'N/A' }}</small></td>
                         @for($day = 1; $day <= $daysInMonth ?? 31; $day++)

@@ -4,42 +4,7 @@
 @endsection
 
 @push('css')
-<link rel="stylesheet" type="text/css" href="{{ asset('/admin/app-assets/vendors/css/tables/datatable/datatables.min.css') }}" />
-<link rel="stylesheet" type="text/css" href="{{ asset('/admin/app-assets/vendors/css/tables/extensions/buttons.dataTables.min.css') }}" />
-<link rel="stylesheet" type="text/css" href="{{ asset('/admin/app-assets/vendors/css/tables/datatable/buttons.bootstrap4.min.css') }}" />
-<style>
-    /* Premium Card / Filter Styling */
-    .attendance-filters {
-        background: ;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
-    }
-    .statuslist {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        list-style: none;
-        padding-left: 0;
-        margin-bottom: 0;
-    }
-    .statuslist li {
-        background: #e9ecef;
-        padding: 5px 12px;
-        border-radius: 12px;
-        font-weight: 500;
-        font-size: 0.875rem;
-    }
-        ul.statuslist li::before {
-        content: none !important;  /* Remove any bullet / icon */
-    }
-    .dataTables_wrapper .dt-buttons {
-        margin-bottom: 10px;
-    }
-    .dataTables_filter{display:none;}
-    table.table thead{background : #56d2ff;}
-</style>
+
 @endpush
 
 @section('contents')
@@ -185,6 +150,14 @@
                 <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-search"></i> Search</button>
                 <a href="{{ route('admin.dailyAttendance') }}" class="btn btn-warning btn-sm"><i class="bx bx-rotate-left"></i> Reset</a>
             </div>
+            <div class=" text-end col-md-3 offset-md-3 text-right">
+                <a href="{{ route('admin.dailyAttendanceExport', request()->query()) }}" target="_blank" class="btn btn-success btn-sm">
+                    <i class="bx bx-file"></i> Export Excel
+                </a>
+                <a href="{{ route('admin.dailyAttendancePrint', request()->query()) }}" target="_blank" class="btn btn-primary btn-sm">
+                    <i class="bx bx-printer"></i> Print
+                </a>
+            </div>
 
         </form>
     </div>
@@ -199,11 +172,7 @@
     <div class="card shadow-sm w-100">
         <div class="card-body">
             <!-- Add print btn -->
-            <div class="mb-3 text-end">
-                <a href="{{ route('admin.dailyAttendancePrint', request()->query()) }}" target="_blank" class="btn btn-primary btn-sm">
-                    <i class="bx bx-printer"></i> Print
-                </a>
-            </div>
+
             <div class="table-responsive">
                 <table class="table table-striped table-bordered table-hover dataex-html5-export w-100">
                     <thead class="table-darkx">
@@ -277,38 +246,5 @@
 </div>
 
 @push('js')
-<script src="{{ asset('admin/app-assets/vendors/js/tables/datatable/datatables.min.js') }}"></script>
-<script src="{{ asset('admin/app-assets/vendors/js/tables/datatable/dataTables.buttons.min.js') }}"></script>
-<script src="{{ asset('admin/app-assets/vendors/js/tables/datatable/buttons.bootstrap4.min.js') }}"></script>
-<script src="{{ asset('admin/app-assets/vendors/js/tables/jszip.min.js') }}"></script>
-<script src="{{ asset('admin/app-assets/vendors/js/tables/pdfmake.min.js') }}"></script>
-<script src="{{ asset('admin/app-assets/vendors/js/tables/vfs_fonts.js') }}"></script>
-<script src="{{ asset('admin/app-assets/vendors/js/tables/buttons.html5.min.js') }}"></script>
-<script src="{{ asset('admin/app-assets/vendors/js/tables/buttons.print.min.js') }}"></script>
-<script src="{{ asset('admin/app-assets/vendors/js/tables/buttons.colVis.min.js') }}"></script>
-
-<script>
-$(document).ready(function () {
-    if ($.fn.DataTable.isDataTable('.dataex-html5-export')) {
-        $('.dataex-html5-export').DataTable().destroy();
-    }
-
-    $('.dataex-html5-export').DataTable({
-        dom: "Bfrtip",
-        // buttons: [
-        //     { extend: "copyHtml5", className: 'btn btn-sm btn-outline-secondary text-white mr-1' },
-        //     { extend: "excelHtml5", className: 'btn btn-sm btn-outline-success  text-white mr-1' },
-        //     { extend: "csvHtml5", className: 'btn btn-sm btn-outline-info  text-white mr-1' },
-        //     { extend: "pdfHtml5", className: 'btn btn-sm btn-outline-danger  text-white mr-1', orientation: "landscape", pageSize: "LEGAL" },
-        //     { extend: "print", className: 'btn btn-sm btn-outline-primary  text-white mr-1' }
-        // ],
-        pageLength: 50,
-        lengthMenu: [25, 50, 100, 200],
-        responsive: true,
-        scrollX: true,
-        autoWidth: false
-    });
-});
-</script>
 @endpush
 @endsection

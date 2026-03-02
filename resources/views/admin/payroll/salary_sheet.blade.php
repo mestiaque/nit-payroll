@@ -276,7 +276,18 @@
                     <tr>
                         <td>{{ $i + 1 }}</td>
                         <td>{{ $empInfo->employee_id ?? '--' }}</td>
-                        <td>{{ $user->name ?? '--' }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                @if($user && $user->photo)
+                                    <img src="{{ asset('uploads/user_photo/' . $user->photo) }}" alt="{{ $user->name }}" class="rounded-circle" style="width: 30px; height: 30px; object-fit: cover; margin-right: 8px;">
+                                @else
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold" style="width: 30px; height: 30px; background-color: {{ random_color($user->id ?? 0) }}; margin-right: 8px; flex-shrink: 0;">
+                                        {{ strtoupper(substr($user->name ?? 'U', 0, 1)) }}
+                                    </div>
+                                @endif
+                                <span>{{ $user->name ?? '--' }}</span>
+                            </div>
+                        </td>
                         <td>{{ $empInfo->department->name ?? '--' }}</td>
                         <td>{{ $empInfo->designation->name ?? '--' }}</td>
                         <td>৳{{ number_format($salary->basic_salary ?? 0, 0) }}</td>

@@ -10,6 +10,16 @@ use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Auth;
 
+function random_color($seed = 0) {
+    $colors = [
+        '#3498db', '#e74c3c', '#9b59b6', '#f1c40f', 
+        '#1abc9c', '#e67e22', '#34495e', '#16a085',
+        '#c0392b', '#8e44ad', '#27ae60', '#d35400',
+        '#2980b9', '#2c3e50', '#f39c12', '#00b894'
+    ];
+    return $colors[$seed % count($colors)];
+}
+
 
 function general(){
   return $general =General::first();

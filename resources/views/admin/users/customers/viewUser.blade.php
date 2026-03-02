@@ -156,7 +156,7 @@
                         </div>
                     </div>
                     <div class="col-md-3 text-right">
-                        <a href="{{route('admin.editProfile')}}" class="btn btn-light btn-md">
+                        <a href="{{route('admin.usersCustomerAction',['edit',$user->id])}}" class="btn btn-light btn-md">
                             <i class="bx bx-edit"></i> Edit Profile
                         </a>
                     </div>

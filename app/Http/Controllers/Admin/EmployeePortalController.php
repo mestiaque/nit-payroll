@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Attendance;
 use App\Models\Leave;
+use App\Models\Notice;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -40,7 +41,15 @@ class EmployeePortalController extends Controller
             ->where('status', 'pending')
             ->count();
 
-        return view('admin.employee_portal.dashboard', compact('todayAttendance', 'presentDays', 'absentDays', 'pendingLeaves'));
+        // Get active notices for employee dashboard
+        $notices = Notice::where('status', 'active')
+            ->where('end_date', '>=', Carbon::today())
+            ->orderBy('priority', 'desc')
+            ->orderBy('notice_date', 'desc')
+            ->limit(10)
+            ->get();
+
+        return view('admin.employee_portal.dashboard', compact('todayAttendance', 'presentDays', 'absentDays', 'pendingLeaves', 'notices'));
     }
 
     /**

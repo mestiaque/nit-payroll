@@ -10,17 +10,43 @@
             padding: 0;
             box-sizing: border-box;
         }
-        body {
+        html, body {
+            width: 100%;
             font-family: 'Times New Roman', Times, serif;
             font-size: 14px;
             line-height: 1.6;
             color: #333;
+            background: white;
         }
         .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px;
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 15px;
         }
+        .no-print {
+            text-align: center;
+            padding: 15px;
+            background: #333;
+            margin-bottom: 15px;
+        }
+        .no-print button {
+            padding: 8px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            color: white;
+        }
+        .btn-print {
+            background: #28a745;
+        }
+        .btn-close {
+            background: #dc3545;
+        }
+        .btn-print:hover { background: #218838; }
+        .btn-close:hover { background: #c82333; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .mb-20 { margin-bottom: 20px; }
@@ -32,10 +58,11 @@
         p { margin-bottom: 10px; }
         ul { margin-left: 20px; margin-bottom: 20px; }
         li { margin-bottom: 5px; }
-        table { width: 100%; border-collapse: collapse; }
-        table td { padding: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        table td, table th { padding: 8px; border: 1px solid #333; }
+        table th { background: #f5f5f5; }
         .signature-area {
-            margin-top: 60px;
+            margin-top: 50px;
             display: flex;
             justify-content: space-between;
         }
@@ -52,14 +79,30 @@
             background: #f5f5f5;
             padding: 20px;
         }
+        @page {
+            margin: 0.5in;
+        }
         @media print {
-            body { -webkit-print-color-adjust: exact; }
+            body { 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
+                margin: 0;
+            }
             .no-print { display: none !important; }
+            .container { padding: 0; }
         }
     </style>
     @yield('styles')
 </head>
 <body>
+    <div class="no-print">
+        <button class="btn-print" onclick="window.print()">
+            <i class="fa fa-print"></i> Print
+        </button>
+        <button class="btn-close" onclick="window.close()">
+            <i class="fa fa-times"></i> Close
+        </button>
+    </div>
     @yield('contents')
 </body>
 </html>

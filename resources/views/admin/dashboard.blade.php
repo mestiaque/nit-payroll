@@ -188,6 +188,42 @@
             </div>
         </div>
     </div>
+    @if(isset($upcomingNotices) && $upcomingNotices->count() > 0)
+    <div class="col-lg-5 col-md-12">
+        <div class="card mb-30">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3>Upcoming Notices</h3>
+                <a href="{{ route('admin.notices.index') }}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <tbody>
+                            @foreach($upcomingNotices as $notice)
+                            <tr>
+                                <td>
+                                    <strong>{{ $notice->title }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ $notice->notice_date->format('d M, Y') }}</small>
+                                </td>
+                                <td>
+                                    @if($notice->priority == 'high')
+                                        <span class="badge badge-danger">High</span>
+                                    @elseif($notice->priority == 'medium')
+                                        <span class="badge badge-warning">Medium</span>
+                                    @else
+                                        <span class="badge badge-info">Low</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
     <div class="col-lg-5 col-md-12">
         <div class="card mb-30">
             <div class="card-header d-flex justify-content-between align-items-center">

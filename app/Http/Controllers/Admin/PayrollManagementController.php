@@ -10,6 +10,14 @@ use App\Models\Leave;
 use App\Models\Roaster;
 use App\Models\Shift;
 use App\Models\Attribute;
+use App\Models\Overtime;
+use App\Models\Bonus;
+use App\Models\Deduction;
+use App\Models\Tax;
+use App\Models\Loan;
+use App\Models\SalaryAdvance;
+use App\Models\ProvidentFund;
+use App\Models\WorkingHour;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -196,7 +204,8 @@ class PayrollManagementController extends Controller
 
                 // Total earnings = present + late (reduced) + approved leave + overtime
                 // Note: This is the actual amount to be paid
-                $totalEarning = $presentEarning + $lateEarning + $leaveEarning + $overtimeAmount;
+                // Note: Overtime will be added after fetching from Overtime model
+                $totalEarning = $presentEarning + $lateEarning + $leaveEarning;
 
                 // Ensure minimum earning is basic salary (even if no attendance)
                 if ($totalEarning < $basicSalary && $basicSalary > 0) {
@@ -210,6 +219,67 @@ class PayrollManagementController extends Controller
                 // Absent deduction is 0 since we only pay for days worked
                 $absentDeduction = 0;
 
+                // ============ INTEGRATE NEW FEATURES ============
+                
+                // 1. Get Overtime (General & Special) from Overtime model
+                $overtimeEarning = Overtime::where('user_id', $employee->id)
+                    ->where('month', $month)
+                    ->where('year', $year)
+                    ->where('status', 'approved')
+                    ->sum('amount');
+                
+                // 2. Get Bonus from Bonus model
+                $bonusEarning = Bonus::where('user_id', $employee->id)
+                    ->where('month', $month)
+                    ->where('year', $year)
+                    ->where('status', 'approved')
+                    ->sum('amount');
+                
+                // 3. Get Deductions (late fine, absent fine, etc.)
+                $deductionAmount = Deduction::where('user_id', $employee->id)
+                    ->where('month', $month)
+                    ->where('status', 'deducted')
+                    ->sum('amount');
+                
+                // 4. Get Tax from Tax model or calculate
+                $taxRecord = Tax::where('user_id', $employee->id)
+                    ->where('month', $month)
+                    ->where('year', $year)
+                    ->first();
+                $tax = $taxRecord ? $taxRecord->net_tax : $this->calculateTax($monthlyGrossSalary);
+                
+                // 5. Get Loan installment deduction
+                $loanDeductionAmount = Loan::where('user_id', $employee->id)
+                    ->where('status', 'active')
+                    ->sum('monthly_installment');
+                
+                // 6. Get Provident Fund from ProvidentFund model
+                $pfRecord = ProvidentFund::where('user_id', $employee->id)
+                    ->where('month', $month)
+                    ->where('year', $year)
+                    ->where('status', 'active')
+                    ->first();
+                $providentFund = $pfRecord ? ($pfRecord->employee_contribution + $pfRecord->company_contribution) : ($monthlyGrossSalary * 0.05);
+                
+                // 7. Get Salary Advance deduction
+                $salaryAdvanceDeduction = SalaryAdvance::where('user_id', $employee->id)
+                    ->where('status', 'disbursed')
+                    ->sum('monthly_deduction');
+                
+                // 8. Get Working Hours/Grass Time extra payment
+                $grassTimeAmount = WorkingHour::where('user_id', $employee->id)
+                    ->where('date', '>=', $year . '-' . $month . '-01')
+                    ->where('date', '<=', $year . '-' . $month . '-31')
+                    ->where('status', 'approved')
+                    ->sum('grass_hours');
+                // Convert grass hours to amount (assuming hourly rate)
+                $grassTimeEarning = $grassTimeAmount * ($basicSalary / 200); // Assuming 200 working hours per month
+                
+                // Add overtime, bonus, grass time to earnings
+                $totalEarning += $overtimeEarning + $bonusEarning + $grassTimeEarning;
+                
+                // ============ END NEW FEATURES ============
+
                 // Calculate tax (simplified) - tax on full gross salary
                 $tax = $this->calculateTax($monthlyGrossSalary);
 
@@ -219,11 +289,11 @@ class PayrollManagementController extends Controller
                 // Stamp charge as deduction - use from User table
                 $stampDeduction = $stampCharge > 0 ? $stampCharge : 0;
 
-                // Loan deduction (can be integrated)
-                $loanDeduction = 0;
+                // Loan deduction (from Loan model)
+                $loanDeduction = $loanDeductionAmount;
 
                 // Total deductions
-                $totalDeduction = $lateDeduction + $tax + $providentFund + $loanDeduction + $stampDeduction;
+                $totalDeduction = $lateDeduction + $tax + $providentFund + $loanDeduction + $stampDeduction + $deductionAmount + $salaryAdvanceDeduction;
 
                 // Net salary
                 $netSalary = $totalEarning - $totalDeduction;
@@ -262,21 +332,26 @@ class PayrollManagementController extends Controller
                         'transport_allowance' => $transportAllowance,
                         'other_allowance' => $foodAllowance + $conveyanceAllowance + $attendanceBonus + $otherAllowanceFromUser,
                         'gross_salary' => $monthlyGrossSalary,
-                        'overtime_amount' => $overtimeAmount,
+                        'overtime_amount' => $overtimeEarning,
+                        'special_overtime_amount' => 0, // Can be extended for special overtime type
+                        'grass_time_amount' => $grassTimeEarning,
                         'bonus' => $attendanceBonus,
+                        'other_bonus' => $bonusEarning,
                         'total_earning' => $totalEarning,
                         'absent_deduction' => $absentDeduction,
                         'late_deduction' => $lateDeduction,
                         'tax' => $tax,
                         'provident_fund' => $providentFund,
                         'loan_deduction' => $loanDeduction,
+                        'salary_advance_deduction' => $salaryAdvanceDeduction,
+                        'deduction' => $deductionAmount,
                         'other_deduction' => $stampDeduction,
                         'total_deduction' => $totalDeduction,
                         'net_salary' => $netSalary,
                         'working_days' => $workingDays,
                         'present_days' => $presentDays,
                         'absent_days' => $absentDays,
-                        'leave_days' => $approvedLeaveDays,
+                        'leave_days' => $leaveDays,
                         'overtime_hours' => $overtimeHours,
                         'payment_method' => $paymentMethod,
                         'payment_status' => 'pending',

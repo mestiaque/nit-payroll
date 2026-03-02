@@ -1,20 +1,40 @@
 <?php
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Welcome\WelcomeController;
-use App\Http\Controllers\Customer\CustomerController;
-use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\AdminController;
-use App\Http\Controllers\Admin\LeaveController;
-use App\Http\Controllers\Admin\HolidayController;
-use App\Http\Controllers\Admin\OffdayController;
-use App\Http\Controllers\Admin\JobCardController;
-use App\Http\Controllers\Admin\IdCardController;
-use App\Http\Controllers\Admin\LettersController;
-use App\Http\Controllers\Admin\EmployeePortalController;
-use App\Http\Controllers\Admin\PayrollManagementController;
+use App\Http\Controllers\Admin\AssetController;
+use App\Http\Controllers\Admin\AttendanceApprovalController;
 use App\Http\Controllers\Admin\AttendanceManagementController;
+use App\Http\Controllers\Admin\BonusController;
+use App\Http\Controllers\Admin\ConvenienceController;
+use App\Http\Controllers\Admin\DeductionController;
+use App\Http\Controllers\Admin\EmployeePortalController;
 use App\Http\Controllers\Admin\EmployeeReportController;
+use App\Http\Controllers\Admin\HolidayController;
+use App\Http\Controllers\Admin\IdCardController;
+use App\Http\Controllers\Admin\InterviewController;
+use App\Http\Controllers\Admin\JobCardController;
+use App\Http\Controllers\Admin\LeaveController;
+use App\Http\Controllers\Admin\LettersController;
+use App\Http\Controllers\Admin\LoanController;
+use App\Http\Controllers\Admin\NoticeController;
+use App\Http\Controllers\Admin\OffdayController;
+use App\Http\Controllers\Admin\OvertimeController;
+use App\Http\Controllers\Admin\PayrollManagementController;
+use App\Http\Controllers\Admin\PerformanceController;
+use App\Http\Controllers\Admin\PolicyController;
+use App\Http\Controllers\Admin\ProbationController;
+use App\Http\Controllers\Admin\ProvidentFundController;
+use App\Http\Controllers\Admin\RetirementController;
+use App\Http\Controllers\Admin\SalaryAdvanceController;
+use App\Http\Controllers\Admin\TaxController;
+use App\Http\Controllers\Admin\TerminationController;
+use App\Http\Controllers\Admin\WorkingHourController;
 use App\Http\Controllers\Api\ZKTecoPushController;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Customer\CustomerController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\ExcelExportController;
+use App\Http\Controllers\Welcome\WelcomeController;
+use Illuminate\Support\Facades\Route;
 
 Route::post('/iclock/cdata', [ZKTecoPushController::class, 'receiveData']);
 
@@ -42,9 +62,13 @@ Route::get('/{slug}',[WelcomeController::class,'pageView'])->name('pageView');
 Route::group(['prefix'=>'employee', 'as'=>'customer.','middleware'=>['auth','role:customer']], function(){
 
     Route::get('/dashboard',[CustomerController::class,'dashboard'])->name('dashboard');
+    Route::get('/notices',[CustomerController::class,'notices'])->name('notices');
     Route::get('/profile',[CustomerController::class,'myProfile'])->name('myProfile');
     Route::any('/edit-profile/{action?}',[CustomerController::class,'editProfile'])->name('editProfile');
     Route::get('/my-location-update',[CustomerController::class,'myLocationUpdate'])->name('myLocationUpdate');
+    Route::post('/my-location-update',[CustomerController::class,'myLocationUpdate'])->name('myLocationUpdate.post');
+    Route::get('/share-location',[CustomerController::class,'shareLocation'])->name('shareLocation');
+    Route::post('/share-location',[CustomerController::class,'shareLocation'])->name('shareLocation.post');
     Route::get('/attendance',[CustomerController::class,'attendance'])->name('attendance');
     Route::get('/my-attendance', [CustomerController::class, 'myAttendance'])->name('myAttendance');
 
@@ -90,9 +114,11 @@ Route::get('/dashboard',[AdminController::class,'dashboard'])->name('dashboard')
 
 Route::get('/daily-attendance',[AdminController::class,'dailyAttendance'])->name('dailyAttendance');
 Route::get('/daily-attendance-print',[AdminController::class,'dailyAttendancePrint'])->name('dailyAttendancePrint');
+Route::get('/daily-attendance-export',[AdminController::class,'dailyAttendanceExport'])->name('dailyAttendanceExport');
 Route::any('/daily-attendance/{action}/{id?}',[AdminController::class,'dailyAttendanceAction'])->name('dailyAttendanceAction');
 Route::get('daily-attendance-department-wise', [AdminController::class, 'dailyAttendanceDepartmentWise'])->name('dailyAttendanceDepartmentWise');
 Route::get('daily-attendance-department-summary', [AdminController::class,'dailyAttendanceDepartmentSummary'])->name('dailyAttendanceDepartmentSummary');
+Route::get('live-location-tracking', [AdminController::class,'liveLocationTracking'])->name('liveLocationTracking');
 
 Route::get('/zkteco-data-import',[ZKTecoPushController::class,'import'])->name('importZkteco');
 Route::post('/import-zkteco-data',[ZKTecoPushController::class,'importAction'])->name('importZktecoAction');
@@ -126,6 +152,8 @@ Route::get('/users/super-admin/create', [AdminController::class, 'createSuperAdm
 Route::post('/users/super-admin/create', [AdminController::class, 'storeSuperAdmin'])->name('users.superadmin.store');
 
 Route::get('/users/employee/',[AdminController::class,'usersCustomer'])->name('usersCustomer');
+Route::get('/users/employee/print',[AdminController::class,'usersCustomerPrint'])->name('usersCustomerPrint');
+Route::get('/users/employee/export',[AdminController::class,'usersCustomerExport'])->name('usersCustomerExport');
 Route::any('/users/employee/{action}/{id?}',[AdminController::class,'usersCustomerAction'])->name('usersCustomerAction');
 Route::get('/suppliers',[AdminController::class,'usersSuppliers'])->name('usersSuppliers');
 Route::any('/suppliers/{action}/{id?}',[AdminController::class,'usersSuppliersAction'])->name('usersSuppliersAction');
@@ -161,6 +189,103 @@ Route::put('/offday', [OffdayController::class, 'update'])->name('offday.update'
 
 // Job Card Management
 Route::get('/jobcard', [JobCardController::class, 'index'])->name('jobcard.index');
+Route::get('/jobcard/print', [JobCardController::class, 'print'])->name('jobcard.print');
+
+// Convenience Request
+Route::get('/convenience', [ConvenienceController::class, 'index'])->name('convenience.index');
+Route::get('/convenience/create', [ConvenienceController::class, 'create'])->name('convenience.create');
+Route::post('/convenience', [ConvenienceController::class, 'store'])->name('convenience.store');
+Route::put('/convenience/{id}', [ConvenienceController::class, 'update'])->name('convenience.update');
+Route::delete('/convenience/{id}', [ConvenienceController::class, 'destroy'])->name('convenience.destroy');
+
+// Provident Fund
+Route::get('/provident-fund', [ProvidentFundController::class, 'index'])->name('provident-fund.index');
+Route::get('/provident-fund/create', [ProvidentFundController::class, 'create'])->name('provident-fund.create');
+Route::post('/provident-fund', [ProvidentFundController::class, 'store'])->name('provident-fund.store');
+Route::put('/provident-fund/{id}', [ProvidentFundController::class, 'update'])->name('provident-fund.update');
+Route::delete('/provident-fund/{id}', [ProvidentFundController::class, 'destroy'])->name('provident-fund.destroy');
+
+// Retirement
+Route::get('/retirement', [RetirementController::class, 'index'])->name('retirement.index');
+Route::get('/retirement/create', [RetirementController::class, 'create'])->name('retirement.create');
+Route::post('/retirement', [RetirementController::class, 'store'])->name('retirement.store');
+Route::put('/retirement/{id}', [RetirementController::class, 'update'])->name('retirement.update');
+Route::delete('/retirement/{id}', [RetirementController::class, 'destroy'])->name('retirement.destroy');
+
+// Attendance Approval
+Route::get('/attendance-approval', [AttendanceApprovalController::class, 'index'])->name('attendance-approval.index');
+Route::get('/attendance-approval/create', [AttendanceApprovalController::class, 'create'])->name('attendance-approval.create');
+Route::post('/attendance-approval', [AttendanceApprovalController::class, 'store'])->name('attendance-approval.store');
+Route::put('/attendance-approval/{id}', [AttendanceApprovalController::class, 'update'])->name('attendance-approval.update');
+Route::delete('/attendance-approval/{id}', [AttendanceApprovalController::class, 'destroy'])->name('attendance-approval.destroy');
+
+// Performance
+Route::get('/performance', [PerformanceController::class, 'index'])->name('performance.index');
+Route::get('/performance/create', [PerformanceController::class, 'create'])->name('performance.create');
+Route::post('/performance', [PerformanceController::class, 'store'])->name('performance.store');
+Route::put('/performance/{id}', [PerformanceController::class, 'update'])->name('performance.update');
+Route::delete('/performance/{id}', [PerformanceController::class, 'destroy'])->name('performance.destroy');
+
+// Deductions
+Route::get('/deductions', [DeductionController::class, 'index'])->name('deductions.index');
+Route::get('/deductions/create', [DeductionController::class, 'create'])->name('deductions.create');
+Route::post('/deductions', [DeductionController::class, 'store'])->name('deductions.store');
+Route::put('/deductions/{id}', [DeductionController::class, 'update'])->name('deductions.update');
+Route::delete('/deductions/{id}', [DeductionController::class, 'destroy'])->name('deductions.destroy');
+
+// Bonus
+Route::get('/bonus', [BonusController::class, 'index'])->name('bonus.index');
+Route::get('/bonus/create', [BonusController::class, 'create'])->name('bonus.create');
+Route::post('/bonus', [BonusController::class, 'store'])->name('bonus.store');
+Route::put('/bonus/{id}', [BonusController::class, 'update'])->name('bonus.update');
+Route::delete('/bonus/{id}', [BonusController::class, 'destroy'])->name('bonus.destroy');
+
+// Salary Advance
+Route::get('/salary-advance', [SalaryAdvanceController::class, 'index'])->name('salary-advance.index');
+Route::get('/salary-advance/create', [SalaryAdvanceController::class, 'create'])->name('salary-advance.create');
+Route::post('/salary-advance', [SalaryAdvanceController::class, 'store'])->name('salary-advance.store');
+Route::put('/salary-advance/{id}', [SalaryAdvanceController::class, 'update'])->name('salary-advance.update');
+Route::delete('/salary-advance/{id}', [SalaryAdvanceController::class, 'destroy'])->name('salary-advance.destroy');
+
+// Tax
+Route::get('/tax', [TaxController::class, 'index'])->name('tax.index');
+Route::get('/tax/create', [TaxController::class, 'create'])->name('tax.create');
+Route::post('/tax', [TaxController::class, 'store'])->name('tax.store');
+Route::delete('/tax/{id}', [TaxController::class, 'destroy'])->name('tax.destroy');
+
+// Loan
+Route::get('/loan', [LoanController::class, 'index'])->name('loan.index');
+Route::get('/loan/create', [LoanController::class, 'create'])->name('loan.create');
+Route::post('/loan', [LoanController::class, 'store'])->name('loan.store');
+Route::put('/loan/{id}', [LoanController::class, 'update'])->name('loan.update');
+Route::delete('/loan/{id}', [LoanController::class, 'destroy'])->name('loan.destroy');
+
+// Policy
+Route::get('/policy', [PolicyController::class, 'index'])->name('policy.index');
+Route::get('/policy/create', [PolicyController::class, 'create'])->name('policy.create');
+Route::post('/policy', [PolicyController::class, 'store'])->name('policy.store');
+Route::put('/policy/{id}', [PolicyController::class, 'update'])->name('policy.update');
+Route::delete('/policy/{id}', [PolicyController::class, 'destroy'])->name('policy.destroy');
+
+// Working Hours
+Route::get('/working-hours', [WorkingHourController::class, 'index'])->name('working-hours.index');
+Route::get('/working-hours/create', [WorkingHourController::class, 'create'])->name('working-hours.create');
+Route::post('/working-hours', [WorkingHourController::class, 'store'])->name('working-hours.store');
+Route::put('/working-hours/{id}', [WorkingHourController::class, 'update'])->name('working-hours.update');
+Route::delete('/working-hours/{id}', [WorkingHourController::class, 'destroy'])->name('working-hours.destroy');
+
+// Assets
+Route::get('/assetss', [AssetController::class, 'index'])->name('assets.index');
+Route::get('/assetss/create', [AssetController::class, 'create'])->name('assets.create');
+Route::post('/assetss', [AssetController::class, 'store'])->name('assets.store');
+Route::put('/assetss/{id}', [AssetController::class, 'update'])->name('assets.update');
+Route::delete('/assetss/{id}', [AssetController::class, 'destroy'])->name('assets.destroy');
+
+// Asset Distribution
+Route::get('/assets/distribution', [AssetController::class, 'distributionIndex'])->name('assets.distribution');
+Route::get('/assets/distribution/create', [AssetController::class, 'distributionCreate'])->name('assets.distribution.create');
+Route::post('/assets/distribution', [AssetController::class, 'distributionStore'])->name('assets.distribution.store');
+Route::get('/assets/distribution/{id}/return', [AssetController::class, 'distributionReturn'])->name('assets.distribution.return');
 
 // ID Card Management
 Route::get('/idcard', [IdCardController::class, 'index'])->name('idcard.index');
@@ -189,6 +314,9 @@ Route::post('/attendance/process', [AttendanceManagementController::class, 'proc
 Route::get('/attendance/daily-report', [AdminController::class, 'dailyAttendance'])->name('attendance.daily.report');
 Route::get('/attendance/summary', [AttendanceManagementController::class, 'attendanceSummary'])->name('attendance.summary');
 Route::get('/attendance/monthly-report', [AttendanceManagementController::class, 'monthlyAttendanceReport'])->name('attendance.monthly.report');
+Route::get('/attendance/monthly-summary', [AttendanceManagementController::class, 'monthlyAttendanceSummary'])->name('attendance.monthly.summary');
+Route::get('/attendance/export', [AttendanceManagementController::class, 'attendanceExport'])->name('attendance.export');
+Route::get('/attendance/individual-report', [AttendanceManagementController::class, 'individualAttendanceReport'])->name('attendance.individual.report');
 Route::get('/attendance/absent-report', [AttendanceManagementController::class, 'absentReport'])->name('attendance.absent.report');
 Route::get('/attendance/invalid-report', [AttendanceManagementController::class, 'invalidAttendanceReport'])->name('attendance.invalid.report');
 
@@ -215,6 +343,53 @@ Route::get('/leaves/report', [EmployeeReportController::class, 'leaveReport'])->
 
 // Leave Summary
 Route::get('/leaves/summary', [LeaveController::class, 'summary'])->name('leaves.summary');
+
+// Overtime Management
+Route::get('/overtimes', [OvertimeController::class, 'index'])->name('overtimes.index');
+Route::get('/overtimes/create', [OvertimeController::class, 'create'])->name('overtimes.create');
+Route::post('/overtimes', [OvertimeController::class, 'store'])->name('overtimes.store');
+Route::get('/overtimes/{id}/edit', [OvertimeController::class, 'edit'])->name('overtimes.edit');
+Route::put('/overtimes/{id}', [OvertimeController::class, 'update'])->name('overtimes.update');
+Route::get('/overtimes/{id}/approve', [OvertimeController::class, 'approve'])->name('overtimes.approve');
+Route::post('/overtimes/{id}/reject', [OvertimeController::class, 'reject'])->name('overtimes.reject');
+Route::delete('/overtimes/{id}', [OvertimeController::class, 'destroy'])->name('overtimes.destroy');
+
+// Notice Management
+Route::get('/notices', [NoticeController::class, 'index'])->name('notices.index');
+Route::get('/notices/create', [NoticeController::class, 'create'])->name('notices.create');
+Route::post('/notices', [NoticeController::class, 'store'])->name('notices.store');
+Route::get('/notices/{id}/edit', [NoticeController::class, 'edit'])->name('notices.edit');
+Route::put('/notices/{id}', [NoticeController::class, 'update'])->name('notices.update');
+Route::delete('/notices/{id}', [NoticeController::class, 'destroy'])->name('notices.destroy');
+
+// Interview Management
+Route::get('/interviews', [InterviewController::class, 'index'])->name('interviews.index');
+Route::get('/interviews/create', [InterviewController::class, 'create'])->name('interviews.create');
+Route::post('/interviews', [InterviewController::class, 'store'])->name('interviews.store');
+Route::get('/interviews/{id}/edit', [InterviewController::class, 'edit'])->name('interviews.edit');
+Route::put('/interviews/{id}', [InterviewController::class, 'update'])->name('interviews.update');
+Route::post('/interviews/{id}/status', [InterviewController::class, 'updateStatus'])->name('interviews.status');
+Route::delete('/interviews/{id}', [InterviewController::class, 'destroy'])->name('interviews.destroy');
+
+// Probation Management
+Route::get('/probations', [ProbationController::class, 'index'])->name('probations.index');
+Route::get('/probations/create', [ProbationController::class, 'create'])->name('probations.create');
+Route::post('/probations', [ProbationController::class, 'store'])->name('probations.store');
+Route::get('/probations/{id}/edit', [ProbationController::class, 'edit'])->name('probations.edit');
+Route::put('/probations/{id}', [ProbationController::class, 'update'])->name('probations.update');
+Route::post('/probations/{id}/confirm', [ProbationController::class, 'confirm'])->name('probations.confirm');
+Route::post('/probations/{id}/extend', [ProbationController::class, 'extend'])->name('probations.extend');
+Route::delete('/probations/{id}', [ProbationController::class, 'destroy'])->name('probations.destroy');
+
+// Termination Management
+Route::get('/terminations', [TerminationController::class, 'index'])->name('terminations.index');
+Route::get('/terminations/create', [TerminationController::class, 'create'])->name('terminations.create');
+Route::post('/terminations', [TerminationController::class, 'store'])->name('terminations.store');
+Route::get('/terminations/{id}/edit', [TerminationController::class, 'edit'])->name('terminations.edit');
+Route::put('/terminations/{id}', [TerminationController::class, 'update'])->name('terminations.update');
+Route::post('/terminations/{id}/approve', [TerminationController::class, 'approve'])->name('terminations.approve');
+Route::post('/terminations/{id}/reject', [TerminationController::class, 'reject'])->name('terminations.reject');
+Route::delete('/terminations/{id}', [TerminationController::class, 'destroy'])->name('terminations.destroy');
 
 // Employee Reports
 Route::get('/reports/employees', [EmployeeReportController::class, 'index'])->name('reports.employees.index');
@@ -280,6 +455,11 @@ Route::put('/letters/increment/{id}', [LettersController::class, 'incrementUpdat
 Route::get('/letters/increment/{id}', [LettersController::class, 'incrementShow'])->name('letters.increment.show');
 Route::get('/letters/increment/{id}/print', [LettersController::class, 'incrementPrint'])->name('letters.increment.print');
 Route::delete('/letters/increment/{id}', [LettersController::class, 'incrementDestroy'])->name('letters.increment.destroy');
+
+
+Route::get('admin/users/employee', [EmployeeController::class, 'index'])->name('employee.index');
+Route::get('admin/users/employee/export', [EmployeeController::class, 'export'])->name('employee.export');
+Route::post('/excel-export', [ExcelExportController::class, 'export'])->name('excel.export');
 
 // ===========================================
 // END EMPLOYEE MANAGEMENT SYSTEM ROUTES

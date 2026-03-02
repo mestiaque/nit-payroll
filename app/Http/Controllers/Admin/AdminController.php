@@ -27,6 +27,7 @@ use App\Models\General;
 use App\Models\UserLocation;
 use App\Models\Attendance;
 use App\Models\Leave;
+use App\Models\Notice;
 use App\Models\Media;
 use App\Models\Attribute;
 use App\Models\Permission;
@@ -65,6 +66,14 @@ class AdminController extends Controller
     public function dashboard(){
 
 
+
+        // Upcoming Notices
+        $upcomingNotices = Notice::where('status', 'active')
+            ->where('end_date', '>=', Carbon::today())
+            ->orderBy('priority', 'desc')
+            ->orderBy('notice_date', 'desc')
+            ->limit(5)
+            ->get();
 
         $expenses = Expense::latest()->where('status','<>','temp')->whereYear('created_at', Carbon::now()->year)->whereMonth('created_at', Carbon::now()->month)->select(['id','name','category_id','amount'])->get();
 
@@ -193,7 +202,7 @@ class AdminController extends Controller
         $events =[];
 
 
-        return view(adminTheme().'dashboard',compact('reports','expenseTypes','expenses','paymentMethods','supplierDueList','attendances','recentLeaves'));
+        return view(adminTheme().'dashboard',compact('reports','expenseTypes','expenses','paymentMethods','supplierDueList','attendances','recentLeaves','upcomingNotices'));
 
     }
 
@@ -400,7 +409,6 @@ class AdminController extends Controller
             ));
 
         } catch (\Exception $e) {
-            dd($e);
             return back()->withErrors(['error'=>$e->getMessage()]);
         }
     }
@@ -940,6 +948,85 @@ class AdminController extends Controller
         );
     }
 
+    public function dailyAttendanceExport(Request $r)
+    {
+        $startDate = $r->startDate ?? date('Y-m-d');
+        $endDate = $r->endDate ?? date('Y-m-d');
+        
+        // Get the same data as daily attendance
+        $finalData = [];
+        
+        // Get employees
+        $employees = User::filterBy('employee')
+            ->whereIn('status', [0,1]);
+            
+        if($r->employeeId){
+            $employees = $employees->where('employee_id', 'LIKE', '%'.$r->employeeId.'%');
+        }
+        if($r->search){
+            $employees = $employees->where('name', 'LIKE', '%'.$r->search.'%');
+        }
+        if($r->designation){
+            $employees = $employees->where('designation_id', $r->designation);
+        }
+        if($r->department){
+            $employees = $employees->where('department_id', $r->department);
+        }
+        if($r->employeeType){
+            $employees = $employees->where('employee_type_id', $r->employeeType);
+        }
+        $employees = $employees->get();
+        
+        // Get attendance records
+        $dates = CarbonPeriod::create($startDate, $endDate);
+        
+        $attendanceData = Attendance::whereBetween('date', [$startDate, $endDate])
+            ->get();
+        
+        $sl = 1;
+        $data = [];
+        
+        foreach($employees as $employee){
+            foreach($dates as $date){
+                $dateStr = $date->format('Y-m-d');
+                $day = $date->format('l');
+                
+                $attedance = $attendanceData->where('user_id', $employee->id)
+                    ->where('date', $dateStr)
+                    ->first();
+                
+                $status = 'Absent';
+                if($attedance){
+                    if($attedance->status == 'present') $status = 'Present';
+                    elseif($attedance->status == 'late') $status = 'Late';
+                    elseif($attedance->status == 'absent') $status = 'Absent';
+                }
+                
+                if($r->status && $r->status != $status) continue;
+                
+                $data[] = [
+                    'SL' => $sl++,
+                    'Employee ID' => $employee->employee_id ?? '',
+                    'Name' => $employee->name ?? '',
+                    'Designation' => $employee->designation->name ?? '',
+                    'Department' => $employee->department->name ?? '',
+                    'Employee Type' => $employee->employee_type ?? '',
+                    'In Time' => $attedance->in_time ?? '',
+                    'Out Time' => $attedance->out_time ?? '',
+                    'Work Hour' => $attedance->work_time ?? '',
+                    'Status' => $status,
+                    'Date' => $dateStr,
+                    'Day' => $day,
+                ];
+            }
+        }
+        
+        // Create export
+        \Maatwebsite\Excel\Facades\Excel::store(new \App\Exports\DailyAttendanceExport($data), 'daily_attendance_'.$startDate.'_to_'.$endDate.'.xlsx');
+        
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\DailyAttendanceExport($data), 'daily_attendance_'.$startDate.'_to_'.$endDate.'.xlsx');
+    }
+
     public function dailyAttendanceDepartmentWise(Request $r)
     {
         // ----- Date Range -----
@@ -1188,6 +1275,110 @@ class AdminController extends Controller
                 'endDate'
             )
         );
+    }
+
+    /**
+     * Live Location Tracking - Track employee locations in real-time
+     */
+    public function liveLocationTracking(Request $request)
+    {
+        $employee_id = $request->employee_id;
+        $department_id = $request->department_id;
+
+        // Get employees with their last location
+        $query = User::where('status', 1)
+            ->where('customer', 1)
+            ->where('employee_status', 'active')
+            ->with(['department', 'lastLocation']);
+
+        if ($employee_id) {
+            $query->where('id', $employee_id);
+        }
+
+        if ($department_id) {
+            $query->where('department_id', $department_id);
+        }
+
+        $employees = $query->orderBy('name')->get();
+
+        // Get recent attendance with location for today
+        $today = Carbon::today()->format('Y-m-d');
+        $attendancesWithLocation = Attendance::where('date', $today)
+            ->whereNotNull('location_lat')
+            ->whereNotNull('location_long')
+            ->where('location_lat', '!=', '')
+            ->where('location_long', '!=', '')
+            ->get()
+            ->groupBy('user_id');
+
+        // Get all employees with location data
+        $employeesWithLocation = UserLocation::whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->where('latitude', '!=', 0)
+            ->where('longitude', '!=', 0)
+            ->get()
+            ->groupBy('user_id');
+
+        // Build employee location data
+        $locationData = [];
+        foreach ($employees as $employee) {
+            $lastLocation = $employee->lastLocation;
+            
+            // Try to get from today's attendance first
+            $todayAttendance = $attendancesWithLocation->get($employee->id)?->first();
+            
+            // Then try from UserLocation
+            $userLocation = $employeesWithLocation->get($employee->id)?->first();
+
+            $location = null;
+            $locationTime = null;
+            $locationSource = null;
+
+            if ($todayAttendance && $todayAttendance->location_lat && $todayAttendance->location_long) {
+                $location = [
+                    'lat' => $todayAttendance->location_lat,
+                    'lng' => $todayAttendance->location_long,
+                ];
+                $locationTime = $todayAttendance->in_time;
+                $locationSource = 'Attendance';
+            } elseif ($userLocation && $userLocation->latitude && $userLocation->longitude) {
+                $location = [
+                    'lat' => $userLocation->latitude,
+                    'lng' => $userLocation->longitude,
+                ];
+                $locationTime = $userLocation->updated_at;
+                $locationSource = 'Mobile App';
+            }
+
+            $locationData[] = [
+                'employee' => $employee,
+                'location' => $location,
+                'location_time' => $locationTime,
+                'location_source' => $locationSource,
+                'has_location' => $location !== null,
+            ];
+        }
+
+        // Filter employees with location
+        $employeesWithLocationOnly = array_filter($locationData, function($item) {
+            return $item['has_location'];
+        });
+
+        $departments = Attribute::where('type', 3)->where('status', 'active')->get();
+        $allEmployees = User::where('status', 1)
+            ->where('customer', 1)
+            ->where('employee_status', 'active')
+            ->orderBy('name')
+            ->get();
+
+        return view(adminTheme() . 'attendance.live_location_tracking', compact(
+            'locationData',
+            'employeesWithLocationOnly',
+            'departments',
+            'allEmployees',
+            'employee_id',
+            'department_id'
+        ));
     }
 
 
@@ -3087,7 +3278,6 @@ class AdminController extends Controller
             return redirect()->back();
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            dd($e);
             // Laravel validation exception
             return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
@@ -3477,8 +3667,100 @@ class AdminController extends Controller
         return view(adminTheme().'users.customers.users', compact('users','totals','roles'));
     }
 
-    public function usersCustomerAction(Request $r,$action,$id=null){
+    public function usersCustomerPrint(Request $r)
+    {
+        // Get users with same filters as main list
+        $users = User::filterBy('employee')->latest()
+            ->whereIn('status', [0,1])
+            ->with(['designation', 'department', 'section', 'line'])
+            ->where(function($q) use($r) {
+                if($r->search){
+                    $q->where(function($q2) use($r) {
+                        $q2->where('name', 'LIKE', '%'.$r->search.'%')
+                           ->orWhere('email', 'LIKE', '%'.$r->search.'%')
+                           ->orWhere('employee_id', 'LIKE', '%'.$r->search.'%')
+                           ->orWhere('mobile', 'LIKE', '%'.$r->search.'%');
+                    });
+                }
+                if($r->designation_id){
+                    $q->where('designation_id', $r->designation_id);
+                } elseif($r->department_id){
+                    $q->where('department_id', $r->department_id);
+                } elseif($r->section_id){
+                    $q->where('section_id', $r->section_id);
+                } elseif($r->line_number){
+                    $q->where('line_number', $r->line_number);
+                }
+                if($r->startDate || $r->endDate){
+                    $from = $r->startDate ?: Carbon::now()->format('Y-m-d');
+                    $to   = $r->endDate ?: Carbon::now()->format('Y-m-d');
+                    $q->whereDate('created_at','>=',$from)
+                      ->whereDate('created_at','<=',$to);
+                }
+                if($r->status){
+                    if($r->status === 'inactive'){
+                        $q->where('status', 0);
+                    } else {
+                        $q->where('status', 1);
+                    }
+                }
+                if($r->role_id){
+                    $q->where('role_id', $r->role_id);
+                }
+            })
+            ->get();
 
+        return view('admin.users.customers.print', compact('users'));
+    }
+
+    public function usersCustomerExport(Request $r)
+    {
+        // Get users with same filters as main list
+        $users = User::filterBy('employee')->latest()
+            ->whereIn('status', [0,1])
+            ->with(['designation', 'department', 'section', 'line'])
+            ->where(function($q) use($r) {
+                if($r->search){
+                    $q->where(function($q2) use($r) {
+                        $q2->where('name', 'LIKE', '%'.$r->search.'%')
+                           ->orWhere('email', 'LIKE', '%'.$r->search.'%')
+                           ->orWhere('employee_id', 'LIKE', '%'.$r->search.'%')
+                           ->orWhere('mobile', 'LIKE', '%'.$r->search.'%');
+                    });
+                }
+                if($r->designation_id){
+                    $q->where('designation_id', $r->designation_id);
+                } elseif($r->department_id){
+                    $q->where('department_id', $r->department_id);
+                } elseif($r->section_id){
+                    $q->where('section_id', $r->section_id);
+                } elseif($r->line_number){
+                    $q->where('line_number', $r->line_number);
+                }
+                if($r->startDate || $r->endDate){
+                    $from = $r->startDate ?: Carbon::now()->format('Y-m-d');
+                    $to   = $r->endDate ?: Carbon::now()->format('Y-m-d');
+                    $q->whereDate('created_at','>=',$from)
+                      ->whereDate('created_at','<=',$to);
+                }
+                if($r->status){
+                    if($r->status === 'inactive'){
+                        $q->where('status', 0);
+                    } else {
+                        $q->where('status', 1);
+                    }
+                }
+                if($r->role_id){
+                    $q->where('role_id', $r->role_id);
+                }
+            })
+            ->get();
+
+        // Export to Excel
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\UsersExport($users), 'employees_'.date('Y-m-d').'.xlsx');
+    }
+
+    public function usersCustomerAction(Request $r,$action,$id=null){
       //Add New User Start
       if($action=='create' && $r->isMethod('post')){
 

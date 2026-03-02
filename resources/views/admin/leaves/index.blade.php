@@ -75,8 +75,8 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Employee ID</th>
-                            <th>Employee Name</th>
+                            <th>SL</th>
+                            <th>Employee</th>
                             <th>Department</th>
                             <th>Type</th>
                             <th>Leave Balance</th>
@@ -91,8 +91,21 @@
                         @foreach($leaves as $leave)
                         <tr>
                             <td>{{ $loop->iteration }}</td>
-                            <td>{{$leave->user->employee_id ?? 'N/A'}}</td>
-                            <td>{{$leave->user->name ?? 'N/A'}}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    @if($leave->user && $leave->user->photo)
+                                        <img src="{{ asset('uploads/user_photo/' . $leave->user->photo) }}" alt="{{ $leave->user->name }}" class="rounded-circle" style="width: 35px; height: 35px; object-fit: cover; margin-right: 10px;">
+                                    @else
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold" style="width: 35px; height: 35px; background-color: {{ random_color($leave->user_id ?? 0) }}; margin-right: 10px;">
+                                            {{ strtoupper(substr($leave->user->name ?? 'U', 0, 1)) }}
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <div class="font-weight-bold">{{ $leave->user->name ?? 'N/A' }}</div>
+                                        <small class="text-muted">{{ $leave->user->employee_id ?? 'N/A' }}</small>
+                                    </div>
+                                </div>
+                            </td>
                             <td>{{$leave->user->department->name ?? 'N/A'}}</td>
                             <td>{{$leave->leaveType->name ?? 'N/A'}}</td>
                             <td>

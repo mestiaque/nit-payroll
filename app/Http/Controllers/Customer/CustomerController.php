@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Attribute;
 use App\Models\Leave;
+use App\Models\Notice;
 use App\Models\Permission;
 use App\Models\Shift;
 use App\Models\User;
@@ -278,6 +279,16 @@ class CustomerController extends Controller
         return view(employeeTheme() . 'dashboard', compact('today', 'attendances', 'leaveSummary'));
     }
 
+    public function notices(Request $request)
+    {
+        $notices = Notice::where('status', 'active')
+            ->where('end_date', '>=', Carbon::today())
+            ->orderBy('priority', 'desc')
+            ->orderBy('notice_date', 'desc')
+            ->paginate(20);
+
+        return view(employeeTheme() . 'notices.index', compact('notices'));
+    }
 
     public function myProfile(Request $r){
       $user =Auth::user();
@@ -605,6 +616,41 @@ class CustomerController extends Controller
         }
 
         return redirect()->route('admin.dashboard');
+    }
+
+    /**
+     * Share Location - Page for employees to share their live location
+     */
+    public function shareLocation(Request $r)
+    {
+        $user = Auth::user();
+        
+        // If POST, update location
+        if ($r->isMethod('post')) {
+            $r->validate([
+                'latitude' => 'required',
+                'longitude' => 'required',
+            ]);
+
+            $data = UserLocation::where('user_id', $user->id)->first();
+            if (!$data) {
+                $data = new UserLocation();
+                $data->user_id = $user->id;
+            }
+            $data->latitude = $r->latitude;
+            $data->longitude = $r->longitude;
+            $data->visit_url = $r->full_address ?? 'Live Location';
+            $data->save();
+
+            // Also update user table
+            $user->latitude = $r->latitude;
+            $user->longitude = $r->longitude;
+            $user->save();
+
+            return back()->with('success', 'Location updated successfully!');
+        }
+
+        return view('employee.share_location', compact('user'));
     }
 
 
