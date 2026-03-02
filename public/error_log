@@ -1,1 +1,2 @@
 [03-Jan-2026 14:57:39 Asia/Dhaka] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 1048576 bytes) in /home/crmmonp/public_html/vendor/laravel/framework/src/Illuminate/Database/Connection.php on line 421
+[02-Mar-2026 10:22:52 UTC] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.4.0". You are running 8.1.33. in /home/prnitbd/public_html/vendor/composer/platform_check.php on line 24
