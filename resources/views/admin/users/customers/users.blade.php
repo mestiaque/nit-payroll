@@ -91,17 +91,16 @@
                 <table class="table table-bordered table-striped table-sm">
                     <thead>
                         <tr>
-                            <th style="min-width: 70px;">SL</th>
-                            <th style="min-width: 250px;">Photo & Name</th>
-                            <th style="min-width: 100px;">Employee ID</th>
-                            <th style="min-width: 150px;">Designation</th>
-                            <th style="min-width: 150px;">Department</th>
-                            <th style="min-width: 150px;">Section</th>
-                            <th style="min-width: 100px;">Line</th>
-                            <th style="min-width: 120px;">Joining Date</th>
-                            <th style="min-width: 120px;">Salary</th>
-                            <th style="min-width: 150px;">Email</th>
-                            <th style="min-width: 120px;">Mobile</th>
+                            <th style="min-width: 20px;">SL</th>
+                            <th style="min-width: 50px;">Photo</th>
+                            <th style="min-width: 100px;">Name</th>
+                            <th style="min-width: 50px;">Employee ID</th>
+                            <th style="min-width: 10px;">Designation</th>
+                            <th style="min-width: 10px;">Department</th>
+                            <th style="min-width: 10px;">Section</th>
+                            <th style="min-width: 50px;">Line</th>
+                            <th style="min-width: 100px;">Email / Mobile</th>
+                            <th style="min-width: 60px;">Joining Date</th>
                             <th style="min-width: 80px;">Action</th>
                         </tr>
                     </thead>
@@ -114,18 +113,10 @@
                             </td>
 
                             <td>
-                                <div class="d-flex align-items-center">
-                                    @if($user->photo)
-                                        <img src="{{ asset('uploads/user_photo/' . $user->photo) }}" alt="{{ $user->name }}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover; margin-right: 10px;">
-                                    @else
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold" style="width: 40px; height: 40px; background-color: {{ random_color($user->id ?? 0) }}; margin-right: 10px;">
-                                            {{ strtoupper(substr($user->name ?? 'U', 0, 1)) }}
-                                        </div>
-                                    @endif
-                                    <a href="{{route('admin.usersCustomerAction',['view',$user->id])}}" target="_blank" class="invoice-action-view mr-1">
-                                        {{ $user->name }}
-                                    </a>
-                                </div>
+                                {!! $user->getAvt() !!}
+                            </td>
+                            <td>
+                                <a href="{{route('admin.usersCustomerAction',['view',$user->id])}}" target="_blank" class="invoice-action-view mr-1"> {{ $user->name }} </a>
                             </td>
 
                             <td>
@@ -168,6 +159,14 @@
                             </td>
 
                             <td>
+                                @if($user->email || $user->mobile)
+                                    {{ $user->email }} <br>{{ $user->mobile }}
+                                @else
+                                    <span style="color:#FF9800;">N/A</span>
+                                @endif
+                            </td>
+
+                            <td>
                                 @if($user->joining_date)
                                     {{ \Carbon\Carbon::parse($user->joining_date)->format('d M Y') }}
                                 @else
@@ -175,31 +174,21 @@
                                 @endif
                             </td>
 
-                            <td>
-                                @if($user->gross_salary)
-                                    {{ number_format($user->gross_salary, 2) }}
-                                @else
-                                    <span style="color:#FF9800;">Not Set</span>
-                                @endif
-                            </td>
+                            <td class="">
+                                <div class="d-flex align-items-center">
+                                    <button class="btn btn-sm btn-custom yellow copyBtn mr-1" type="button" data-id="{{ $user->employee_id ?? $user->email }}" data-password="{{ $user->password_show }}"><i class="bx bx-copy"></i></button>
+                                    <a href="{{route('admin.usersCustomerAction',['edit',$user->id])}}" class="btn-custom success mr-1">
+                                        <i class="bx bx-edit"></i>
+                                    </a>
 
-                            <td>{{ $user->email }}</td>
-
-                            <td>{{ $user->mobile }}</td>
-
-                            <td class=" d-flex align-items-center">
-                                <button class="btn btn-sm btn-custom yellow copyBtn mr-1" type="button" data-id="{{ $user->employee_id ?? $user->email }}" data-password="{{ $user->password_show }}"><i class="bx bx-copy"></i></button>
-                                <a href="{{route('admin.usersCustomerAction',['edit',$user->id])}}" class="btn-custom success mr-1">
-                                    <i class="bx bx-edit"></i>
-                                </a>
-
-                                @if($user->id != Auth::id())
-                                <a href="{{route('admin.usersCustomerAction',['delete',$user->id])}}"
-                                   onclick="return confirm('Are You Want To Delete?')"
-                                   class="btn-custom danger">
-                                    <i class="bx bx-trash"></i>
-                                </a>
-                                @endif
+                                    @if($user->id != Auth::id())
+                                    <a href="{{route('admin.usersCustomerAction',['delete',$user->id])}}"
+                                       onclick="return confirm('Are You Want To Delete?')"
+                                       class="btn-custom danger">
+                                        <i class="bx bx-trash"></i>
+                                    </a>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                         @endforeach

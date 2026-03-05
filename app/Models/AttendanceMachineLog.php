@@ -38,6 +38,11 @@ class AttendanceMachineLog extends Model
         'created_at' => 'datetime',
     ];
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'employee_id');
+    }
+
     protected static function booted()
     {
         static::addGlobalScope('hideUser7', function (Builder $builder) {

@@ -130,6 +130,7 @@
     <div class="payslip-container">
         <div class="payslip-header">
             <h3>{{ general()->title ?? 'Company Name' }}</h3>
+            <p class="mb-1">{{ general()->address_one ?? '' }}</p>
             <p class="mb-0"><strong>SALARY SLIP - {{ strtoupper($monthName) }}</strong></p>
         </div>
 
@@ -146,6 +147,12 @@
                 <td>{{ $employee->department->name ?? 'N/A' }}</td>
                 <th>Designation:</th>
                 <td>{{ $employee->designation->name ?? 'N/A' }}</td>
+            </tr>
+            <tr>
+                <th>Father's Name:</th>
+                <td>{{ $employee->father_name ?? 'N/A' }}</td>
+                <th>Card No:</th>
+                <td>{{ $employee->card_number ?? ($employee->employeeInfo->card_no ?? 'N/A') }}</td>
             </tr>
             <tr>
                 <th>Date of Joining:</th>
@@ -180,23 +187,25 @@
         <!-- Attendance Info -->
         <table class="payslip-table mb-3" style="background: #f8f9fa;">
             <tr>
-                <th colspan="4" class="text-center" style="background: #e9ecef;">ATTENDANCE SUMMARY</th>
+                <th colspan="6" class="text-center" style="background: #e9ecef;">ATTENDANCE SUMMARY</th>
             </tr>
             <tr>
-                <th>Working Days:</th>
-                <td class="text-center">{{ $salarySheet->working_days ?? 0 }}</td>
-                <th>Present Days:</th>
-                <td class="text-center">{{ $salarySheet->present_days ?? 0 }}</td>
+                <th style="width: 16%;">Working Days:</th>
+                <td class="text-center" style="width: 17%;">{{ $salarySheet->working_days ?? 0 }}</td>
+                <th style="width: 16%;">Present Days:</th>
+                <td class="text-center text-success" style="width: 17%;"><strong>{{ $salarySheet->present_days ?? 0 }}</strong></td>
+                <th style="width: 16%;">Absent Days:</th>
+                <td class="text-center text-danger" style="width: 18%;"><strong>{{ $salarySheet->absent_days ?? 0 }}</strong></td>
             </tr>
             <tr>
-                <th>Absent Days:</th>
-                <td class="text-center">{{ $salarySheet->absent_days ?? 0 }}</td>
                 <th>Leave Days:</th>
-                <td class="text-center">{{ $salarySheet->leave_days ?? 0 }}</td>
+                <td class="text-center text-info">{{ $salarySheet->leave_days ?? 0 }}</td>
+                <th>Holiday/Weekend:</th>
+                <td class="text-center text-secondary"><strong>{{ $salarySheet->holiday_days ?? 0 }}</strong></td>
+                <th>Overtime Hours:</th>
+                <td class="text-center text-primary">{{ $salarySheet->overtime_hours ?? 0 }}</td>
             </tr>
             <tr>
-                <th>Overtime Hours:</th>
-                <td class="text-center">{{ $salarySheet->overtime_hours ?? 0 }}</td>
                 <th>Salary Type:</th>
                 <td class="text-center">
                     @if($salarySheet->salary_type == 'new_employee')
@@ -207,18 +216,34 @@
                         <span class="badge bg-primary">Regular</span>
                     @endif
                 </td>
-            </tr>
-            @php
-                $perDay = ($salarySheet->gross_salary ?? 0) / ($salarySheet->working_days ?? 1);
-                $earnedAmount = $perDay * ($salarySheet->present_days ?? 0);
-            @endphp
-            @if($perDay > 0)
-            <tr style="background: #fff3cd;">
-                <td colspan="4" class="text-center">
-                    <small><strong>Per Day Calculation:</strong> Gross Salary (৳{{ number_format($salarySheet->gross_salary ?? 0, 2) }} ÷ Working Days ({{ $salarySheet->working_days ?? 20 }}) = <strong>৳{{ number_format($perDay, 2) }} per day</strong></small>
+                <th>Total Days:</th>
+                <td class="text-center">{{ ($salarySheet->working_days ?? 0) + ($salarySheet->holiday_days ?? 0) }}</td>
+                <th>Attendance Rate:</th>
+                <td class="text-center">
+                    @php
+                        $totalWorkDays = $salarySheet->working_days ?? 1;
+                        $presentDays = $salarySheet->present_days ?? 0;
+                        $attendanceRate = $totalWorkDays > 0 ? round(($presentDays / $totalWorkDays) * 100, 1) : 0;
+                    @endphp
+                    <span class="{{ $attendanceRate >= 80 ? 'text-success' : 'text-danger' }}"><strong>{{ $attendanceRate }}%</strong></span>
                 </td>
             </tr>
-            @endif
+            @php
+                $totalCalendarDays = ($salarySheet->working_days ?? 0) + ($salarySheet->holiday_days ?? 0);
+                $perDay = $totalCalendarDays > 0 ? ($salarySheet->gross_salary ?? 0) / $totalCalendarDays : 0;
+                $earnedAmount = $perDay * (($salarySheet->present_days ?? 0) + ($salarySheet->leave_days ?? 0) + ($salarySheet->holiday_days ?? 0));
+            @endphp
+            <tr style="background: #fff3cd;">
+                <td colspan="6" class="text-center">
+                    <small>
+                        <strong>Per Day Calculation:</strong>
+                        Gross (৳{{ number_format($salarySheet->gross_salary ?? 0, 0) }}) ÷ Total Days ({{ $totalCalendarDays }}) =
+                        <strong>৳{{ number_format($perDay, 2) }}/day</strong> |
+                        <strong>Earned:</strong> ৳{{ number_format($earnedAmount, 0) }} |
+                        <strong>Absent Deduction:</strong> ৳{{ number_format($salarySheet->absent_deduction ?? 0, 0) }}
+                    </small>
+                </td>
+            </tr>
         </table>
 
         <div class="row">
@@ -245,22 +270,44 @@
                         <td class="text-end">৳{{ number_format($salarySheet->transport_allowance ?? 0, 2) }}</td>
                     </tr>
                     <tr>
-                        <td>Other Allowance</td>
+                        <td>Other Allowance (Food/Conveyance)</td>
                         <td class="text-end">৳{{ number_format($salarySheet->other_allowance ?? 0, 2) }}</td>
                     </tr>
-                    @if($salarySheet->overtime_amount > 0)
+                    <tr style="background: #f0f0f0;">
+                        <td><strong>Gross Salary</strong></td>
+                        <td class="text-end"><strong>৳{{ number_format($salarySheet->gross_salary ?? 0, 2) }}</strong></td>
+                    </tr>
+                    @if(($salarySheet->overtime_amount ?? 0) > 0)
                     <tr>
-                        <td>Overtime</td>
-                        <td class="text-end">৳{{ number_format($salarySheet->overtime_amount ?? 0, 2) }}</td>
+                        <td>Overtime ({{ $salarySheet->overtime_hours ?? 0 }} hrs)</td>
+                        <td class="text-end text-success">৳{{ number_format($salarySheet->overtime_amount ?? 0, 2) }}</td>
                     </tr>
                     @endif
-                    @if($salarySheet->bonus > 0)
+                    @if(($salarySheet->special_overtime_amount ?? 0) > 0)
                     <tr>
-                        <td>Bonus</td>
-                        <td class="text-end">৳{{ number_format($salarySheet->bonus ?? 0, 2) }}</td>
+                        <td>Special Overtime</td>
+                        <td class="text-end text-success">৳{{ number_format($salarySheet->special_overtime_amount ?? 0, 2) }}</td>
                     </tr>
                     @endif
-                    <tr style="background: #fffae6; font-weight: bold;">
+                    @if(($salarySheet->grass_time_amount ?? 0) > 0)
+                    <tr>
+                        <td>Grass Time Amount</td>
+                        <td class="text-end text-success">৳{{ number_format($salarySheet->grass_time_amount ?? 0, 2) }}</td>
+                    </tr>
+                    @endif
+                    @if(($salarySheet->bonus ?? 0) > 0)
+                    <tr>
+                        <td>Attendance Bonus</td>
+                        <td class="text-end text-success">৳{{ number_format($salarySheet->bonus ?? 0, 2) }}</td>
+                    </tr>
+                    @endif
+                    @if(($salarySheet->other_bonus ?? 0) > 0)
+                    <tr>
+                        <td>Other Bonus (Festival/Performance)</td>
+                        <td class="text-end text-success">৳{{ number_format($salarySheet->other_bonus ?? 0, 2) }}</td>
+                    </tr>
+                    @endif
+                    <tr style="background: #c8e6c9; font-weight: bold;">
                         <td><strong>Total Earnings</strong></td>
                         <td class="text-end"><strong>৳{{ number_format($salarySheet->total_earning ?? 0, 2) }}</strong></td>
                     </tr>
@@ -273,43 +320,60 @@
                     <i class="bx bx-minus-circle"></i> DEDUCTIONS
                 </h6>
                 <table class="payslip-table">
-                    @if($salarySheet->absent_deduction > 0)
+                    @if(($salarySheet->absent_deduction ?? 0) > 0)
                     <tr>
                         <td>Absent Deduction ({{ $salarySheet->absent_days ?? 0 }} days)</td>
-                        <td class="text-end">৳{{ number_format($salarySheet->absent_deduction ?? 0, 2) }}</td>
+                        <td class="text-end text-danger">৳{{ number_format($salarySheet->absent_deduction ?? 0, 2) }}</td>
                     </tr>
                     @endif
-                    @if($salarySheet->late_deduction > 0)
+                    @if(($salarySheet->late_deduction ?? 0) > 0)
                     <tr>
-                        <td>Late Deduction ({{ $salarySheet->present_days ?? 0 }} days)</td>
-                        <td class="text-end">৳{{ number_format($salarySheet->late_deduction ?? 0, 2) }}</td>
+                        <td>Late Deduction</td>
+                        <td class="text-end text-danger">৳{{ number_format($salarySheet->late_deduction ?? 0, 2) }}</td>
                     </tr>
                     @endif
-                    @if($salarySheet->tax > 0)
+                    @if(($salarySheet->tax ?? 0) > 0)
                     <tr>
-                        <td>Tax Deduction</td>
-                        <td class="text-end">৳{{ number_format($salarySheet->tax ?? 0, 2) }}</td>
+                        <td>Income Tax</td>
+                        <td class="text-end text-danger">৳{{ number_format($salarySheet->tax ?? 0, 2) }}</td>
                     </tr>
                     @endif
-                    @if($salarySheet->provident_fund > 0)
+                    @if(($salarySheet->provident_fund ?? 0) > 0)
                     <tr>
-                        <td>Provident Fund</td>
-                        <td class="text-end">৳{{ number_format($salarySheet->provident_fund ?? 0, 2) }}</td>
+                        <td>Provident Fund (PF)</td>
+                        <td class="text-end text-danger">৳{{ number_format($salarySheet->provident_fund ?? 0, 2) }}</td>
                     </tr>
                     @endif
-                    @if($salarySheet->loan_deduction > 0)
+                    @if(($salarySheet->loan_deduction ?? 0) > 0)
                     <tr>
-                        <td>Loan Deduction</td>
-                        <td class="text-end">৳{{ number_format($salarySheet->loan_deduction ?? 0, 2) }}</td>
+                        <td>Loan Installment</td>
+                        <td class="text-end text-danger">৳{{ number_format($salarySheet->loan_deduction ?? 0, 2) }}</td>
                     </tr>
                     @endif
-                    @if($salarySheet->other_deduction > 0)
+                    @if(($salarySheet->salary_advance_deduction ?? 0) > 0)
                     <tr>
-                        <td>Stamp Charge / Other</td>
-                        <td class="text-end">৳{{ number_format($salarySheet->other_deduction ?? 0, 2) }}</td>
+                        <td>Salary Advance Deduction</td>
+                        <td class="text-end text-danger">৳{{ number_format($salarySheet->salary_advance_deduction ?? 0, 2) }}</td>
                     </tr>
                     @endif
-                    <tr style="background: #ffe8e8; font-weight: bold;">
+                    @if(($salarySheet->deduction ?? 0) > 0)
+                    <tr>
+                        <td>Other Deduction</td>
+                        <td class="text-end text-danger">৳{{ number_format($salarySheet->deduction ?? 0, 2) }}</td>
+                    </tr>
+                    @endif
+                    @if(($salarySheet->other_deduction ?? 0) > 0)
+                    <tr>
+                        <td>Stamp Charge</td>
+                        <td class="text-end text-danger">৳{{ number_format($salarySheet->other_deduction ?? 0, 2) }}</td>
+                    </tr>
+                    @endif
+                    @if(($salarySheet->total_deduction ?? 0) == 0)
+                    <tr>
+                        <td colspan="2" class="text-center text-muted">No deductions</td>
+                    </tr>
+                    @endif
+                    <tr style="background: #ffcdd2; font-weight: bold;">
                         <td><strong>Total Deductions</strong></td>
                         <td class="text-end"><strong>৳{{ number_format($salarySheet->total_deduction ?? 0, 2) }}</strong></td>
                     </tr>

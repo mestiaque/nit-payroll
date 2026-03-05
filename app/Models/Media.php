@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Media extends Model
 {
-    
+
 	//Models Information Data
     /********
      * file_type ==0 : unknown
@@ -17,15 +17,15 @@ class Media extends Model
      * file_type ==4 : Zip,rar
      * file_type ==5 : Vedio
      * file_type ==6 : audio
-     * 
-     * 
+     *
+     *
      * use_Of_file ==0 : media,
      * use_Of_file ==1 : image,
      * use_Of_file ==2 : banner,
      * use_Of_file ==3 : gallery,
      * use_Of_file ==4 : icon,
-     * 
-     * 
+     *
+     *
      * src_type  ==0 : media
      * src_type  ==1 : post
      * src_type  ==2 : category
@@ -34,10 +34,10 @@ class Media extends Model
      * src_type  ==5 : review
      * src_type  ==6 : Users
      * src_type  ==7 : General
-     * 
-     * 
+     *
+     *
      * Column:
-     * 
+     *
      * id            =bigint(20):None,
      * src_id        =bigint(20):null,
      * src_type      =tinyint(1):0,
@@ -54,13 +54,15 @@ class Media extends Model
      * editedby_id   =bigint(20)::null
      * created_at    =timestamp:null
      * updated_at    =timestamp:null
-     * 
-     * 
-     * 
+     *
+     *
+     *
      ****/
 
+    protected $guarded = [];
+
 	public function image(){
-    	
+
 		if($this->file_url){
 			if($this->file_type==1){
 			return $this->file_url;
@@ -80,8 +82,8 @@ class Media extends Model
 		}
 
     }
-    
-    
+
+
     public function imageName(){
         if($this->file_rename){
             return $this->file_rename;
@@ -89,11 +91,11 @@ class Media extends Model
             return 'noimage.jpg';
         }
     }
-    
+
     public function user(){
     	return $this->belongsTo(User::class,'addedby_id');
     }
-    
+
 
 }
 

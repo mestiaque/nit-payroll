@@ -409,6 +409,7 @@ class AdminController extends Controller
             ));
 
         } catch (\Exception $e) {
+            dd($e);
             return back()->withErrors(['error'=>$e->getMessage()]);
         }
     }
@@ -952,14 +953,14 @@ class AdminController extends Controller
     {
         $startDate = $r->startDate ?? date('Y-m-d');
         $endDate = $r->endDate ?? date('Y-m-d');
-        
+
         // Get the same data as daily attendance
         $finalData = [];
-        
+
         // Get employees
         $employees = User::filterBy('employee')
             ->whereIn('status', [0,1]);
-            
+
         if($r->employeeId){
             $employees = $employees->where('employee_id', 'LIKE', '%'.$r->employeeId.'%');
         }
@@ -976,34 +977,34 @@ class AdminController extends Controller
             $employees = $employees->where('employee_type_id', $r->employeeType);
         }
         $employees = $employees->get();
-        
+
         // Get attendance records
         $dates = CarbonPeriod::create($startDate, $endDate);
-        
+
         $attendanceData = Attendance::whereBetween('date', [$startDate, $endDate])
             ->get();
-        
+
         $sl = 1;
         $data = [];
-        
+
         foreach($employees as $employee){
             foreach($dates as $date){
                 $dateStr = $date->format('Y-m-d');
                 $day = $date->format('l');
-                
+
                 $attedance = $attendanceData->where('user_id', $employee->id)
                     ->where('date', $dateStr)
                     ->first();
-                
+
                 $status = 'Absent';
                 if($attedance){
                     if($attedance->status == 'present') $status = 'Present';
                     elseif($attedance->status == 'late') $status = 'Late';
                     elseif($attedance->status == 'absent') $status = 'Absent';
                 }
-                
+
                 if($r->status && $r->status != $status) continue;
-                
+
                 $data[] = [
                     'SL' => $sl++,
                     'Employee ID' => $employee->employee_id ?? '',
@@ -1020,10 +1021,10 @@ class AdminController extends Controller
                 ];
             }
         }
-        
+
         // Create export
         \Maatwebsite\Excel\Facades\Excel::store(new \App\Exports\DailyAttendanceExport($data), 'daily_attendance_'.$startDate.'_to_'.$endDate.'.xlsx');
-        
+
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\DailyAttendanceExport($data), 'daily_attendance_'.$startDate.'_to_'.$endDate.'.xlsx');
     }
 
@@ -1323,10 +1324,10 @@ class AdminController extends Controller
         $locationData = [];
         foreach ($employees as $employee) {
             $lastLocation = $employee->lastLocation;
-            
+
             // Try to get from today's attendance first
             $todayAttendance = $attendancesWithLocation->get($employee->id)?->first();
-            
+
             // Then try from UserLocation
             $userLocation = $employeesWithLocation->get($employee->id)?->first();
 
@@ -3761,313 +3762,382 @@ class AdminController extends Controller
     }
 
     public function usersCustomerAction(Request $r,$action,$id=null){
-      //Add New User Start
-      if($action=='create' && $r->isMethod('post')){
+        try{
+            //Add New User Start
+            if($action=='create' && $r->isMethod('post')){
 
-        $r->validate([
-            'name' => 'required|max:100',
-            'employee_id' => 'required|max:50|unique:users,employee_id',
-        ]);
-
-        // Generate random password
-        $password = User::generatePassword();
-
-        $user = User::create([
-            'name' => $r->name,
-            'employee_id' => $r->employee_id,
-            'password' => bcrypt($password),
-            'password_show' => $password,
-            'admin' => false,
-            'customer' => true,
-            'status' => 1,
-            'addedby_id' => Auth::id(),
-            'addedby_at' => Carbon::now(),
-        ]);
-
-        Session()->flash('success', 'Employee created successfully! Login Employee ID: ' . $r->employee_id . ', Password: ' . $password);
-        return redirect()->route('admin.usersCustomer');
-      }
-      //Add New User End
-
-
-      $user=User::whereIn('status',[0,1])->find($id);
-      if(!$user){
-        Session()->flash('error','This User Are Not Found');
-        return redirect()->route('admin.usersCustomer');
-      }
-
-         if($action == 'location'){
-            if($r->ajax()){
-                $lat = null;
-                $lng = null;
-                $time = null;
-
-                if($user->lastLocation){
-                    $lat = $user->lastLocation->latitude ?? null;
-                    $lng = $user->lastLocation->longitude ?? null;
-                    $time = $user->lastLocation->updated_at->format('d M y, h:i A');
-                }
-
-                return response()->json([
-                    'latitude' => $lat,
-                    'longitude'=> $lng,
-                    'time'=> $time,
+                $r->validate([
+                    'name' => 'required|max:100',
+                    'employee_id' => 'required|max:50|unique:users,employee_id',
                 ]);
+
+                // Generate random password
+                $password = User::generatePassword();
+
+                $user = User::create([
+                    'name' => $r->name,
+                    'employee_id' => $r->employee_id,
+                    'password' => bcrypt($password),
+                    'password_show' => $password,
+                    'admin' => false,
+                    'customer' => true,
+                    'status' => 1,
+                    'addedby_id' => Auth::id(),
+                    'addedby_at' => Carbon::now(),
+                ]);
+
+                Session()->flash('success', 'Employee created successfully! Login Employee ID: ' . $r->employee_id . ', Password: ' . $password);
+                return redirect()->route('admin.usersCustomer');
+            }
+            //Add New User End
+
+
+            $user=User::whereIn('status',[0,1])->find($id);
+            if(!$user){
+                Session()->flash('error','This User Are Not Found');
+                return redirect()->route('admin.usersCustomer');
             }
 
-            return view('admin.user_location', compact('user', 'action'));
-        }
+            if($action == 'location'){
+                if($r->ajax()){
+                    $lat = null;
+                    $lng = null;
+                    $time = null;
 
-        if($action=='edit'){
-            $departments   = Attribute::latest()->where('type',3)->where('status','<>','temp')->get();
-            $designations  = Attribute::latest()->where('type',2)->where('status','<>','temp')->get();
-            $divisions     = Attribute::latest()->where('type', 11)->where('status', '<>', 'temp')->get();
-            $grades        = Attribute::latest()->where('type', 12)->where('status', '<>', 'temp')->get();
-            $line_numbers  = Attribute::latest()->where('type', 13)->where('status', '<>', 'temp')->get();
-            $sections      = Attribute::latest()->where('type', 14)->where('status', '<>', 'temp')->get();
-            $shifts        = Shift::latest()->get();
-            $emp_types     = Attribute::latest()->where('type', 16)->where('status', '<>', 'temp')->get();
+                    if($user->lastLocation){
+                        $lat = $user->lastLocation->latitude ?? null;
+                        $lng = $user->lastLocation->longitude ?? null;
+                        $time = $user->lastLocation->updated_at->format('d M y, h:i A');
+                    }
 
-            $roles =Permission::latest()->where('status','active')->get();
+                    return response()->json([
+                        'latitude' => $lat,
+                        'longitude'=> $lng,
+                        'time'=> $time,
+                    ]);
+                }
 
-            return view(adminTheme().'users.customers.editUser', compact('user','departments','designations','divisions','grades','line_numbers','sections','shifts','roles', 'emp_types'));
+                return view('admin.user_location', compact('user', 'action'));
+            }
 
-        }
+            if($action=='edit'){
+                $departments   = Attribute::latest()->where('type',3)->where('status','<>','temp')->get();
+                $designations  = Attribute::latest()->where('type',2)->where('status','<>','temp')->get();
+                $divisions     = Attribute::latest()->where('type', 11)->where('status', '<>', 'temp')->get();
+                $grades        = Attribute::latest()->where('type', 12)->where('status', '<>', 'temp')->get();
+                $line_numbers  = Attribute::latest()->where('type', 13)->where('status', '<>', 'temp')->get();
+                $sections      = Attribute::latest()->where('type', 14)->where('status', '<>', 'temp')->get();
+                $shifts        = Shift::latest()->get();
+                $emp_types     = Attribute::latest()->where('type', 16)->where('status', '<>', 'temp')->get();
 
-        if($action=='salary-details'){
-            $salaries =$user->salaries()->latest()->paginate(12);
-            return view(adminTheme().'users.customers.salaryDetails',compact('user','salaries'));
-        }
+                $roles =Permission::latest()->where('status','active')->get();
 
-        if($action=='loan-details'){
-            $loans =$user->loans()->latest()->paginate(12);
-            return view(adminTheme().'users.customers.loanDetails',compact('user','loans'));
-        }
+                return view(adminTheme().'users.customers.editUser', compact('user','departments','designations','divisions','grades','line_numbers','sections','shifts','roles', 'emp_types'));
+
+            }
+
+            if($action=='salary-details'){
+                $salaries =$user->salaries()->latest()->paginate(12);
+                return view(adminTheme().'users.customers.salaryDetails',compact('user','salaries'));
+            }
+
+            if($action=='loan-details'){
+                $loans =$user->loans()->latest()->paginate(12);
+                return view(adminTheme().'users.customers.loanDetails',compact('user','loans'));
+            }
 
 
-        if ($action == 'update' && $r->isMethod('post')) {
-            try {
+            if ($action == 'update' && $r->isMethod('post')) {
+                try {
 
-                // VALIDATION - ONLY FIELDS THAT ACTUALLY EXIST IN FORM
-                $r->validate([
-                    'name'        => 'required|max:100',
-                    'father_name' => 'required|max:100',
-                    'mobile'      => 'nullable|max:20|unique:users,mobile,' . $user->id,
-                    'employee_id' => 'nullable|max:100',
+                    // VALIDATION - ONLY FIELDS THAT ACTUALLY EXIST IN FORM
+                    $r->validate([
+                        'name'        => 'required|max:100',
+                        'father_name' => 'required|max:100',
+                        'mobile'      => 'nullable|max:20|unique:users,mobile,' . $user->id,
+                        'employee_id' => 'nullable|max:100',
+                    ]);
+
+                    // MASS UPDATE – MAP ALL FIELDS
+                    $user->employee_id = $r->employee_id;
+                    $user->name = $r->name;
+                    $user->bn_name = $r->bn_name;
+                    $user->email = $r->email;
+                    $user->mobile = $r->mobile;
+
+                    $user->gender = $r->gender;
+                    $user->marital_status = $r->marital_status;
+                    $user->dob = $r->date_of_birth;
+
+                    $user->father_name = $r->father_name;
+                    $user->father_name_bn = $r->father_name_bn;
+                    $user->mother_name = $r->mother_name;
+                    $user->mother_name_bn = $r->mother_name_bn;
+                    $user->spouse_name = $r->spouse_name;
+                    $user->spouse_name_bn = $r->spouse_name_bn;
+
+                    $user->boys = $r->boys;
+                    $user->girls = $r->girls;
+
+                    $user->blood_group = $r->blood_group;
+                    $user->religion = $r->religion;
+                    $user->education = $r->education;
+                    $user->work_type = $r->work_type;
+
+                    $user->nid_number = $r->nid_number;
+                    $user->birth_registration = $r->birth_registration;
+                    $user->passport_no = $r->passport_no;
+                    $user->driving_license = $r->driving_license;
+                    $user->etin = $r->etin;
+
+                    $user->distinguished_mark = $r->distinguished_mark;
+                    $user->height = $r->height;
+                    $user->weight = $r->weight;
+
+                    $user->home_district = $r->home_district;
+                    $user->nationality = $r->nationality;
+                    $user->location = $r->location;
+                    $user->report_to = $r->report_to;
+                    $user->grade_lavel = $r->grade_lavel;
+                    $user->gross_salary = $r->gross_salary ?? 0;
+
+                    // NEW EMPLOYEE FIELDS - Salary Breakdown
+                    $user->basic_salary = $r->basic_salary ?? 0;
+                    $user->house_rent = $r->house_rent ?? 0;
+                    $user->medical_allowance = $r->medical_allowance ?? 0;
+                    $user->transport_allowance = $r->transport_allowance ?? 0;
+                    $user->food_allowance = $r->food_allowance ?? 0;
+                    $user->conveyance_allowance = $r->conveyance_allowance ?? 0;
+                    $user->provident_fund = $r->provident_fund ?? 0;
+
+                    // NEW EMPLOYEE FIELDS - Employment Dates
+                    $user->joining_date = $r->joining_date;
+                    $user->confirmation_date = $r->confirmation_date;
+                    $user->retirement_date = $r->retirement_date;
+                    $user->employee_status = $r->employee_status ?? 'active';
+
+                    // NEW EMPLOYEE FIELDS - Photo & Signature
+                    if ($r->hasFile('photo')) {
+                        $photoPath = $r->file('photo')->store('employees/photos', 'public');
+                        $user->photo = 'storage/' . $photoPath;
+                    }
+                    if ($r->hasFile('signature')) {
+                        $signaturePath = $r->file('signature')->store('employees/signatures', 'public');
+                        $user->signature = 'storage/' . $signaturePath;
+                    }
+
+
+                    $user->emergency_mobile = $r->emergency_mobile;
+                    $user->emergency_relation = $r->emergency_relation;
+
+                    $user->other_information = $r->other_information;
+                    $user->reference_1 = $r->reference_1;
+                    $user->reference_2 = $r->reference_2;
+
+                    $user->nominee = $r->nominee;
+                    $user->nominee_bn = $r->nominee_bn;
+                    $user->nominee_relation = $r->nominee_relation;
+                    $user->nominee_age = $r->nominee_age;
+
+                    $user->present_address = $r->present_address;
+                    $user->present_address_bn = $r->present_address_bn;
+                    $user->permanent_address = $r->permanent_address;
+                    $user->permanent_address_bn = $r->permanent_address_bn;
+
+                    // FIXED FIELD MAPS
+                    $user->division = $r->division_id;
+                    $user->department_id = $r->department_id;
+                    $user->designation_id = $r->designation_id;
+                    $user->section_id = $r->section_id;
+                    $user->line_number = $r->line_number;
+                    $user->shift_id = $r->shift_id;
+                    $user->employee_type = $r->employee_type;
+
+
+                    $user->city = $r->city;
+                    $user->district = $r->district;
+                    $user->postal_code = $r->postal_code;
+
+                    $user->salary_amount = $r->salary_amount ?: 0;
+                    $user->profile = $r->profile;
+                    $user->status = 1;
+
+
+                    // CREATED DATE
+                    if ($r->created_at) {
+                        $user->created_at = Carbon::parse($r->created_at . ' ' . now()->format('H:i:s'));
+                    }
+
+                    $user->exited_at = $r->exited_at;
+
+
+                    // PASSWORD UPDATE
+                    if ($r->password) {
+                        $user->password_show = $r->password;
+                        $user->password = Hash::make($r->password);
+                    }
+
+
+                    // PERMISSION LOGIC
+                    if ($user->id != Auth::id() && Auth::user()->permission_id == 1) {
+                        if ($r->role) {
+                            $user->admin = true;
+                            $user->permission_id = $r->role;
+                            $user->addedby_at = now();
+                            $user->addedby_id = Auth::id();
+                        } else {
+                            $user->admin = false;
+                            $user->permission_id = null;
+                            $user->addedby_id = null;
+                            $user->addedby_at = null;
+                        }
+                    }
+
+
+                    // IMAGE
+                    if ($r->hasFile('image')) {
+                        uploadFile($r->image, $user->id, 6, 1, Auth::id());
+                    }
+
+
+                    // STATUS LOGIC
+                    $user->login_status = $r->login_status ? 1 : 0;
+                    // $user->status = $r->status ? 1 : 0;
+
+
+                    $user->save();
+
+                    Session()->flash('success', 'Update Successful!');
+                    return redirect()->back();
+
+                } catch (\Exception $e) {
+
+                    return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+                }
+            }
+
+            if($action=='idcard'){
+                return view(adminTheme().'users.customers.id_card_bn',compact('user'));
+            }
+
+
+            //Update User Password Change Start
+            if($action=='change-password' && $r->isMethod('post')){
+
+                $validator = Validator::make($r->all(), [
+                    'old_password' => 'required|string|min:8',
+                    'password' => 'required|string|min:8|confirmed|different:old_password',
                 ]);
 
-                // MASS UPDATE – MAP ALL FIELDS
-                $user->employee_id = $r->employee_id;
-                $user->name = $r->name;
-                $user->bn_name = $r->bn_name;
-                $user->email = $r->email;
-                $user->mobile = $r->mobile;
-
-                $user->gender = $r->gender;
-                $user->marital_status = $r->marital_status;
-                $user->dob = $r->date_of_birth;
-
-                $user->father_name = $r->father_name;
-                $user->father_name_bn = $r->father_name_bn;
-                $user->mother_name = $r->mother_name;
-                $user->mother_name_bn = $r->mother_name_bn;
-                $user->spouse_name = $r->spouse_name;
-                $user->spouse_name_bn = $r->spouse_name_bn;
-
-                $user->boys = $r->boys;
-                $user->girls = $r->girls;
-
-                $user->blood_group = $r->blood_group;
-                $user->religion = $r->religion;
-                $user->education = $r->education;
-                $user->work_type = $r->work_type;
-
-                $user->nid_number = $r->nid_number;
-                $user->birth_registration = $r->birth_registration;
-                $user->passport_no = $r->passport_no;
-                $user->driving_license = $r->driving_license;
-                $user->etin = $r->etin;
-
-                $user->distinguished_mark = $r->distinguished_mark;
-                $user->height = $r->height;
-                $user->weight = $r->weight;
-
-                $user->home_district = $r->home_district;
-                $user->nationality = $r->nationality;
-                $user->location = $r->location;
-                $user->report_to = $r->report_to;
-                $user->grade_lavel = $r->grade_lavel;
-                $user->gross_salary = $r->gross_salary ?? 0;
-
-                // NEW EMPLOYEE FIELDS - Salary Breakdown
-                $user->basic_salary = $r->basic_salary ?? 0;
-                $user->house_rent = $r->house_rent ?? 0;
-                $user->medical_allowance = $r->medical_allowance ?? 0;
-                $user->transport_allowance = $r->transport_allowance ?? 0;
-                $user->food_allowance = $r->food_allowance ?? 0;
-                $user->conveyance_allowance = $r->conveyance_allowance ?? 0;
-                $user->provident_fund = $r->provident_fund ?? 0;
-
-                // NEW EMPLOYEE FIELDS - Employment Dates
-                $user->joining_date = $r->joining_date;
-                $user->confirmation_date = $r->confirmation_date;
-                $user->retirement_date = $r->retirement_date;
-                $user->employee_status = $r->employee_status ?? 'active';
-
-                // NEW EMPLOYEE FIELDS - Photo & Signature
-                if ($r->hasFile('photo')) {
-                    $photoPath = $r->file('photo')->store('employees/photos', 'public');
-                    $user->photo = 'storage/' . $photoPath;
-                }
-                if ($r->hasFile('signature')) {
-                    $signaturePath = $r->file('signature')->store('employees/signatures', 'public');
-                    $user->signature = 'storage/' . $signaturePath;
+                if($validator->fails()){
+                    return redirect()->back()->withErrors($validator)->withInput();
                 }
 
+                if(Hash::check($r->old_password, $user->password)){
+                    $user->password_show=$r->password;
+                    $user->password=Hash::make($r->password);
+                    $user->update();
 
-                $user->emergency_mobile = $r->emergency_mobile;
-                $user->emergency_relation = $r->emergency_relation;
-
-                $user->other_information = $r->other_information;
-                $user->reference_1 = $r->reference_1;
-                $user->reference_2 = $r->reference_2;
-
-                $user->nominee = $r->nominee;
-                $user->nominee_bn = $r->nominee_bn;
-                $user->nominee_relation = $r->nominee_relation;
-                $user->nominee_age = $r->nominee_age;
-
-                $user->present_address = $r->present_address;
-                $user->present_address_bn = $r->present_address_bn;
-                $user->permanent_address = $r->permanent_address;
-                $user->permanent_address_bn = $r->permanent_address_bn;
-
-                // FIXED FIELD MAPS
-                $user->division = $r->division_id;
-                $user->department_id = $r->department_id;
-                $user->designation_id = $r->designation_id;
-                $user->section_id = $r->section_id;
-                $user->line_number = $r->line_number;
-                $user->shift_id = $r->shift_id;
-                $user->employee_type = $r->employee_type;
-
-
-                $user->city = $r->city;
-                $user->district = $r->district;
-                $user->postal_code = $r->postal_code;
-
-                $user->salary_amount = $r->salary_amount ?: 0;
-                $user->profile = $r->profile;
-                $user->status = 1;
-
-
-                // CREATED DATE
-                if ($r->created_at) {
-                    $user->created_at = Carbon::parse($r->created_at . ' ' . now()->format('H:i:s'));
+                    Session()->flash('success','Your Are Successfully Done');
+                    return redirect()->back();
+                }else{
+                    Session()->flash('error','Current Password Are Not Match');
+                    return redirect()->back();
                 }
 
-                $user->exited_at = $r->exited_at;
+            }
 
+            if($action=='delete'){
+                $userFiles =Media::latest()->where('src_type',6)->where('src_id',$user->id)->get();
+                foreach ($userFiles as $media) {
+                    if(File::exists($media->file_url)){
+                            File::delete($media->file_url);
+                        }
+                    $media->delete();
+                }
+                $user->delete();
+                Session()->flash('success','User Are Deleted Successfully Deleted!');
+                return redirect()->back();
+            }
 
-                // PASSWORD UPDATE
-                if ($r->password) {
-                    $user->password_show = $r->password;
-                    $user->password = Hash::make($r->password);
+            if ($action == 'user-document') {
+                $fileAction = $r->file_action;
+                $fileId = $r->file_id ?? null;
+
+                if ($fileAction == 'addfile') {
+                    Media::create([
+                        'src_id' => $user->id,
+                        'src_type' => 6,
+                        'use_Of_file' => 3,
+                        'addedby_id' => Auth::id(),
+                    ]);
                 }
 
+                if (in_array($fileAction, ['removeData', 'removeFile']) && $fileId) {
+                    $file = $user->galleryFiles()->find($fileId);
+                    if($file && File::exists($file->file_url)) File::delete($file->file_url);
 
-                // PERMISSION LOGIC
-                if ($user->id != Auth::id() && Auth::user()->permission_id == 1) {
-                    if ($r->role) {
-                        $user->admin = true;
-                        $user->permission_id = $r->role;
-                        $user->addedby_at = now();
-                        $user->addedby_id = Auth::id();
-                    } else {
-                        $user->admin = false;
-                        $user->permission_id = null;
-                        $user->addedby_id = null;
-                        $user->addedby_at = null;
+                    if ($fileAction == 'removeData') $file?->delete();
+                    if ($fileAction == 'removeFile') {
+                        $file?->update([
+                            'file_url'=>null,'file_path'=>null,'alt_text'=>null,'file_rename'=>null,'file_size'=>null
+                        ]);
                     }
                 }
 
-
-                // IMAGE
-                if ($r->hasFile('image')) {
-                    uploadFile($r->image, $user->id, 6, 1, Auth::id());
+                if ($fileAction == 'updateTitle' && $fileId) {
+                    $file = $user->galleryFiles()->find($fileId);
+                    if($file) $file->update(['file_name'=>$r->title]);
                 }
 
+                if ($fileAction == 'updateFile' && $fileId && $r->hasFile('file')) {
+                    $fileData = $user->galleryFiles()->find($fileId);
+                    if ($fileData) {
+                        if(File::exists($fileData->file_url)) File::delete($fileData->file_url);
 
-                // STATUS LOGIC
-                $user->login_status = $r->login_status ? 1 : 0;
-                // $user->status = $r->status ? 1 : 0;
+                        $file = $r->file;
+                        $ext = $file->getClientOriginalExtension();
+                        $size = $file->getSize();
+                        $name = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                        $folder = now()->format('M_Y');
+                        $imgName = time().'.'.uniqid().'.'.$ext;
+                        $path = "medies/".$folder;
+                        $fullPath = "public/".$path.'/'.$imgName;
 
+                        $fileData->update([
+                            'alt_text' => Str::limit($name,250),
+                            'file_rename' => $imgName,
+                            'file_size' => $size,
+                            'file_type' => match(strtolower($ext)){
+                                'png','jpeg','jpg','gif','svg','webp'=>1,
+                                'pdf'=>2,
+                                'docx'=>3,
+                                'zip','rar'=>4,
+                                'mp4','webm','mov','wmv'=>5,
+                                'mp3'=>6,
+                                default => 0
+                            },
+                            'file_url' => $fullPath,
+                            'file_path' => $path
+                        ]);
 
-                $user->save();
-
-                Session()->flash('success', 'Update Successful!');
-                return redirect()->back();
-
-            } catch (\Exception $e) {
-
-                return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+                        $file->move(public_path($path), $imgName);
+                    }
+                }
+                $view = view(adminTheme().'users.customers.includes.userFiles', compact('user'))->render();
+                return response()->json(['success'=>true, 'view'=>$view]);
             }
+
+            $startDate=$r->startDate?Carbon::parse($r->startDate):Carbon::now()->startOfMonth();
+            $endDate=$r->endDate?Carbon::parse($r->endDate):Carbon::now();
+
+            return view(adminTheme().'users.customers.viewUser',compact('user','action','startDate','endDate'));
+        }catch(\Exception $e){
+            dd($e);
+            Session()->flash('error', $e->getMessage());
+            return redirect()->back()->withInput();
         }
 
-        if($action=='idcard'){
-            return view(adminTheme().'users.customers.id_card_bn',compact('user'));
-        }
-
-
-        //Update User Password Change Start
-        if($action=='change-password' && $r->isMethod('post')){
-
-          $validator = Validator::make($r->all(), [
-              'old_password' => 'required|string|min:8',
-              'password' => 'required|string|min:8|confirmed|different:old_password',
-          ]);
-
-          if($validator->fails()){
-              return redirect()->back()->withErrors($validator)->withInput();
-          }
-
-          if(Hash::check($r->old_password, $user->password)){
-            $user->password_show=$r->password;
-            $user->password=Hash::make($r->password);
-            $user->update();
-
-            Session()->flash('success','Your Are Successfully Done');
-            return redirect()->back();
-          }else{
-          Session()->flash('error','Current Password Are Not Match');
-          return redirect()->back();
-          }
-
-        }
-        //Update User Password Change End
-
-        //Delete User Start
-        if($action=='delete'){
-
-          $userFiles =Media::latest()->where('src_type',6)->where('src_id',$user->id)->get();
-          foreach ($userFiles as $media) {
-              if(File::exists($media->file_url)){
-                    File::delete($media->file_url);
-                }
-              $media->delete();
-          }
-          $user->delete();
-          Session()->flash('success','User Are Deleted Successfully Deleted!');
-          return redirect()->back();
-        }
-        //Delete User End
-
-
-        $startDate=$r->startDate?Carbon::parse($r->startDate):Carbon::now()->startOfMonth();
-        $endDate=$r->endDate?Carbon::parse($r->endDate):Carbon::now();
-
-
-        return view(adminTheme().'users.customers.viewUser',compact('user','action','startDate','endDate'));
     }
 
 

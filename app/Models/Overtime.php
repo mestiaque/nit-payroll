@@ -13,6 +13,8 @@ class Overtime extends Model
         'user_id',
         'overtime_type',
         'overtime_date',
+        'year',
+        'month',
         'start_time',
         'end_time',
         'hours',

@@ -93,6 +93,9 @@
             background: #0a3c9b !important;
             color: white !important;
         }
+        td{
+            vertical-align: middle !important;
+        }
      </style>
 
      @stack('css')

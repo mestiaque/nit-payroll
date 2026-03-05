@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\Admin\RetirementController;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -237,7 +238,8 @@ class User extends Authenticatable
                return $this->imageFile->file_url;
             }
         }else{
-            return 'public/medies/profile.png';
+            return false;
+            // return 'public/medies/profile.png';
         }
     }
 
@@ -389,6 +391,21 @@ class User extends Authenticatable
         return $this->hasMany(EmployeeIncrement::class);
     }
 
+    public function terminations()
+    {
+        return $this->hasMany(Termination::class);
+    }
+
+    public function retirements()
+    {
+        return $this->hasMany(EmployeeRetirement::class);
+    }
+
+    public function probations()
+    {
+        return $this->hasMany(Probation::class);
+    }
+
     // ========================
     // Role Helper Functions
     // ========================
@@ -508,6 +525,60 @@ class User extends Authenticatable
     }
 
 
+    public function getAvt($size = 40)
+    {
+        if ($this->image()) {
+            return '<img src="'.asset($this->image()).'"
+                    alt="'.$this->name.'"
+                    class="rounded-circle"
+                    style="width: '.$size.'px; height: '.$size.'px; object-fit: cover; margin-right: 10px;">';
+        }
 
+        return '<div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold"
+                    style="width: '.$size.'px; height: '.$size.'px; background-color: '.random_color($this->id ?? 0).'; margin-right: 10px;">
+                    '.strtoupper(substr($this->name ?? 'U', 0, 1)).'
+                </div>';
+    }
 
+    public function getFirstLetter()
+    {
+        return strtoupper(substr($this->name ?? 'U', 0, 1));
+    }
+
+    public function getStatus()
+    {
+        if(Termination::where('user_id', $this->id)->where('status', 'approved')->latest()->first()){
+            return 'terminated';
+        }elseif(EmployeeRetirement::where('user_id', $this->id)->where('status', 'approved')->latest()->first()){
+            return 'retired';
+        }elseif(Probation::where('user_id', $this->id)->where('status', 'approved')->latest()->first()){
+            return 'probation';
+        }elseif(User::where('id', $this->id)->where('status', 1)->first()){
+            return 'active';
+        }else{
+            return 'unknown';
+        }
+    }
+
+    public function getEmployeeStatusAttribute()
+    {
+        $latestTermination = Termination::where('user_id', $this->id)->where('status', 'approved')->latest()->first();
+        $latestRetirement = EmployeeRetirement::where('user_id', $this->id)->where('status', 'approved')->latest()->first();
+        $latestProbation  = Probation::where('user_id', $this->id)->latest()->first(); // remove 'approved' if needed
+
+        if ($latestTermination) {
+            return 'terminated';
+        } elseif ($latestRetirement) {
+            return 'retired';
+        } elseif ($latestProbation) { // check properly
+            return 'probation';
+        } elseif ($this->status == 1) {
+            return 'active';
+        } elseif ($this->status == 0) {
+            return 'inactive';
+        } else {
+            return 'unknown';
+        }
+    }
 }
+

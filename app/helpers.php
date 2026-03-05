@@ -6,13 +6,14 @@ use App\Models\General;
 use App\Models\Media;
 use App\Models\Post;
 use App\Models\PostExtra;
+use App\Models\Policy;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Auth;
 
 function random_color($seed = 0) {
     $colors = [
-        '#3498db', '#e74c3c', '#9b59b6', '#f1c40f', 
+        '#3498db', '#e74c3c', '#9b59b6', '#f1c40f',
         '#1abc9c', '#e67e22', '#34495e', '#16a085',
         '#c0392b', '#8e44ad', '#27ae60', '#d35400',
         '#2980b9', '#2c3e50', '#f39c12', '#00b894'
@@ -390,14 +391,14 @@ if (! function_exists('can')) {
 
 /**
  * Get attendance status for a user on a specific date
- * 
+ *
  * Priority:
  * 1. Holiday
  * 2. Weekly Off (Friday by default)
  * 3. Leave (if both leave and attendance exist on same day, count as leave)
  * 4. Attendance (Present/Late)
  * 5. Absent
- * 
+ *
  * @param int $userId User ID
  * @param string|DateTime $date Date to check
  * @return array Array with status details
@@ -406,7 +407,7 @@ if (!function_exists('getAttendanceStatus')) {
     function getAttendanceStatus($userId, $date) {
         $date = Carbon::parse($date)->format('Y-m-d');
         $dayOfWeek = Carbon::parse($date)->dayOfWeek;
-        
+
         $result = [
             'status' => 'A', // Default Absent
             'status_text' => 'Absent',
@@ -420,18 +421,18 @@ if (!function_exists('getAttendanceStatus')) {
             'holiday_info' => null,
             'leave_info' => null,
         ];
-        
+
         // Check for weekly offday (Friday = 5 by default)
         $offdaySetting = \App\Models\Attribute::where('type', 21)->where('status', 'active')->first();
         $offdayNumber = $offdaySetting ? array_search($offdaySetting->name, ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']) : 5;
         $isWeeklyOff = ($dayOfWeek == $offdayNumber);
-        
+
         // Check for holiday
         $holiday = \App\Models\Holiday::where('status', 'active')
             ->whereDate('from_date', '<=', $date)
             ->whereDate('to_date', '>=', $date)
             ->first();
-        
+
         if ($holiday) {
             $result['status'] = 'H';
             $result['status_text'] = 'Holiday';
@@ -439,7 +440,7 @@ if (!function_exists('getAttendanceStatus')) {
             $result['holiday_info'] = $holiday;
             return $result;
         }
-        
+
         // Check for weekly off
         if ($isWeeklyOff) {
             $result['status'] = 'WO';
@@ -447,19 +448,19 @@ if (!function_exists('getAttendanceStatus')) {
             $result['is_weekly_off'] = true;
             return $result;
         }
-        
+
         // Check for leave (approved)
         $leave = \App\Models\Leave::where('user_id', $userId)
             ->where('status', 'approved')
             ->whereDate('start_date', '<=', $date)
             ->whereDate('end_date', '>=', $date)
             ->first();
-        
+
         // Check for attendance
         $attendance = \App\Models\Attendance::where('user_id', $userId)
             ->whereDate('date', $date)
             ->first();
-        
+
         // If both leave and attendance exist, count as leave
         if ($leave && $attendance) {
             $result['status'] = 'L';
@@ -468,7 +469,7 @@ if (!function_exists('getAttendanceStatus')) {
             $result['leave_info'] = $leave;
             return $result;
         }
-        
+
         // If only leave
         if ($leave) {
             $result['status'] = 'L';
@@ -477,7 +478,7 @@ if (!function_exists('getAttendanceStatus')) {
             $result['leave_info'] = $leave;
             return $result;
         }
-        
+
         // If attendance exists
         if ($attendance) {
             $result['status'] = ($attendance->status == 'late') ? 'LT' : 'P';
@@ -488,7 +489,7 @@ if (!function_exists('getAttendanceStatus')) {
             $result['work_hours'] = $attendance->work_hour ?? 0;
             return $result;
         }
-        
+
         // Default: Absent
         return $result;
     }
@@ -496,17 +497,23 @@ if (!function_exists('getAttendanceStatus')) {
 
 /**
  * Get monthly attendance summary for a user
- * 
+ *
  * @param int $userId User ID
  * @param int|string $year Year
  * @param int|string $month Month (1-12)
  * @return array Summary array
  */
 if (!function_exists('getMonthlyAttendanceSummary')) {
-    function getMonthlyAttendanceSummary($userId, $year, $month) {
+    function getMonthlyAttendanceSummary($userId, $year, $month, $upToToday = true) {
         $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
-        
+
+        // Only calculate up to today if the month is current month
+        $today = Carbon::today();
+        if ($upToToday && $endDate->gt($today)) {
+            $endDate = $today;
+        }
+
         $summary = [
             'present' => 0,
             'late' => 0,
@@ -515,13 +522,20 @@ if (!function_exists('getMonthlyAttendanceSummary')) {
             'holiday' => 0,
             'weekly_off' => 0,
             'total_work_hours' => 0,
+            'days_counted' => 0, // How many days were actually counted
         ];
-        
+
+        // If we're checking a future month, return zeros
+        if ($startDate->gt($today)) {
+            return $summary;
+        }
+
         $period = CarbonPeriod::create($startDate, $endDate);
-        
+
         foreach ($period as $date) {
+            $summary['days_counted']++;
             $status = getAttendanceStatus($userId, $date);
-            
+
             switch ($status['status']) {
                 case 'P':
                     $summary['present']++;
@@ -545,7 +559,148 @@ if (!function_exists('getMonthlyAttendanceSummary')) {
                     break;
             }
         }
-        
+
+        return $summary;
+    }
+}
+
+/**
+ * Get policy value by type
+ *
+ * @param string $type Policy type
+ * @param mixed $default Default value if not found
+ * @return mixed
+ */
+if (!function_exists('getPolicyValue')) {
+    function getPolicyValue($type, $default = 0) {
+        return \App\Models\Policy::getValue($type, $default);
+    }
+}
+
+/**
+ * Calculate late deduction based on policy
+ *
+ * @param int $lateMinutes Minutes late
+ * @param float $dailySalary Daily salary for percentage calculation
+ * @return float Deduction amount
+ */
+if (!function_exists('calculateLateDeduction')) {
+    function calculateLateDeduction($lateMinutes, $dailySalary = 0) {
+        // Check grace time
+        $graceTime = \App\Models\Policy::getGraceTimeMinutes();
+        if ($lateMinutes <= $graceTime) {
+            return 0;
+        }
+
+        // Calculate actual late minutes after grace
+        $actualLateMinutes = $lateMinutes - $graceTime;
+
+        return \App\Models\Policy::getLateDeduction($actualLateMinutes);
+    }
+}
+
+/**
+ * Calculate absent deduction based on policy
+ *
+ * @param float $dailySalary Daily salary
+ * @param int $absentDays Number of absent days
+ * @return float Deduction amount
+ */
+if (!function_exists('calculateAbsentDeduction')) {
+    function calculateAbsentDeduction($dailySalary, $absentDays) {
+        $percentage = \App\Models\Policy::getAbsentDeductionPercentage();
+        return ($dailySalary * $absentDays * $percentage) / 100;
+    }
+}
+
+/**
+ * Calculate additional absent from late count
+ * Based on policy "3 late = 1 absent" rule
+ *
+ * @param int $lateDays Number of late days
+ * @return int Additional absent count due to late
+ */
+if (!function_exists('calculateLateToAbsent')) {
+    function calculateLateToAbsent($lateDays) {
+        $lateCountForAbsent = \App\Models\Policy::getLateCountForAbsent();
+        if ($lateCountForAbsent <= 0) {
+            return 0;
+        }
+        return floor($lateDays / $lateCountForAbsent);
+    }
+}
+
+/**
+ * Get comprehensive attendance summary with all deductions calculated
+ *
+ * @param int $userId User ID
+ * @param int $year Year
+ * @param int $month Month
+ * @return array Comprehensive summary with deductions
+ */
+if (!function_exists('getAttendanceSummaryWithDeductions')) {
+    function getAttendanceSummaryWithDeductions($userId, $year, $month, $grossSalary = 0) {
+        $summary = getMonthlyAttendanceSummary($userId, $year, $month);
+
+        // Get working days in month
+        $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
+        $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
+
+        // Calculate working days (exclude weekends)
+        $workingDays = 0;
+        $period = CarbonPeriod::create($startDate, $endDate);
+        $offdaySetting = \App\Models\Attribute::where('type', 21)->where('status', 'active')->first();
+        $offdayNumber = $offdaySetting ? array_search($offdaySetting->name, ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']) : 5;
+
+        foreach ($period as $date) {
+            $dayOfWeek = $date->dayOfWeek;
+            // Check if it's a holiday
+            $isHoliday = \App\Models\Holiday::isHoliday($date);
+            // Check if it's weekly off
+            $isWeeklyOff = ($dayOfWeek == $offdayNumber);
+
+            if (!$isHoliday && !$isWeeklyOff) {
+                $workingDays++;
+            }
+        }
+
+        // Calculate daily salary
+        $dailySalary = $workingDays > 0 ? $grossSalary / $workingDays : 0;
+
+        // Get total late minutes for the month
+        $totalLateMinutes = \App\Models\Attendance::where('user_id', $userId)
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->sum('late_time');
+
+        // Calculate additional absents from late count (3 late = 1 absent rule)
+        $additionalAbsentsFromLate = calculateLateToAbsent($summary['late']);
+
+        // Calculate deductions
+        $lateDeduction = 0;
+        $attendances = \App\Models\Attendance::where('user_id', $userId)
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->whereIn('status', ['late', 'Late'])
+            ->get();
+
+        foreach ($attendances as $att) {
+            $lateDeduction += calculateLateDeduction($att->late_time ?? 0, $dailySalary);
+        }
+
+        // Calculate absent deduction (including additional from late rule)
+        $totalAbsentForDeduction = $summary['absent'] + $additionalAbsentsFromLate;
+        $absentDeduction = calculateAbsentDeduction($dailySalary, $totalAbsentForDeduction);
+
+        // Merge with summary
+        $summary['working_days'] = $workingDays;
+        $summary['daily_salary'] = $dailySalary;
+        $summary['total_late_minutes'] = $totalLateMinutes;
+        $summary['additional_absents_from_late'] = $additionalAbsentsFromLate;
+        $summary['late_deduction'] = $lateDeduction;
+        $summary['absent_deduction'] = $absentDeduction;
+        $summary['total_deduction_from_attendance'] = $lateDeduction + $absentDeduction;
+
         return $summary;
     }
 }

@@ -3,15 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
-use App\Models\Roaster;
 use App\Models\Attendance;
-use App\Models\Shift;
+use App\Models\AttendanceMachineLog;
 use App\Models\Attribute;
 use App\Models\Holiday;
 use App\Models\Leave;
-use Illuminate\Http\Request;
+use App\Models\Roaster;
+use App\Models\Shift;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AttendanceManagementController extends Controller
@@ -498,6 +499,61 @@ class AttendanceManagementController extends Controller
     }
 
     /**
+     * Machine Log Index - View attendance machine logs
+     */
+    public function machineLogIndex(Request $request)
+    {
+        // Get start and end dates
+        $date = $request->date ?? Carbon::today()->format('Y-m-d');
+        $to_date = $request->to_date ?? $date; // if to_date not given, use date
+
+        $user_id = $request->user_id;
+        $device_sn = $request->device_sn;
+
+        $query = AttendanceMachineLog::with('user');
+
+        // Filter by date range
+        if ($date && $to_date) {
+            $query->whereBetween('log_time', [
+                Carbon::parse($date)->startOfDay(),
+                Carbon::parse($to_date)->endOfDay()
+            ]);
+        }
+
+        // Filter by user
+        if ($user_id) {
+            $query->where('user_id', $user_id);
+        }
+
+        // Filter by device
+        if ($device_sn) {
+            $query->where('device_sn', $device_sn);
+        }
+
+        $logs = $query->orderBy('log_time', 'desc')
+                ->paginate(50)
+                ->appends([
+                    'date' => $date,
+                    'to_date' => $to_date,
+                    'user_id' => $user_id,
+                    'device_sn' => $device_sn,
+                ]);
+
+        // Get unique device serial numbers
+        $devices = AttendanceMachineLog::distinct()->pluck('device_sn')->filter();
+
+        // Get employees for filter
+        $employees = User::where('employee_status', 'active')
+            ->with(['department', 'designation'])
+            ->filterBy('employee')
+            ->get();
+
+        return view(adminTheme().'attendance.machine_log_index', compact(
+            'logs', 'date', 'to_date', 'devices', 'employees', 'user_id', 'device_sn'
+        ));
+    }
+
+    /**
      * Attendance Summary
      */
     public function attendanceSummary(Request $request)
@@ -627,11 +683,11 @@ class AttendanceManagementController extends Controller
 
         // Get employees - same as daily attendance
         $query = User::filterBy('employee')->whereIn('status', [0, 1]);
-        
+
         if ($employee_id) {
             $query->where('id', $employee_id);
         }
-        
+
         if ($department_id) {
             $query->where('department_id', $department_id);
         }
@@ -701,10 +757,10 @@ class AttendanceManagementController extends Controller
             foreach ($dateRange as $date) {
                 $dateStr = $date->format('Y-m-d');
                 $dayOfWeek = $date->dayOfWeek;
-                
+
                 // Check if it's a holiday
                 $isHoliday = isset($holidayDates[$dateStr]);
-                
+
                 // Check if it's weekly off
                 $isWeeklyOff = ($dayOfWeek == $offdayNumber);
 
@@ -721,7 +777,7 @@ class AttendanceManagementController extends Controller
                 // Determine status
                 $status = '';
                 $statusClass = '';
-                
+
                 if ($leave) {
                     $status = 'L';
                     $statusClass = 'leave';
@@ -804,12 +860,12 @@ class AttendanceManagementController extends Controller
         $endDate = Carbon::parse($request->end_date ?? Carbon::now()->endOfMonth());
         $department_id = $request->department_id;
         $employee_id = $request->employee_id;
-        
+
         // Get employees
         $employees = User::filterBy('employee')
             ->whereIn('status', [0, 1])
             ->with(['designation', 'department']);
-            
+
         if ($department_id) {
             $employees = $employees->where('department_id', $department_id);
         }
@@ -817,19 +873,19 @@ class AttendanceManagementController extends Controller
             $employees = $employees->where('id', $employee_id);
         }
         $employees = $employees->get();
-        
+
         // Get attendances
         $attendances = Attendance::whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
             ->whereIn('status', ['present', 'absent', 'late'])
             ->get();
-        
+
         // Return Excel export
         $export = new \App\Exports\AttendanceExport(
             $attendances,
             $startDate->format('m'),
             $startDate->format('Y')
         );
-        
+
         return \Maatwebsite\Excel\Facades\Excel::download($export, 'attendance_'.$startDate->format('Ym').'.xlsx');
     }
 
@@ -840,7 +896,7 @@ class AttendanceManagementController extends Controller
     {
         $employee_id = $request->employee_id;
         $month = $request->month ?? Carbon::now()->format('Y-m');
-        
+
         // Parse month
         $startDate = Carbon::parse($month)->startOfMonth();
         $endDate = Carbon::parse($month)->endOfMonth();
@@ -946,16 +1002,16 @@ class AttendanceManagementController extends Controller
                         $statusClass = $attendance->status == 'late' ? 'late' : 'present';
                         $presentCount++;
                         if ($attendance->status == 'late') $lateCount++;
-                        
+
                         // Get times
                         if ($attendance->in_time) {
-                            $inTime = is_string($attendance->in_time) ? 
-                                substr($attendance->in_time, 0, 5) : 
+                            $inTime = is_string($attendance->in_time) ?
+                                substr($attendance->in_time, 0, 5) :
                                 Carbon::parse($attendance->in_time)->format('H:i');
                         }
                         if ($attendance->out_time) {
-                            $outTime = is_string($attendance->out_time) ? 
-                                substr($attendance->out_time, 0, 5) : 
+                            $outTime = is_string($attendance->out_time) ?
+                                substr($attendance->out_time, 0, 5) :
                                 Carbon::parse($attendance->out_time)->format('H:i');
                         }
                     } elseif ($attendance->status == 'absent') {

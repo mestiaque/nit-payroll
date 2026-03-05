@@ -35,12 +35,6 @@ return [
                     'permission' => 'employee_report',
                 ],
                 [
-                    'title' => 'Individual Report',
-                    'icon' => 'fa fa-user',
-                    'route' => 'admin/attendance/individual-report',
-                    'permission' => 'attendance_report',
-                ],
-                [
                     'title' => 'Employee Performance',
                     'icon' => 'fa fa-chart-line',
                     'route' => 'admin/performance',
@@ -215,6 +209,12 @@ return [
                     'permission' => 'attendance_report',
                 ],
                 [
+                    'title' => 'Individual Report',
+                    'icon' => 'fa fa-user',
+                    'route' => 'admin/attendance/individual-report',
+                    'permission' => 'attendance_report',
+                ],
+                [
                     'title' => 'Monthly Summary',
                     'icon' => 'fa fa-calendar',
                     'route' => 'admin/attendance/monthly-summary',
@@ -254,6 +254,12 @@ return [
                     'title' => 'Overtime',
                     'icon' => 'fa fa-business-time',
                     'route' => 'admin/overtimes',
+                    'permission' => 'sms',
+                ],
+                [
+                    'title' => 'Attendance Machine Logs',
+                    'icon' => 'fa fa-fingerprint',
+                    'route' => 'admin/attendance/machine-log',
                     'permission' => 'sms',
                 ],
             ]

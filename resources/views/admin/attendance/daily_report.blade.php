@@ -39,28 +39,40 @@
 
     <!-- Stats Cards -->
     <div class="row mb-3">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="stat-box bg-primary text-white">
                 <h3>{{ $stats['total'] ?? 0 }}</h3>
                 <p class="mb-0">Total Employees</p>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="stat-box bg-success text-white">
                 <h3>{{ $stats['present'] ?? 0 }}</h3>
                 <p class="mb-0">Present</p>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="stat-box bg-warning text-white">
                 <h3>{{ $stats['late'] ?? 0 }}</h3>
                 <p class="mb-0">Late</p>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="stat-box bg-danger text-white">
                 <h3>{{ $stats['absent'] ?? 0 }}</h3>
                 <p class="mb-0">Absent</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stat-box bg-info text-white">
+                <h3>{{ $stats['leave'] ?? 0 }}</h3>
+                <p class="mb-0">On Leave</p>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stat-box bg-secondary text-white">
+                <h3>{{ $stats['overtime'] ?? 0 }}</h3>
+                <p class="mb-0">Overtime</p>
             </div>
         </div>
     </div>
@@ -80,6 +92,8 @@
                     <option value="absent" {{ request('status') == 'absent' ? 'selected' : '' }}>Absent</option>
                     <option value="late" {{ request('status') == 'late' ? 'selected' : '' }}>Late</option>
                     <option value="leave" {{ request('status') == 'leave' ? 'selected' : '' }}>Leave</option>
+                    <option value="holiday" {{ request('status') == 'holiday' ? 'selected' : '' }}>Holiday</option>
+                    <option value="weekend" {{ request('status') == 'weekend' ? 'selected' : '' }}>Weekend</option>
                 </select>
             </div>
             <div class="col-md-3">
@@ -110,10 +124,13 @@
                         <th>Employee ID</th>
                         <th>Name</th>
                         <th>Department</th>
+                        <th>Shift</th>
                         <th>In Time</th>
                         <th>Out Time</th>
                         <th>Status</th>
+                        <th>Late (min)</th>
                         <th>Working Hours</th>
+                        <th>Overtime</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -123,6 +140,7 @@
                         <td>{{ $attendance->user->employee_id ?? 'N/A' }}</td>
                         <td>{{ $attendance->user->name ?? 'N/A' }}</td>
                         <td>{{ $attendance->user->department->name ?? 'N/A' }}</td>
+                        <td>{{ $attendance->shift->name ?? ($attendance->user->employeeInfo->shift->name ?? 'N/A') }}</td>
                         <td>{{ $attendance->in_time ? \Carbon\Carbon::parse($attendance->in_time)->format('h:i A') : '-' }}</td>
                         <td>{{ $attendance->out_time ? \Carbon\Carbon::parse($attendance->out_time)->format('h:i A') : '-' }}</td>
                         <td>
@@ -132,15 +150,39 @@
                                 <span class="badge bg-danger">Absent</span>
                             @elseif($attendance->status == 'late')
                                 <span class="badge bg-warning">Late</span>
+                            @elseif($attendance->status == 'leave')
+                                <span class="badge bg-info">Leave</span>
+                            @elseif($attendance->status == 'holiday')
+                                <span class="badge bg-secondary">Holiday</span>
+                            @elseif($attendance->status == 'weekend')
+                                <span class="badge bg-light text-dark">Weekend</span>
+                            @elseif($attendance->status == 'half_day')
+                                <span class="badge bg-warning">Half Day</span>
                             @else
-                                <span class="badge bg-secondary">{{ $attendance->status }}</span>
+                                <span class="badge bg-secondary">{{ ucfirst($attendance->status ?? 'N/A') }}</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($attendance->late_minutes > 0)
+                                <span class="text-warning">{{ $attendance->late_minutes }} min</span>
+                            @else
+                                <span class="text-success">-</span>
                             @endif
                         </td>
                         <td>{{ $attendance->working_hours ?? '-' }}</td>
+                        <td>
+                            @if($attendance->overtime_hours > 0 || $attendance->overtime_minutes > 0)
+                                <span class="text-primary">
+                                    {{ $attendance->overtime_hours ?? 0 }}h {{ $attendance->overtime_minutes ?? 0 }}m
+                                </span>
+                            @else
+                                -
+                            @endif
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">No records found</td>
+                        <td colspan="11" class="text-center text-muted py-4">No records found</td>
                     </tr>
                     @endforelse
                 </tbody>

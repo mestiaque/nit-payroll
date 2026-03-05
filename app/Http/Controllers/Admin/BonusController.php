@@ -27,7 +27,7 @@ class BonusController extends Controller
             })
             ->orderBy('month', 'desc')
             ->get();
-        
+
         return view('admin.bonus.index', compact('bonuses'));
     }
 

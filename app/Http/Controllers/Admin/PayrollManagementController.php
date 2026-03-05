@@ -18,6 +18,8 @@ use App\Models\Loan;
 use App\Models\SalaryAdvance;
 use App\Models\ProvidentFund;
 use App\Models\WorkingHour;
+use App\Models\Policy;
+use App\Models\Holiday;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -74,6 +76,18 @@ class PayrollManagementController extends Controller
         $month = $request->month;
         $year = $request->year;
 
+        // Check if processing current incomplete month
+        $today = Carbon::today();
+        $selectedMonth = Carbon::createFromDate($year, $month, 1);
+        $isCurrentMonth = $selectedMonth->isSameMonth($today);
+        $isCompletedMonth = $selectedMonth->endOfMonth()->lt($today);
+
+        // Warning for incomplete month processing
+        $monthWarning = '';
+        if ($isCurrentMonth && !$request->force_process) {
+            $monthWarning = ' (Note: This is the current month - only days up to today are counted)';
+        }
+
         // Check if already processed
         $existing = SalarySheet::where('month', $month)->where('year', $year)->count();
         if ($existing > 0 && !$request->reprocess) {
@@ -83,8 +97,14 @@ class PayrollManagementController extends Controller
         $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
 
-        // Calculate working days (excluding Fridays and Saturdays for Bangladesh)
-        $workingDays = $this->calculateWorkingDays($startDate, $endDate);
+        // For current month, only count up to today
+        $actualEndDate = $endDate;
+        if ($isCurrentMonth) {
+            $actualEndDate = $today;
+        }
+
+        // Calculate working days (up to actual end date)
+        $workingDays = $this->calculateWorkingDays($startDate, $actualEndDate);
 
         // Get all active employees - using User table directly since salary info is there
         $employees = User::where('employee_status', 'active')
@@ -159,15 +179,40 @@ class PayrollManagementController extends Controller
                 $weeklyOffDays = $attendanceSummary['weekly_off'];
                 $absentDays = $attendanceSummary['absent'];
 
-                // Present + Late + Leave + Holiday + Weekly Off = All counted as present (not absent)
-                $presentDays += $lateDays + $leaveDays + $holidayDays + $weeklyOffDays;
+                // ============ NEW LOGIC ============
+                // Holiday + Weekend = treated as paid days (like present)
+                // For DISPLAY: Holiday column = Holiday + Weekend
+                // For SALARY: Holiday/Weekend are paid, so not deducted
 
-                // Absent days = working days - present days
-                $absentDays = max(0, $workingDays - $presentDays);
+                // Combined holiday (Holiday + Weekend for display)
+                $combinedHolidayDays = $holidayDays + $weeklyOffDays;
 
-                // Calculate work hours and overtime
+                // Actual present for display (only real attendance)
+                $actualPresentDays = $presentDays + $lateDays;
+
+                // Total days in period
+                $totalDaysCounted = $attendanceSummary['days_counted'] ?? 0;
+                if ($totalDaysCounted == 0) {
+                    $totalDaysCounted = Carbon::createFromDate($year, $month, 1)->daysInMonth;
+                    if ($isCurrentMonth) {
+                        $totalDaysCounted = Carbon::today()->day;
+                    }
+                }
+
+                // Working days = Total days - Holiday - Weekend
+                $actualWorkingDays = max(0, $totalDaysCounted - $combinedHolidayDays);
+
+                // Absent = Working days - Present - Late - Leave
+                $absentDays = max(0, $actualWorkingDays - $actualPresentDays - $leaveDays);
+
+                // For salary: Holiday/Weekend are PAID (consider as present)
+                // So total paid days = Present + Late + Leave + Holiday + Weekend
+                $paidDays = $actualPresentDays + $leaveDays + $combinedHolidayDays;
+                // ============ END NEW LOGIC ============
+
+                // Calculate work hours and overtime (use actualEndDate for current month)
                 $attendances = Attendance::where('user_id', $employee->id)
-                    ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                    ->whereBetween('date', [$startDate->format('Y-m-d'), $actualEndDate->format('Y-m-d')])
                     ->get();
                 $overtimeHours = $attendances->sum('overtime');
                 $overtimeMinutes = $attendances->sum('overtime_minutes');
@@ -179,80 +224,84 @@ class PayrollManagementController extends Controller
 
                 // Leave days are now calculated using centralized function (getMonthlyAttendanceSummary)
 
-                // Calculate weekend days
-                $weekendDays = $this->calculateWeekendDays($startDate, $endDate);
+                // Calculate weekend days (for info purposes)
+                $weekendDays = $this->calculateWeekendDays($startDate, $actualEndDate);
 
                 // Monthly gross salary is already set above from User table (gross_salary field)
 
-                // Calculate per day and per hour salary based on gross
-                $perDaySalary = $workingDays > 0 ? $monthlyGrossSalary / $workingDays : 0;
-                $perHourRate = $hoursPerDay > 0 ? $monthlyGrossSalary / ($workingDays * $hoursPerDay) : 0;
+                // Calculate per day salary based on total calendar days or working days
+                // For Bangladesh: Salary is monthly fixed, so we pay full salary minus absent deductions
+                $totalCalendarDays = $totalDaysCounted; // Days in period (up to today for current month)
+                $perDaySalary = $totalCalendarDays > 0 ? $monthlyGrossSalary / $totalCalendarDays : 0;
+                $perHourRate = $hoursPerDay > 0 ? $monthlyGrossSalary / ($totalCalendarDays * $hoursPerDay) : 0;
 
                 // Calculate overtime amount (1.5x rate)
                 $overtimeAmount = $overtimeHours * $perHourRate * 1.5;
 
-                // Calculate earnings based on actual days worked (not full gross)
-                // This is correct: only get paid for days actually present
-                // BUT minimum salary = basic salary (even if present is 0)
+                // ============ SALARY CALCULATION ============
+                // Holiday + Weekend = PAID (full pay)
+                // Present + Late = PAID (late gets 90%)
+                // Leave = PAID (full pay)
+                // Absent = NOT PAID (deducted)
+
                 $dailyEarning = $perDaySalary;
 
-                // Present days get full pay, late days get reduced pay (90%)
-                $presentEarning = $presentDays * $dailyEarning;
-                $lateEarning = $lateDays * ($dailyEarning * 0.9); // 10% late deduction
-                $lateDeduction = $lateDays * ($dailyEarning * 0.1); // Late deduction amount
-                $leaveEarning = $leaveDays * $dailyEarning; // Approved leave = full pay
+                // Calculate earnings for each category
+                $presentEarning = $presentDays * $dailyEarning;           // Present = full pay
+                $lateEarning = $lateDays * ($dailyEarning * 0.9);         // Late = 90% pay
+                $lateDeduction = $lateDays * ($dailyEarning * 0.1);       // Late deduction = 10%
+                $leaveEarning = $leaveDays * $dailyEarning;               // Leave = full pay
+                $holidayEarning = $combinedHolidayDays * $dailyEarning;   // Holiday/Weekend = full pay
 
-                // Total earnings = present + late (reduced) + approved leave + overtime
-                // Note: This is the actual amount to be paid
-                // Note: Overtime will be added after fetching from Overtime model
-                $totalEarning = $presentEarning + $lateEarning + $leaveEarning;
+                // Absent deduction = absent days * per day salary
+                $absentDeduction = $absentDays * $dailyEarning;
 
-                // Ensure minimum earning is basic salary (even if no attendance)
+                // Total base earnings = All paid days
+                // For monthly salary, start with gross and deduct absents
+                $totalEarning = $monthlyGrossSalary - $absentDeduction - $lateDeduction;
+
+                // Ensure minimum earning is basic salary (even if many absents)
                 if ($totalEarning < $basicSalary && $basicSalary > 0) {
                     $totalEarning = $basicSalary;
                 }
 
-                // For display purposes, we'll also calculate what the full monthly salary would be
-                // This is stored as gross_salary and components
+                // For display purposes
                 $displayGrossSalary = $monthlyGrossSalary;
 
-                // Absent deduction is 0 since we only pay for days worked
-                $absentDeduction = 0;
-
                 // ============ INTEGRATE NEW FEATURES ============
-                
+
                 // 1. Get Overtime (General & Special) from Overtime model
                 $overtimeEarning = Overtime::where('user_id', $employee->id)
                     ->where('month', $month)
                     ->where('year', $year)
                     ->where('status', 'approved')
                     ->sum('amount');
-                
+
                 // 2. Get Bonus from Bonus model
                 $bonusEarning = Bonus::where('user_id', $employee->id)
                     ->where('month', $month)
                     ->where('year', $year)
                     ->where('status', 'approved')
                     ->sum('amount');
-                
+
                 // 3. Get Deductions (late fine, absent fine, etc.)
                 $deductionAmount = Deduction::where('user_id', $employee->id)
                     ->where('month', $month)
                     ->where('status', 'deducted')
                     ->sum('amount');
-                
+
                 // 4. Get Tax from Tax model or calculate
                 $taxRecord = Tax::where('user_id', $employee->id)
                     ->where('month', $month)
                     ->where('year', $year)
                     ->first();
                 $tax = $taxRecord ? $taxRecord->net_tax : $this->calculateTax($monthlyGrossSalary);
-                
+
                 // 5. Get Loan installment deduction
                 $loanDeductionAmount = Loan::where('user_id', $employee->id)
                     ->where('status', 'active')
                     ->sum('monthly_installment');
-                
+
                 // 6. Get Provident Fund from ProvidentFund model
                 $pfRecord = ProvidentFund::where('user_id', $employee->id)
                     ->where('month', $month)
@@ -260,12 +309,12 @@ class PayrollManagementController extends Controller
                     ->where('status', 'active')
                     ->first();
                 $providentFund = $pfRecord ? ($pfRecord->employee_contribution + $pfRecord->company_contribution) : ($monthlyGrossSalary * 0.05);
-                
+
                 // 7. Get Salary Advance deduction
                 $salaryAdvanceDeduction = SalaryAdvance::where('user_id', $employee->id)
                     ->where('status', 'disbursed')
                     ->sum('monthly_deduction');
-                
+
                 // 8. Get Working Hours/Grass Time extra payment
                 $grassTimeAmount = WorkingHour::where('user_id', $employee->id)
                     ->where('date', '>=', $year . '-' . $month . '-01')
@@ -274,10 +323,10 @@ class PayrollManagementController extends Controller
                     ->sum('grass_hours');
                 // Convert grass hours to amount (assuming hourly rate)
                 $grassTimeEarning = $grassTimeAmount * ($basicSalary / 200); // Assuming 200 working hours per month
-                
+
                 // Add overtime, bonus, grass time to earnings
                 $totalEarning += $overtimeEarning + $bonusEarning + $grassTimeEarning;
-                
+
                 // ============ END NEW FEATURES ============
 
                 // Calculate tax (simplified) - tax on full gross salary
@@ -348,10 +397,11 @@ class PayrollManagementController extends Controller
                         'other_deduction' => $stampDeduction,
                         'total_deduction' => $totalDeduction,
                         'net_salary' => $netSalary,
-                        'working_days' => $workingDays,
-                        'present_days' => $presentDays,
+                        'working_days' => $actualWorkingDays,
+                        'present_days' => $actualPresentDays,
                         'absent_days' => $absentDays,
                         'leave_days' => $leaveDays,
+                        'holiday_days' => $combinedHolidayDays, // Holiday + Weekend
                         'overtime_hours' => $overtimeHours,
                         'payment_method' => $paymentMethod,
                         'payment_status' => 'pending',
@@ -363,7 +413,7 @@ class PayrollManagementController extends Controller
             }
 
             DB::commit();
-            return back()->with('success', 'Salary processed successfully for ' . $processedCount . ' employees!');
+            return back()->with('success', 'Salary processed successfully for ' . $processedCount . ' employees!' . $monthWarning);
 
         } catch (\Exception $e) {
             DB::rollBack();

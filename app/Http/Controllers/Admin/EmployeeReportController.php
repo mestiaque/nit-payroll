@@ -48,7 +48,30 @@ class EmployeeReportController extends Controller
         }
 
         if ($request->employee_status) {
-            $query->where('employee_status', $request->employee_status);
+            $status = $request->employee_status;
+            
+            if ($status == 'terminated') {
+                $query->whereHas('terminations', function($q) {
+                    $q->where('status', 'approved');
+                });
+            } elseif ($status == 'retired') {
+                $query->whereHas('retirements', function($q) {
+                    $q->where('status', 'approved');
+                });
+            } elseif ($status == 'probation') {
+                $query->whereHas('probations');
+            } elseif ($status == 'active') {
+                $query->where('status', 1)
+                       ->whereDoesntHave('terminations', function($q) {
+                           $q->where('status', 'approved');
+                       })
+                       ->whereDoesntHave('retirements', function($q) {
+                           $q->where('status', 'approved');
+                       })
+                       ->whereDoesntHave('probations');
+            } elseif ($status == 'inactive') {
+                $query->where('status', 0);
+            }
         }
 
         if ($request->gender) {
@@ -57,14 +80,16 @@ class EmployeeReportController extends Controller
 
         $employees = $query->orderBy('name')->get();
 
-        $stats = [
-            'total' => User::filterBy('employee')->count(),
-            'active' => User::filterBy('employee')->where('employee_status', 'active')->count(),
-            'inactive' => User::filterBy('employee')->where('employee_status', 'inactive')->count(),
-            'retired' => User::filterBy('employee')->where('employee_status', 'retired')->count(),
+        $status = [
+            'total'      => $employees->count(),
+            'probation'  => $employees->where('employee_status', 'probation')->count(),
+            'active'     => $employees->where('employee_status', 'active')->count(),
+            'inactive'   => $employees->where('employee_status', 'inactive')->count(),
+            'retired'    => $employees->where('employee_status', 'retired')->count(),
+            'terminated' => $employees->where('employee_status', 'terminated')->count(),
         ];
 
-        return view(adminTheme().'reports.employees.index', compact('employees', 'departments', 'designations', 'stats'));
+        return view(adminTheme().'reports.employees.index', compact('employees', 'departments', 'designations', 'status'));
     }
 
     /**

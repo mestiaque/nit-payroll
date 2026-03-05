@@ -83,7 +83,7 @@ class InterviewController extends Controller
             'status' => 'scheduled',
         ]);
 
-        return redirect()->route('admin.interviews')->with('success', 'Interview scheduled successfully');
+        return redirect()->route('admin.interviews.index')->with('success', 'Interview scheduled successfully');
     }
 
     public function edit($id)
@@ -125,7 +125,7 @@ class InterviewController extends Controller
             'interviewer_id' => $request->interviewer_id,
         ]);
 
-        return redirect()->route('admin.interviews')->with('success', 'Interview updated successfully');
+        return redirect()->route('admin.interviews.index')->with('success', 'Interview updated successfully');
     }
 
     public function updateStatus(Request $request, $id)
@@ -151,13 +151,13 @@ class InterviewController extends Controller
             'feedback' => $request->feedback,
         ]);
 
-        return redirect()->route('admin.interviews')->with('success', 'Interview status updated successfully');
+        return redirect()->route('admin.interviews.index')->with('success', 'Interview status updated successfully');
     }
 
     public function destroy($id)
     {
         $interview = Interview::findOrFail($id);
         $interview->delete();
-        return redirect()->route('admin.interviews')->with('success', 'Interview deleted successfully');
+        return redirect()->route('admin.interviews.index')->with('success', 'Interview deleted successfully');
     }
 }

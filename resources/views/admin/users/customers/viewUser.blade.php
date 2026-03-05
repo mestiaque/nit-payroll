@@ -7,6 +7,8 @@
     .ProfileImage {
         width: 150px;
         height: 150px;
+                min-width: 140px;
+        min-height: 140px;
         border-radius: 50%;
         /* object-fit: fill; */
         border: 4px solid rgba(255,255,255,0.5);
@@ -124,16 +126,7 @@
                 <div class="row align-items-center">
                     <div class="col-md-2 text-center">
                         <div class="position-relative">
-                            <img src="{{asset($user->image())}}" class="ProfileImage" alt="profile image" />
-                            {{-- @if($user->status)
-                            <span class="position-absolute bottom-0 start-50 translate-middle-x badge badge-success" style="font-size: 10px;">
-                                <i class='bx bx-check-circle'></i> Active
-                            </span>
-                            @else
-                            <span class="position-absolute bottom-0 start-50 translate-middle-x badge badge-warning" style="font-size: 10px;">
-                                <i class='bx bx-time-five'></i> Inactive
-                            </span>
-                            @endif --}}
+                            <img src="{{asset($user->image())}}" class="ProfileImage" alt="" />
                         </div>
                     </div>
                     <div class="col-md-7">
@@ -598,26 +591,18 @@
                             <div class="info-card">
                                 <h5 class="section-title">Identity Documents</h5>
                                 <div class="row">
-                                    <div class="col-md-12 mb-3">
-                                        <div class="info-label">National ID Card</div>
-                                        <div class="info-value">{{$user->nid_number ?? 'N/A'}}</div>
-                                    </div>
-                                    <div class="col-md-12 mb-3">
-                                        <div class="info-label">Birth Registration No</div>
-                                        <div class="info-value">{{$user->birth_registration ?? 'N/A'}}</div>
-                                    </div>
-                                    <div class="col-md-12 mb-3">
-                                        <div class="info-label">Passport No</div>
-                                        <div class="info-value">{{$user->passport_no ?? 'N/A'}}</div>
-                                    </div>
-                                    <div class="col-md-12 mb-3">
-                                        <div class="info-label">Driving License</div>
-                                        <div class="info-value">{{$user->driving_license ?? 'N/A'}}</div>
-                                    </div>
-                                    <div class="col-md-12 mb-3">
-                                        <div class="info-label">e-TIN</div>
-                                        <div class="info-value">{{$user->etin ?? 'N/A'}}</div>
-                                    </div>
+                                    @if($user->galleryFiles->count() > 0)
+                                        @foreach($user->galleryFiles as $file)
+                                            <div class="col-md-12 mb-3">
+                                                <div class="info-label">{{$file->file_name}}</div>
+                                                <div class="info-value"><a href="{{asset($file->file_url)}}" title="{{$file->file_name}}" download="">Download File</a></div>
+                                            </div>
+                                        @endforeach
+                                    @else
+                                        <div class="col-md-12 mb-3">
+                                            <div class="info-label">No Attachment File</div>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -626,6 +611,9 @@
             </div>
         </div>
     </div>
+
+
+
 </div>
 
 

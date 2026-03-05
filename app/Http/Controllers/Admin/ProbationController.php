@@ -69,7 +69,7 @@ class ProbationController extends Controller
             'confirmation_status' => 'pending',
         ]);
 
-        return redirect()->route('admin.probations')->with('success', 'Probation period created successfully');
+        return redirect()->route('admin.probations.index')->with('success', 'Probation period created successfully');
     }
 
     public function edit($id)
@@ -101,7 +101,7 @@ class ProbationController extends Controller
             'months' => $months,
         ]);
 
-        return redirect()->route('admin.probations')->with('success', 'Probation period updated successfully');
+        return redirect()->route('admin.probations.index')->with('success', 'Probation period updated successfully');
     }
 
     public function confirm(Request $request, $id)
@@ -121,7 +121,7 @@ class ProbationController extends Controller
             'reviewed_by' => Auth::id(),
         ]);
 
-        return redirect()->route('admin.probations')->with('success', 'Probation confirmation updated successfully');
+        return redirect()->route('admin.probations.index')->with('success', 'Probation confirmation updated successfully');
     }
 
     public function extend(Request $request, $id)
@@ -143,13 +143,13 @@ class ProbationController extends Controller
             'performance_notes' => $request->performance_notes,
         ]);
 
-        return redirect()->route('admin.probations')->with('success', 'Probation period extended successfully');
+        return redirect()->route('admin.probations.index')->with('success', 'Probation period extended successfully');
     }
 
     public function destroy($id)
     {
         $probation = Probation::findOrFail($id);
         $probation->delete();
-        return redirect()->route('admin.probations')->with('success', 'Probation record deleted successfully');
+        return redirect()->route('admin.probations.index')->with('success', 'Probation record deleted successfully');
     }
 }

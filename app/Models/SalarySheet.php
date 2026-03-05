@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class SalarySheet extends Model
@@ -10,10 +9,10 @@ class SalarySheet extends Model
     protected $fillable = [
         'user_id', 'month', 'year', 'basic_salary', 'house_rent', 'medical_allowance',
         'transport_allowance', 'other_allowance', 'gross_salary', 'overtime_amount',
-        'special_overtime_amount', 'grass_time_amount', 'other_bonus', 'bonus', 'total_earning', 
-        'absent_deduction', 'late_deduction', 'tax', 'provident_fund', 'loan_deduction', 
+        'special_overtime_amount', 'grass_time_amount', 'other_bonus', 'bonus', 'total_earning',
+        'absent_deduction', 'late_deduction', 'tax', 'provident_fund', 'loan_deduction',
         'salary_advance_deduction', 'deduction', 'other_deduction', 'total_deduction',
-        'net_salary', 'working_days', 'present_days', 'absent_days', 'leave_days',
+        'net_salary', 'working_days', 'present_days', 'absent_days', 'leave_days', 'holiday_days',
         'overtime_hours', 'payment_method', 'payment_status', 'payment_date',
         'salary_type', 'remarks'
     ];
@@ -62,10 +61,6 @@ class SalarySheet extends Model
         );
     }
 
-    protected static function booted()
-    {
-        static::addGlobalScope('hideUser7', function (Builder $builder) {
-            $builder->where('user_id', '!=', 7);
-        });
-    }
+    // Note: Removed hideUser7 global scope - it was causing duplicate entry issues
+    // If you need to hide user 7 from listings, filter in controller/view level instead
 }

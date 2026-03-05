@@ -5,16 +5,16 @@
 
 @push('css')
 <style>
-    .report-card { 
-        background: #fff; 
-        padding: 20px; 
-        border-radius: 8px; 
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05); 
-        margin-bottom: 20px; 
+    .report-card {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
     }
-    .day-cell { 
-        text-align: center; 
-        font-size: 11px; 
+    .day-cell {
+        text-align: center;
+        font-size: 11px;
         padding: 4px !important;
         min-width: 35px;
     }
@@ -144,8 +144,8 @@
             <div class="col-md-6">
                 <h3>{{ $employee->name }}</h3>
                 <p class="mb-1">
-                    <strong>ID:</strong> {{ $employee->employee_id ?? 'N/A' }} | 
-                    <strong>Department:</strong> {{ $employee->department->name ?? 'N/A' }} | 
+                    <strong>ID:</strong> {{ $employee->employee_id ?? 'N/A' }} |
+                    <strong>Department:</strong> {{ $employee->department->name ?? 'N/A' }} |
                     <strong>Designation:</strong> {{ $employee->designation->name ?? 'N/A' }}
                 </p>
                 <p class="mb-0">
@@ -177,6 +177,9 @@
                         <th>Status</th>
                         <th>In Time</th>
                         <th>Out Time</th>
+                        <th>Working Hours</th>
+                        <th>Late (min)</th>
+                        <th>Overtime</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -203,15 +206,40 @@
                         </td>
                         <td class="time-cell">{{ $data['in_time'] }}</td>
                         <td class="time-cell">{{ $data['out_time'] }}</td>
+                        <td class="time-cell">{{ $data['working_hours'] ?? '-' }}</td>
+                        <td class="time-cell">
+                            @if(isset($data['late_minutes']) && $data['late_minutes'] > 0)
+                                <span class="text-warning">{{ $data['late_minutes'] }}</span>
+                            @else
+                                -
+                            @endif
+                        </td>
+                        <td class="time-cell">
+                            @if(isset($data['overtime']) && $data['overtime'])
+                                <span class="text-primary">{{ $data['overtime'] }}</span>
+                            @else
+                                -
+                            @endif
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">
+                        <td colspan="8" class="text-center text-muted py-4">
                             No data available
                         </td>
                     </tr>
                     @endforelse
                 </tbody>
+                @if(isset($dailyData) && count($dailyData) > 0)
+                <tfoot>
+                    <tr style="background: #f8f9fa; font-weight: bold;">
+                        <td colspan="5" class="text-end">Totals:</td>
+                        <td>{{ $totalWorkingHours ?? '-' }}</td>
+                        <td>{{ $totalLateMinutes ?? '-' }}</td>
+                        <td>{{ $totalOvertime ?? '-' }}</td>
+                    </tr>
+                </tfoot>
+                @endif
             </table>
         </div>
     </div>
@@ -225,6 +253,63 @@
             <span class="summary-box summary-leave">L = Leave</span>
             <span class="summary-box summary-holiday">H = Holiday</span>
             <span class="summary-box summary-holiday">WO = Weekly Off</span>
+            <span class="summary-box" style="background: #cce5ff; color: #004085;">OT = Overtime</span>
+        </div>
+    </div>
+
+    {{-- Summary Statistics --}}
+    <div class="report-card">
+        <h5>Monthly Summary</h5>
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table table-sm table-bordered">
+                    <tr>
+                        <th>Total Working Days</th>
+                        <td>{{ $summary['total'] ?? 0 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Present Days</th>
+                        <td class="text-success">{{ $summary['present'] ?? 0 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Absent Days</th>
+                        <td class="text-danger">{{ $summary['absent'] ?? 0 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Leave Days</th>
+                        <td class="text-warning">{{ $summary['leave'] ?? 0 }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-sm table-bordered">
+                    <tr>
+                        <th>Late Days</th>
+                        <td class="text-warning">{{ $summary['late'] ?? 0 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Total Late Minutes</th>
+                        <td class="text-warning">{{ $totalLateMinutes ?? 0 }} min</td>
+                    </tr>
+                    <tr>
+                        <th>Overtime Days</th>
+                        <td class="text-primary">{{ $summary['overtime'] ?? 0 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Attendance Rate</th>
+                        <td>
+                            @php
+                                $attendanceRate = isset($summary['total']) && $summary['total'] > 0
+                                    ? round((($summary['present'] ?? 0) + ($summary['leave'] ?? 0)) / $summary['total'] * 100, 1)
+                                    : 0;
+                            @endphp
+                            <span class="{{ $attendanceRate >= 80 ? 'text-success' : 'text-danger' }}">
+                                {{ $attendanceRate }}%
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
         </div>
     </div>
     @else

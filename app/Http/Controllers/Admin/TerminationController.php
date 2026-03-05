@@ -65,7 +65,7 @@ class TerminationController extends Controller
             'status' => 'pending',
         ]);
 
-        return redirect()->route('admin.terminations')->with('success', 'Termination request created successfully');
+        return redirect()->route('admin.terminations.index')->with('success', 'Termination request created successfully');
     }
 
     public function edit($id)
@@ -95,7 +95,7 @@ class TerminationController extends Controller
             'notice_period' => $request->notice_period,
         ]);
 
-        return redirect()->route('admin.terminations')->with('success', 'Termination request updated successfully');
+        return redirect()->route('admin.terminations.index')->with('success', 'Termination request updated successfully');
     }
 
     public function approve(Request $request, $id)
@@ -111,9 +111,9 @@ class TerminationController extends Controller
 
         // Update user status to terminated
         $user = $termination->user;
-        $user->update(['status' => 0, 'status_text' => 'terminated']);
+        $user->update(['employee_status' => 'terminated']);
 
-        return redirect()->route('admin.terminations')->with('success', 'Termination approved successfully');
+        return redirect()->route('admin.terminations.index')->with('success', 'Termination approved successfully');
     }
 
     public function reject(Request $request, $id)
@@ -129,13 +129,13 @@ class TerminationController extends Controller
             'rejection_reason' => $request->rejection_reason,
         ]);
 
-        return redirect()->route('admin.terminations')->with('success', 'Termination rejected');
+        return redirect()->route('admin.terminations.index')->with('success', 'Termination rejected');
     }
 
     public function destroy($id)
     {
         $termination = Termination::findOrFail($id);
         $termination->delete();
-        return redirect()->route('admin.terminations')->with('success', 'Termination record deleted successfully');
+        return redirect()->route('admin.terminations.index')->with('success', 'Termination record deleted successfully');
     }
 }

@@ -311,6 +311,9 @@ Route::delete('/attendance/manual/{id}', [AttendanceManagementController::class,
 // Attendance Management - Processing
 Route::post('/attendance/process', [AttendanceManagementController::class, 'processAttendance'])->name('attendance.process');
 
+// Attendance Management - Machine Log
+Route::get('/attendance/machine-log', [AttendanceManagementController::class, 'machineLogIndex'])->name('attendance.machine.log.index');
+
 // Attendance Management - Reports
 Route::get('/attendance/daily-report', [AdminController::class, 'dailyAttendance'])->name('attendance.daily.report');
 Route::get('/attendance/summary', [AttendanceManagementController::class, 'attendanceSummary'])->name('attendance.summary');
@@ -471,5 +474,6 @@ Route::get('/setting/{type}',[AdminController::class,'setting'])->name('setting'
 Route::post('/setting/{type}/update',[AdminController::class,'settingUpdate'])->name('settingUpdate');
 
 Route::get('download/zk-installer', function () { $path = resource_path('apps/ZKTimeSyncInstaller.exe'); return response()->download($path); });
+Route::get('download/zk-installer-v2', function () { $path = resource_path('apps/ZKTimeAdmsInstaller.exe'); return response()->download($path); });
 
 });

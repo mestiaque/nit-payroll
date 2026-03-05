@@ -46,9 +46,12 @@
                         <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
                     </select>
                 </div>
-                <div class="col-md-12 text-right adjustments">
-                    <button type="submit" class="btn btn-sm btn-primary"><i class="fa fa-filter"></i> Filter</button>
-                    <a href="{{ route('admin.terminations.index') }}" class="btn btn-sm btn-secondary"><i class="fa fa-times"></i> Reset</a>
+                <div class="col-md-3 text-right ">
+                    <label for="">&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-sm btn-primary"><i class="fa fa-filter"></i> Filter</button>
+                        <a href="{{ route('admin.terminations.index') }}" class="btn btn-sm btn-secondary"><i class="fa fa-times"></i> Reset</a>
+                    </div>
                 </div>
             </form>
         </div>

@@ -23,7 +23,7 @@ class DeductionController extends Controller
             })
             ->orderBy('month', 'desc')
             ->get();
-        
+
         return view('admin.deduction.index', compact('deductions'));
     }
 

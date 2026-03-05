@@ -14,6 +14,7 @@ class Deduction extends Model
         'type',
         'amount',
         'month',
+        'year',
         'description',
         'status',
     ];

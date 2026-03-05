@@ -7,6 +7,8 @@
     .ProfileImage {
         width: 150px;
         height: 150px;
+        min-width: 140px;
+        min-height: 140px;
         border-radius: 50%;
         /* object-fit: fill; */
         border: 4px solid rgba(255,255,255,0.5);

@@ -15,6 +15,7 @@ class Bonus extends Model
         'amount',
         'percentage',
         'month',
+        'year',
         'description',
         'status',
         'approved_by',
