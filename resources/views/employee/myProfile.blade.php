@@ -138,21 +138,21 @@
                         </div>
                     </div>
                     <div class="col-md-7">
-                        <h2 class="mb-2 text-white">{{$user->name}}</h2>
-                        @if($user->designation)
-                        <p class="mb-1"><i class="bx bx-briefcase mr-2"></i> {{$user->designation->name}}</p>
+                        <h2 class="mb-2 text-white">{{$user?->name}}</h2>
+                        @if($user?->designation)
+                        <p class="mb-1"><i class="bx bx-briefcase mr-2"></i> {{$user?->designation?->name}}</p>
                         @endif
-                        <p class="mb-1"><i class="bx bx-id-card mr-2"></i> Employee ID: <strong>{{$user->employee_id}}</strong></p>
-                        @if($user->department)
-                        <p class="mb-1"><i class="bx bx-buildings mr-2"></i> {{$user->department->name}}</p>
+                        <p class="mb-1"><i class="bx bx-id-card mr-2"></i> Employee ID: <strong>{{$user?->employee_id}}</strong></p>
+                        @if($user?->department)
+                        <p class="mb-1"><i class="bx bx-buildings mr-2"></i> {{$user?->department?->name}}</p>
                         @endif
-                        <p class="mb-1"><i class="bx bx-calendar mr-2"></i> Join Date: {{$user->created_at->format('d M Y')}}</p>
+                        <p class="mb-1"><i class="bx bx-calendar mr-2"></i> Join Date: {{$user?->created_at->format('d M Y')}}</p>
                         <div class="mt-2">
-                            @if($user->permission)
-                            <span class="badge badge-light mr-1">{{$user->permission->name}}</span>
+                            @if($user?->permission)
+                            <span class="badge badge-light mr-1">{{$user?->permission?->name}}</span>
                             @endif
-                            <span class="badge {{$user->status ? 'badge-success' : 'badge-warning'}}">
-                                {{$user->status ? 'Active' : 'Inactive'}}
+                            <span class="badge {{$user?->status ? 'badge-success' : 'badge-warning'}}">
+                                {{$user?->status ? 'Active' : 'Inactive'}}
                             </span>
                         </div>
                     </div>
@@ -214,55 +214,55 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Employee ID</div>
-                                        <div class="info-value">{{$user->employee_id}}</div>
+                                        <div class="info-value">{{$user?->employee_id}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Employee Name</div>
-                                        <div class="info-value">{{$user->name}}</div>
+                                        <div class="info-value">{{$user?->name}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Name (Bangla)</div>
-                                        <div class="info-value">{{$user->bn_name ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->bn_name ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Gender</div>
-                                        <div class="info-value">{{$user->gender ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->gender ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Date of Birth</div>
-                                        <div class="info-value">{{$user->dob ? Carbon\Carbon::parse($user->dob)->format('d M Y') : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->dob ? Carbon\Carbon::parse($user?->dob)->format('d M Y') : 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Blood Group</div>
-                                        <div class="info-value">{{$user->blood_group ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->blood_group ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Religion</div>
-                                        <div class="info-value">{{$user->religion ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->religion ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Marital Status</div>
-                                        <div class="info-value">{{ucfirst($user->marital_status ?? 'N/A')}}</div>
+                                        <div class="info-value">{{ucfirst($user?->marital_status ?? 'N/A')}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Mobile Number</div>
-                                        <div class="info-value">{{$user->mobile ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->mobile ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Email Address</div>
-                                        <div class="info-value">{{$user->email ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->email ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Nationality</div>
-                                        <div class="info-value">{{$user->nationality ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->nationality ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Home District</div>
-                                        <div class="info-value">{{$user->home_district ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->home_district ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Report To</div>
-                                        <div class="info-value">{{$user->report_to ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->report_to ?? 'N/A'}}</div>
                                     </div>
                                 </div>
                             </div>
@@ -273,15 +273,15 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Height (Cm)</div>
-                                        <div class="info-value">{{$user->height ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->height ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Weight (KG)</div>
-                                        <div class="info-value">{{$user->weight ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->weight ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">Distinguished Mark</div>
-                                        <div class="info-value">{{$user->distinguished_mark ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->distinguished_mark ?? 'N/A'}}</div>
                                     </div>
                                 </div>
                             </div>
@@ -291,11 +291,11 @@
                                 <div class="row">
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">Education Qualification</div>
-                                        <div class="info-value">{{$user->education ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->education ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">Type of Work</div>
-                                        <div class="info-value">{{$user->work_type ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->work_type ?? 'N/A'}}</div>
                                     </div>
                                 </div>
                             </div>
@@ -312,35 +312,35 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Father's Name</div>
-                                        <div class="info-value">{{$user->father_name ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->father_name ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Father's Name (Bangla)</div>
-                                        <div class="info-value">{{$user->father_name_bn ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->father_name_bn ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Mother's Name</div>
-                                        <div class="info-value">{{$user->mother_name ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->mother_name ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Mother's Name (Bangla)</div>
-                                        <div class="info-value">{{$user->mother_name_bn ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->mother_name_bn ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Spouse Name</div>
-                                        <div class="info-value">{{$user->spouse_name ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->spouse_name ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Spouse Name (Bangla)</div>
-                                        <div class="info-value">{{$user->spouse_name_bn ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->spouse_name_bn ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <div class="info-label">No of Boys</div>
-                                        <div class="info-value">{{$user->boys ?? '0'}}</div>
+                                        <div class="info-value">{{$user?->boys ?? '0'}}</div>
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <div class="info-label">No of Girls</div>
-                                        <div class="info-value">{{$user->girls ?? '0'}}</div>
+                                        <div class="info-value">{{$user?->girls ?? '0'}}</div>
                                     </div>
                                 </div>
                             </div>
@@ -351,19 +351,19 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Nominee Name</div>
-                                        <div class="info-value">{{$user->nominee ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->nominee ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Nominee Name (Bangla)</div>
-                                        <div class="info-value">{{$user->nominee_bn ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->nominee_bn ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Relation</div>
-                                        <div class="info-value">{{$user->nominee_relation ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->nominee_relation ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Nominee Age</div>
-                                        <div class="info-value">{{$user->nominee_age ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->nominee_age ?? 'N/A'}}</div>
                                     </div>
                                 </div>
                             </div>
@@ -373,15 +373,15 @@
                                 <div class="row">
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">Reference - 1</div>
-                                        <div class="info-value">{{$user->reference_1 ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->reference_1 ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">Reference - 2</div>
-                                        <div class="info-value">{{$user->reference_2 ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->reference_2 ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">Other Information</div>
-                                        <div class="info-value">{{$user->other_information ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->other_information ?? 'N/A'}}</div>
                                     </div>
                                 </div>
                             </div>
@@ -398,11 +398,11 @@
                                 <div class="row">
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">Address</div>
-                                        <div class="info-value">{{$user->present_address ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->present_address ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">Address (Bangla)</div>
-                                        <div class="info-value">{{$user->present_address_bn ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->present_address_bn ?? 'N/A'}}</div>
                                     </div>
                                 </div>
                             </div>
@@ -413,11 +413,11 @@
                                 <div class="row">
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">Address</div>
-                                        <div class="info-value">{{$user->permanent_address ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->permanent_address ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">Address (Bangla)</div>
-                                        <div class="info-value">{{$user->permanent_address_bn ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->permanent_address_bn ?? 'N/A'}}</div>
                                     </div>
                                 </div>
                             </div>
@@ -430,11 +430,11 @@
                                 <div class="row">
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">Emergency Mobile</div>
-                                        <div class="info-value">{{$user->emergency_mobile ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->emergency_mobile ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">Emergency Contact Relation</div>
-                                        <div class="info-value">{{$user->emergency_relation ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->emergency_relation ?? 'N/A'}}</div>
                                     </div>
                                 </div>
                             </div>
@@ -451,39 +451,39 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Designation</div>
-                                        <div class="info-value">{{$user->designation ? $user->designation->name : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->designation ? $user?->designation?->name : 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Department</div>
-                                        <div class="info-value">{{$user->department ? $user->department->name : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->department ? $user?->department?->name : 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Division</div>
-                                        <div class="info-value">{{$user->division ? $user->division->name : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->division ? $user?->division?->name : 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Section</div>
-                                        <div class="info-value">{{$user->section ? $user->section->name : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->section ? $user?->section?->name : 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Line Number</div>
-                                        <div class="info-value">{{$user->line ? $user->line->name : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->line ? $user?->line?->name : 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Shift</div>
-                                        <div class="info-value">{{$user->shift ? $user->shift->name_of_shift : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->shift ? $user?->shift?->name_of_shift : 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Employee Type</div>
-                                        <div class="info-value">{{$user->employeeType ? $user->employeeType->name : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->employeeType ? $user?->employeeType?->name : 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Placement/Location</div>
-                                        <div class="info-value">{{$user->location ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->location ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Joining Date</div>
-                                        <div class="info-value">{{$user->created_at ? $user->created_at->format('d M Y') : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->created_at ? $user?->created_at->format('d M Y') : 'N/A'}}</div>
                                     </div>
                                 </div>
                             </div>
@@ -495,7 +495,7 @@
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">User Status</div>
                                         <div class="info-value">
-                                            @if($user->status)
+                                            @if($user?->status)
                                             <span class="badge badge-success">Active</span>
                                             @else
                                             <span class="badge badge-warning">Inactive</span>
@@ -504,7 +504,7 @@
                                     </div>
                                     <div class="col-md-12 mb-3">
                                         <div class="info-label">Employment Status</div>
-                                        <div class="info-value">{{$user->employment_status ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->employment_status ?? 'N/A'}}</div>
                                     </div>
                                 </div>
                             </div>
@@ -521,27 +521,27 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Salary Type</div>
-                                        <div class="info-value">{{$user->salary_type ?? 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->salary_type ?? 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Gross Salary</div>
-                                        <div class="info-value">{{$user->gross_salary ? number_format($user->gross_salary, 2) : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->gross_salary ? number_format($user?->gross_salary, 2) : 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Basic Salary</div>
-                                        <div class="info-value">{{$user->basic_salary ? number_format($user->basic_salary, 2) : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->basic_salary ? number_format($user?->basic_salary, 2) : 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">House Rent</div>
-                                        <div class="info-value">{{$user->house_rent ? number_format($user->house_rent, 2) : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->house_rent ? number_format($user?->house_rent, 2) : 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Medical Allowance</div>
-                                        <div class="info-value">{{$user->medical_allowance ? number_format($user->medical_allowance, 2) : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->medical_allowance ? number_format($user?->medical_allowance, 2) : 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Transport Allowance</div>
-                                        <div class="info-value">{{$user->transport_allowance ? number_format($user->transport_allowance, 2) : 'N/A'}}</div>
+                                        <div class="info-value">{{$user?->transport_allowance ? number_format($user->transport_allowance, 2) : 'N/A'}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Food Allowance</div>

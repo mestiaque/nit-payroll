@@ -308,8 +308,6 @@ return [
         ],
     ],
 
-
-
     // User Management
     [
         'group_title' => '',
