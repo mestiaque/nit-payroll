@@ -182,6 +182,9 @@ class LeaveController extends Controller
     public function destroy($id)
     {
         $leave = Leave::findOrFail($id);
+        if($leave->status == 'approved'){
+            return redirect()->route('admin.leaves.index')->with('error', 'Approved leave cannot be deleted. Please contact HR for further assistance.');
+        }
         $leave->delete();
         return redirect()->route('admin.leaves.index')->with('success', 'Leave deleted successfully.');
     }

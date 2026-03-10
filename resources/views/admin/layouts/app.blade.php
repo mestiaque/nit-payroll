@@ -421,6 +421,9 @@
         ///Check Box Select With Count show
       </script>
 
+      <!-- X-Loader Component -->
+      @include('components.loader')
+
       @stack('js')
    </body>
    <!-- END: Body-->

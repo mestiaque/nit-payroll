@@ -580,5 +580,204 @@ class User extends Authenticatable
             return 'unknown';
         }
     }
+
+    public function getAttendanceStatus()
+    {
+        $today = date('Y-m-d');
+        $attendance = Attendance::where('user_id', $this->id)->whereDate('created_at', $today)->first();
+
+        if ($attendance) {
+            return $attendance->status; // present, absent, late, etc.
+        }
+
+        return 'absent'; // default to absent if no record found
+    }
+
+        /**
+     * Get attendance status for a given date
+     * Returns detailed information about the attendance status
+     *
+     * @param string|Carbon\Carbon $date
+     * @return array [
+     *     'status' => 'holiday'|'offday'|'present'|'late'|'absent'|'leave',
+     *     'label' => display label,
+     *     'class' => css class for styling,
+     *     'is_working_day' => true|false,
+     *     'details' => any additional details
+     * ]
+     */
+    public function getAttendanceStatusByDate($date)
+    {
+        $date = \Carbon\Carbon::parse($date)->format('Y-m-d');
+
+        // 1. Check holiday
+        $holiday = \App\Models\Holiday::getHoliday($date);
+        if ($holiday) {
+            return [
+                'status' => 'holiday',
+                'label' => 'H',
+                'class' => 'holiday',
+                'is_working_day' => false,
+                'details' => ['title' => $holiday->title]
+            ];
+        }
+
+        // 2. Check weekly offday (default Friday)
+        $offdaySetting = \App\Models\Attribute::where('type', 21)->where('status', 'active')->first();
+        $offdayName = $offdaySetting ? $offdaySetting->name : 'Friday';
+        $offdayNumber = $offdaySetting ? array_search($offdayName, ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']) : 5;
+        if (\Carbon\Carbon::parse($date)->dayOfWeek == $offdayNumber) {
+            return [
+                'status' => 'offday',
+                'label' => 'H',
+                'class' => 'offday',
+                'is_working_day' => false,
+                'details' => ['day' => $offdayName]
+            ];
+        }
+
+        // 3. Check leave (approved only)
+        $leave = $this->leaves()
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $date)
+            ->whereDate('end_date', '>=', $date)
+            ->first();
+        if ($leave) {
+            return [
+                'status' => 'leave',
+                'label' => 'L',
+                'class' => 'leave',
+                'is_working_day' => false,
+                'details' => ['leave_type' => $leave->leaveType?->name ?? 'Leave']
+            ];
+        }
+
+        // 4. Check attendance record
+        // First try by date column, then fallback to in_time
+        $attendance = $this->attendances()
+            ->whereDate('date', $date)
+            ->first();
+
+        // Fallback: if no attendance by date, check by in_time
+        if (!$attendance) {
+            $attendance = $this->attendances()
+                ->whereDate('in_time', $date)
+                ->first();
+        }
+
+        if ($attendance) {
+            $attendanceStatus = strtolower($attendance->status);
+
+            // Check for late (case insensitive)
+            if ($attendanceStatus == 'late') {
+                return [
+                    'status' => 'late',
+                    'label' => 'L',
+                    'class' => 'late',
+                    'is_working_day' => true,
+                    'details' => ['in_time' => $attendance->in_time]
+                ];
+            }
+            // Check for present (case insensitive)
+            elseif ($attendanceStatus == 'present') {
+                return [
+                    'status' => 'present',
+                    'label' => 'P',
+                    'class' => 'present',
+                    'is_working_day' => true,
+                    'details' => ['in_time' => $attendance->in_time]
+                ];
+            }
+            // Check for holiday/weekly_off (case insensitive)
+            elseif (in_array($attendanceStatus, ['holiday', 'weekly_off'])) {
+                return [
+                    'status' => $attendanceStatus,
+                    'label' => 'H',
+                    'class' => 'holiday',
+                    'is_working_day' => false,
+                    'details' => ['remarks' => $attendance->remarks]
+                ];
+            }
+            // Check for leave (case insensitive)
+            // elseif ($attendanceStatus == 'leave') {
+            //     return [
+            //         'status' => 'leave',
+            //         'label' => 'L',
+            //         'class' => 'leave',
+            //         'is_working_day' => false,
+            //         'details' => ['remarks' => $attendance->remarks]
+            //     ];
+            // }
+            elseif ($attendanceStatus == 'leave') {
+
+                $leaveExists = $this->leaves()
+                    ->where('status', 'approved')
+                    ->whereDate('start_date', '<=', $date)
+                    ->whereDate('end_date', '>=', $date)
+                    ->exists();
+
+                if ($leaveExists) {
+                    return [
+                        'status' => 'leave',
+                        'label' => 'L',
+                        'class' => 'leave',
+                        'is_working_day' => false,
+                        'details' => ['remarks' => $attendance->remarks]
+                    ];
+                }
+
+                // leave delete হয়ে গেলে fallback
+                return [
+                    'status' => 'absent',
+                    'label' => 'A',
+                    'class' => 'absent',
+                    'is_working_day' => true,
+                    'details' => []
+                ];
+            }
+            // Check for absent (case insensitive)
+            elseif ($attendanceStatus == 'absent') {
+                return [
+                    'status' => 'absent',
+                    'label' => 'A',
+                    'class' => 'absent',
+                    'is_working_day' => true,
+                    'details' => []
+                ];
+            }
+            // Unknown status - treat as absent
+            else {
+                return [
+                    'status' => 'absent',
+                    'label' => 'A',
+                    'class' => 'absent',
+                    'is_working_day' => true,
+                    'details' => ['original_status' => $attendance->status]
+                ];
+            }
+        }
+
+        // 5. No record = absent (for working days only)
+        return [
+            'status' => 'absent',
+            'label' => 'A',
+            'class' => 'absent',
+            'is_working_day' => true,
+            'details' => []
+        ];
+    }
+
+    /**
+     * Simple status check - returns just the status string
+     * For quick checks where you don't need full details
+     *
+     * @param string|Carbon\Carbon $date
+     * @return string 'holiday'|'offday'|'present'|'late'|'absent'|'leave'
+     */
+    public function getSimpleAttendanceStatus($date)
+    {
+        $result = $this->getAttendanceStatusByDate($date);
+        return $result['status'];
+    }
 }
 

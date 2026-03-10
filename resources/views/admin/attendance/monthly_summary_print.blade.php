@@ -1,7 +1,5 @@
-@extends(adminTheme().'layouts.app')
-@section('title')
-<title>{{ websiteTitle('Monthly Attendance Summary') }}</title>
-@endsection
+@extends('printMaster')
+@section('title', 'Monthly Attendance Summary')
 
 @push('css')
 <style>
@@ -82,20 +80,10 @@
 
 @section('contents')
 
-<div class="breadcrumb-area">
-    <h1>Monthly Attendance Summary</h1>
-    <ol class="breadcrumb">
-        <li class="item"><a href="{{route('admin.dashboard')}}"><i class="bx bx-home-alt"></i></a></li>
-        <li class="item">Attendance</li>
-        <li class="item">Monthly Summary</li>
-    </ol>
-</div>
-
-@include(adminTheme().'alerts')
 
 <div class="flex-grow-1">
 
-    <div class="report-card no-print">
+    <div class="report-card" style="display: none;">
         <form action="{{ route('admin.attendance.monthly.summary') }}" method="GET" class="row g-3 mb-3">
             <div class="col-md-2">
                 <label>Start Date</label>
@@ -132,7 +120,7 @@
                 <a href="{{ route('admin.attendance.monthly.summary') }}" class="btn btn-sm btn-secondary mr-2"><i class="bx bx-reset"></i> Reset</a>
             </div>
             <div class="col-md-2 d-flex align-items-end gap-2">
-                <a href="{{ route('admin.attendance.monthly.summary.print', request()->all()) }}" target="_blank" class="btn btn-sm btn-success mr-2"><i class="bx bx-printer"></i> Print</a>
+                <button type="button" onclick="window.print()" class="btn btn-sm btn-success mr-2"><i class="bx bx-printer"></i> Print</button>
                 <a href="{{ route('admin.attendance.monthly.summary.export', request()->all()) }}" class="btn btn-sm btn-info w" target="_blank">
                     <i class="bx bx-file"></i> Excel
                 </a>

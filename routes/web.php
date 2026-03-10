@@ -319,6 +319,8 @@ Route::get('/attendance/daily-report', [AdminController::class, 'dailyAttendance
 Route::get('/attendance/summary', [AttendanceManagementController::class, 'attendanceSummary'])->name('attendance.summary');
 Route::get('/attendance/monthly-report', [AttendanceManagementController::class, 'monthlyAttendanceReport'])->name('attendance.monthly.report');
 Route::get('/attendance/monthly-summary', [AttendanceManagementController::class, 'monthlyAttendanceSummary'])->name('attendance.monthly.summary');
+Route::get('/attendance/monthly-summary-print', [AttendanceManagementController::class, 'monthlyAttendanceSummaryPrint'])->name('attendance.monthly.summary.print');
+Route::get('/attendance/monthly-summary-export', [AttendanceManagementController::class, 'monthlyAttendanceSummaryExport'])->name('attendance.monthly.summary.export');
 Route::get('/attendance/export', [AttendanceManagementController::class, 'attendanceExport'])->name('attendance.export');
 Route::get('/attendance/individual-report', [AttendanceManagementController::class, 'individualAttendanceReport'])->name('attendance.individual.report');
 Route::get('/attendance/absent-report', [AttendanceManagementController::class, 'absentReport'])->name('attendance.absent.report');
