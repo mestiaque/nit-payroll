@@ -175,5 +175,6 @@
         </div>
     </div>
     @stack('js')
+    @include('components.loader')
 </body>
 </html>

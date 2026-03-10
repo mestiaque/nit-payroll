@@ -65,6 +65,12 @@
         font-size: 12px;
         font-weight: 600;
     }
+    .d-inline-flex
+    {
+        display: inline-flex;
+        justify-content: space-between;
+        width: 100%;
+    }
     .stat-present { background: #d4edda; color: #28a745; }
     .stat-absent { background: #f8d7da; color: #dc3545; }
     .stat-leave { background: #f5cdff; color: #6f42c1; }
@@ -75,144 +81,94 @@
         .report-card { box-shadow: none; }
         .day-cell, .day-header { font-size: 8px; padding: 2px !important; }
     }
+
+
 </style>
 @endpush
 
 @section('contents')
 
-
-<div class="flex-grow-1">
-
-    <div class="report-card" style="display: none;">
-        <form action="{{ route('admin.attendance.monthly.summary') }}" method="GET" class="row g-3 mb-3">
-            <div class="col-md-2">
-                <label>Start Date</label>
-                <input type="date" name="start_date" value="{{ $startDate->format('Y-m-d') }}" class="form-control form-control-sm" required>
-            </div>
-            <div class="col-md-2">
-                <label>End Date</label>
-                <input type="date" name="end_date" value="{{ $endDate->format('Y-m-d') }}" class="form-control form-control-sm" required>
-            </div>
-            <div class="col-md-2">
-                <label>Department</label>
-                <select name="department_id" class="form-control form-control-sm">
-                    <option value="">All Departments</option>
-                    @foreach($departments ?? [] as $dept)
-                    <option value="{{ $dept->id }}" {{ request('department_id') == $dept->id ? 'selected' : '' }}>
-                        {{ $dept->name }}
-                    </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label>Employee</label>
-                <select name="employee_id" class="form-control form-control-sm">
-                    <option value="">All Employees</option>
-                    @foreach($allEmployees ?? [] as $emp)
-                    <option value="{{ $emp->id }}" {{ request('employee_id') == $emp->id ? 'selected' : '' }}>
-                        {{ $emp->employee_id ?? $emp->id }} - {{ $emp->name }}
-                    </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-2 d-flex align-items-end gap-2">
-                <button type="submit" class="btn btn-sm btn-primary mr-2"><i class="bx bx-search"></i> Load</button>
-                <a href="{{ route('admin.attendance.monthly.summary') }}" class="btn btn-sm btn-secondary mr-2"><i class="bx bx-reset"></i> Reset</a>
-            </div>
-            <div class="col-md-2 d-flex align-items-end gap-2">
-                <button type="button" onclick="window.print()" class="btn btn-sm btn-success mr-2"><i class="bx bx-printer"></i> Print</button>
-                <a href="{{ route('admin.attendance.monthly.summary.export', request()->all()) }}" class="btn btn-sm btn-info w" target="_blank">
-                    <i class="bx bx-file"></i> Excel
-                </a>
-            </div>
-        </form>
+<div class="report-card">
+    <div class="d-inline-flex">
+        <h6>Attendance: {{ $startDate->format('d M Y') }} to {{ $endDate->format('d M Y') }}</h6>
+                <div class="summary-stats">
+        <div class="stat-item stat-present">P = Present</div>
+        <div class="stat-item stat-absent">A = Absent</div>
+        <div class="stat-item stat-late">L = Late</div>
+        <div class="stat-item stat-leave">L = Leave</div>
+        <div class="stat-item stat-holiday">H = Holiday/Weekly Off</div>
+    </div>
+        <span class="text-muted">Total Days: {{ count($dateRange) }}</span>
     </div>
 
-    <div class="report-card">
-        <div class="d-flex justify-content-between mb-">
-            <h6>Attendance: {{ $startDate->format('d M Y') }} to {{ $endDate->format('d M Y') }}</h6>
-                    <div class="summary-stats">
-            <div class="stat-item stat-present">P = Present</div>
-            <div class="stat-item stat-absent">A = Absent</div>
-            <div class="stat-item stat-late">L = Late</div>
-            <div class="stat-item stat-leave">L = Leave</div>
-            <div class="stat-item stat-holiday">H = Holiday/Weekly Off</div>
-        </div>
-            <span class="text-muted">Total Days: {{ count($dateRange) }}</span>
-        </div>
-
-        <div class="table-responsive">
-            <table class="table table-bordered table-sm" id="attendanceTable">
-                <thead>
-                    <tr>
-                        <th rowspan="2" class="employee-cell">Employee</th>
-                        <th rowspan="2">Dept</th>
-                        @foreach($dateRange as $date)
-                        <th class="day-header" title="{{ $date->format('l') }}">
-                            {{ $date->format('j') }}<br>
-                            <small>{{ $date->format('M') }}</small>
-                        </th>
-                        @endforeach
-                        <th rowspan="2" class="text-center">P</th>
-                        <th rowspan="2" class="text-center">A</th>
-                        <th rowspan="2" class="text-center">LT</th>
-                        <th rowspan="2" class="text-center">LV</th>
-                        <th rowspan="2" class="text-center">H</th>
-                    </tr>
-                    <tr>
-                        @foreach($dateRange as $date)
-                        <th class="day-header" style="font-size: 8px;">
-                            {{ substr($date->format('l'), 0, 2) }}
-                        </th>
-                        @endforeach
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($reportData ?? [] as $index => $data)
-                    <tr>
-                        <td>
-                            @if($data['employee']->photo)
-                                <img src="{{ asset($data['employee']->photo) }}" alt="{{ $data['employee']->name }}" class="table-avatar">
-                            @else
-                                <span class="table-avatar-placeholder">{{ substr($data['employee']->name, 0, 1) }}</span>
-                            @endif
-                            <strong>{{ $data['employee']->name }}</strong><br>
-                            <small class="text-muted">{{ $data['employee']->employee_id ?? 'N/A' }}</small>
-                        </td>
-                        <td><small>{{ $data['employee']->department->name ?? 'N/A' }}</small></td>
-                        @foreach($data['daily_data'] as $dayData)
-                        <td class="day-cell {{ $dayData['status_class'] }}">
-                            @if($dayData['status'] == 'P')
-                                <span class="status-p">P</span>
-                            @elseif($dayData['status'] == 'A')
-                                <span class="status-a">A</span>
-                            @elseif($dayData['status'] == 'L')
-                                <span class=" {{ $dayData['status_class'] == 'late' ? 'status-l' : 'status-lv' }}">L</span>
-                            @elseif($dayData['status'] == 'H')
-                                <span class="status-h">H</span>
-                            @else
-                                <span class="status-dash">-</span>
-                            @endif
-                        </td>
-                        @endforeach
-                        <td class="text-center"><strong class="text-success">{{ $data['present_count'] }}</strong></td>
-                        <td class="text-center"><strong class="text-danger">{{ $data['absent_count'] }}</strong></td>
-                        <td class="text-center"><strong class="text-warning">{{ $data['late_count'] }}</strong></td>
-                        <td class="text-center"><strong style="color: #6f42c1">{{ $data['leave_count'] }}</strong></td>
-                        <td class="text-center"><strong class="text-info">{{ $data['holiday_count'] }}</strong></td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="{{ count($dateRange) + 7 }}" class="text-center text-muted py-4">
-                            No attendance data available for selected date range
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm" id="attendanceTable">
+            <thead>
+                <tr>
+                    <th rowspan="2" class="employee-cell">Employee</th>
+                    @foreach($dateRange as $date)
+                    <th class="day-header" title="{{ $date->format('l') }}">
+                        {{ $date->format('j') }}<br>
+                        <small>{{ $date->format('M') }}</small>
+                    </th>
+                    @endforeach
+                    <th rowspan="2" class="text-center">P</th>
+                    <th rowspan="2" class="text-center">A</th>
+                    <th rowspan="2" class="text-center">LT</th>
+                    <th rowspan="2" class="text-center">LV</th>
+                    <th rowspan="2" class="text-center">H</th>
+                </tr>
+                <tr>
+                    @foreach($dateRange as $date)
+                    <th class="day-header" style="font-size: 8px;">
+                        {{ substr($date->format('l'), 0, 2) }}
+                    </th>
+                    @endforeach
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($reportData ?? [] as $index => $data)
+                <tr>
+                    <td>
+                        @if($data['employee']->photo)
+                            <img src="{{ asset($data['employee']->photo) }}" alt="{{ $data['employee']->name }}" class="table-avatar">
+                        @else
+                            <span class="table-avatar-placeholder">{{ substr($data['employee']->name, 0, 1) }}</span>
+                        @endif
+                        <strong>{{ $data['employee']->name }}</strong><br>
+                        <small class="text-muted">{{ $data['employee']->employee_id ?? 'N/A' }}</small>
+                    </td>
+                    @foreach($data['daily_data'] as $dayData)
+                    <td class="day-cell {{ $dayData['status_class'] }}">
+                        @if($dayData['status'] == 'P')
+                            <span class="status-p">P</span>
+                        @elseif($dayData['status'] == 'A')
+                            <span class="status-a">A</span>
+                        @elseif($dayData['status'] == 'L')
+                            <span class=" {{ $dayData['status_class'] == 'late' ? 'status-l' : 'status-lv' }}">L</span>
+                        @elseif($dayData['status'] == 'H')
+                            <span class="status-h">H</span>
+                        @else
+                            <span class="status-dash">-</span>
+                        @endif
+                    </td>
+                    @endforeach
+                    <td class="text-center"><strong class="text-success">{{ $data['present_count'] }}</strong></td>
+                    <td class="text-center"><strong class="text-danger">{{ $data['absent_count'] }}</strong></td>
+                    <td class="text-center"><strong class="text-warning">{{ $data['late_count'] }}</strong></td>
+                    <td class="text-center"><strong style="color: #6f42c1">{{ $data['leave_count'] }}</strong></td>
+                    <td class="text-center"><strong class="text-info">{{ $data['holiday_count'] }}</strong></td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="{{ count($dateRange) + 6 }}" class="text-center text-muted py-4">
+                        No attendance data available for selected date range
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
-
 </div>
 
 @endsection

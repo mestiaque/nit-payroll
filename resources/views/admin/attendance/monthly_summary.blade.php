@@ -106,17 +106,6 @@
                 <input type="date" name="end_date" value="{{ $endDate->format('Y-m-d') }}" class="form-control form-control-sm" required>
             </div>
             <div class="col-md-2">
-                <label>Department</label>
-                <select name="department_id" class="form-control form-control-sm">
-                    <option value="">All Departments</option>
-                    @foreach($departments ?? [] as $dept)
-                    <option value="{{ $dept->id }}" {{ request('department_id') == $dept->id ? 'selected' : '' }}>
-                        {{ $dept->name }}
-                    </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-2">
                 <label>Employee</label>
                 <select name="employee_id" class="form-control form-control-sm">
                     <option value="">All Employees</option>
@@ -158,7 +147,6 @@
                 <thead>
                     <tr>
                         <th rowspan="2" class="employee-cell">Employee</th>
-                        <th rowspan="2">Dept</th>
                         @foreach($dateRange as $date)
                         <th class="day-header" title="{{ $date->format('l') }}">
                             {{ $date->format('j') }}<br>
@@ -191,7 +179,6 @@
                             <strong>{{ $data['employee']->name }}</strong><br>
                             <small class="text-muted">{{ $data['employee']->employee_id ?? 'N/A' }}</small>
                         </td>
-                        <td><small>{{ $data['employee']->department->name ?? 'N/A' }}</small></td>
                         @foreach($data['daily_data'] as $dayData)
                         <td class="day-cell {{ $dayData['status_class'] }}">
                             @if($dayData['status'] == 'P')
@@ -215,7 +202,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ count($dateRange) + 7 }}" class="text-center text-muted py-4">
+                        <td colspan="{{ count($dateRange) + 6 }}" class="text-center text-muted py-4">
                             No attendance data available for selected date range
                         </td>
                     </tr>
