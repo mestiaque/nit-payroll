@@ -52,7 +52,7 @@ class BaseExport implements FromCollection, WithHeadings, WithStyles, WithEvents
     public function startCell(): string
     {
         // leave three rows for company header and one blank row
-        return 'A5';
+        return 'A4';
     }
 
     public function collection()
@@ -100,68 +100,20 @@ class BaseExport implements FromCollection, WithHeadings, WithStyles, WithEvents
 
     public function styles(Worksheet $sheet)
     {
-        $headerRow = 5;
+        $headerRow = 4;
 
         // Company Header
         $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($this->columns) + 1);
 
-        // row 1: logo alone; merge full row and center alignment
-        $sheet->mergeCells('A1:' . $lastCol . '1');
-        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        // (drawing will be positioned into center column)
-
-        // row 2: company name centered across width
-        $sheet->mergeCells('A2:' . $lastCol . '2');
-        $sheet->setCellValue('A2', general()->title ?? 'Company Name');
-
-        // row 3: address across whole width
-        $sheet->mergeCells('A3:' . $lastCol . '3');
-        $sheet->setCellValue('A3', websiteSetting('address') ?? '');
-
-        // row 4: export title/date
-        $sheet->mergeCells('A4:' . $lastCol . '4');
-        $sheet->setCellValue('A4', $this->title . ' - Exported on: ' . date('d M Y'));
-
-        // increase row heights
-        $sheet->getRowDimension(1)->setRowHeight(60);
-        $sheet->getRowDimension(2)->setRowHeight(25);
-        $sheet->getRowDimension(3)->setRowHeight(20);
-        $sheet->getRowDimension(4)->setRowHeight(18);
-
-        // insert logo on its own row; position in center column
-        if ($logoPath = optional(general())->logo()) {
-            try {
-                $drawing = new Drawing();
-                $drawing->setPath(public_path($logoPath));
-                $drawing->setHeight(60);
-
-                // Place anchor at the approximate centre column,
-                // then nudge left by half logo width so it's truly centered
-                $lastIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastCol);
-                $centerIndex = (int) ceil($lastIndex / 2);
-                $centerCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($centerIndex);
-
-                $drawing->setCoordinates($centerCol . '1');
-
-                // logo height 60px, assume similar width; offset negative half
-                $logoPx = 80;
-                $drawing->setOffsetX(- intval($logoPx / 2));
-
-                $drawing->setWorksheet($sheet);
-            } catch (\Exception $e) {
-                // ignore missing file / invalid path
-            }
-        }
-
         // style fonts
-        $sheet->getStyle('A2')->getFont()->setSize(18)->setBold(true);
-        $sheet->getStyle('A3')->getFont()->setSize(12);
-        $sheet->getStyle('A4')->getFont()->setSize(11);
+        $sheet->getStyle('A1')->getFont()->setSize(18)->setBold(true);
+        $sheet->getStyle('A2')->getFont()->setSize(12);
+        $sheet->getStyle('A3')->getFont()->setSize(11);
 
         // center align header text
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('A4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
 
         // Header Row
@@ -172,10 +124,11 @@ class BaseExport implements FromCollection, WithHeadings, WithStyles, WithEvents
         $sheet->getStyle('A' . $headerRow . ':' . $lastCol . $headerRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         // Data rows
-        $sheet->getStyle('A6:' . $lastCol . (5 + count($this->data)))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A5:' . $lastCol . (4 + count($this->data)))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
+        $sheet->getColumnDimension('A')->setWidth(3); // Set column A narrow but not too small
         // auto size all columns
-        foreach (range('A', $lastCol) as $columnID) {
+        foreach (range('B', $lastCol) as $columnID) {
             $sheet->getColumnDimension($columnID)->setAutoSize(true);
         }
 
@@ -188,21 +141,12 @@ class BaseExport implements FromCollection, WithHeadings, WithStyles, WithEvents
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $totalRows = 5 + count($this->data);
-                $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($this->columns) + 1);
 
-                // Signature rows
-                $signatureRow = $totalRows + 3;
+                $totalRows = 4 + count($this->data);
 
-                $sheet->setCellValue('A' . $signatureRow, 'Authorized Signature');
-                $sheet->setCellValue('F' . $signatureRow, 'HR Manager');
-                $sheet->setCellValue($lastCol . $signatureRow, 'Managing Director');
-
-                $sheet->getStyle('A' . $signatureRow . ':' . $lastCol . $signatureRow)->getFont()->setBold(true);
-                $sheet->getStyle('A' . $signatureRow . ':' . $lastCol . $signatureRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-                // Border for signature line
-                $sheet->getStyle('A' . $signatureRow . ':' . $lastCol . $signatureRow)->getBorders()->getTop()->setBorderStyle(Border::BORDER_THIN);
+                // Calculate merge range for signature row using same logic as Company Name row
+                $colCount = count($this->columns) + 1;
+                $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCount);
 
                 // page setup for printing
                 $ps = $sheet->getPageSetup();
@@ -210,8 +154,8 @@ class BaseExport implements FromCollection, WithHeadings, WithStyles, WithEvents
                 $ps->setFitToWidth(1);
                 $ps->setFitToHeight(0);
                 // repeat company/header rows at top of each printed page
-                // rows 1-5 cover company info and column headings
-                $ps->setRowsToRepeatAtTopByStartAndEnd(1, 5);
+                // rows 1-4 cover company info and column headings
+                $ps->setRowsToRepeatAtTopByStartAndEnd(1, 4);
             },
         ];
     }
@@ -220,5 +164,40 @@ class BaseExport implements FromCollection, WithHeadings, WithStyles, WithEvents
     {
         $this->headersColor = $color;
         return $this;
+    }
+
+
+    /**
+     * Apply company info header to sheet
+    */
+    public static function applyCompanyHeader($sheet, $lastCol, $title = null)
+    {
+        // row 1: company name centered across width
+        $sheet->mergeCells('A1:' . $lastCol . '1');
+        $sheet->setCellValue('A1', general()->title ?? 'Company Name');
+
+        // row 2: address across whole width
+        $sheet->mergeCells('A2:' . $lastCol . '2');
+        $sheet->setCellValue('A2', websiteSetting('address') ?? '');
+
+        // row 3: export title/date
+        $sheet->mergeCells('A3:' . $lastCol . '3');
+        $sheet->setCellValue('A3', $title ? ($title . ' - Exported on: ' . date('d M Y')) : 'Exported on: ' . date('d M Y'));
+
+        // increase row heights
+        $sheet->getRowDimension(1)->setRowHeight(60);
+        $sheet->getRowDimension(2)->setRowHeight(25);
+        $sheet->getRowDimension(3)->setRowHeight(20);
+
+
+        // style fonts
+        $sheet->getStyle('A1')->getFont()->setSize(18)->setBold(true);
+        $sheet->getStyle('A2')->getFont()->setSize(12);
+        $sheet->getStyle('A3')->getFont()->setSize(11);
+
+        // center align header text
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
     }
 }

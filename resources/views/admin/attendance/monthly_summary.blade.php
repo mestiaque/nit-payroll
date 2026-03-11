@@ -25,12 +25,21 @@
     .leave { background: #f5cdff !important; }
     .holiday { background: #cce5ff !important; }
     .offday { background: #ffffff !important; }
+    .incomplete { background: #0000002b !important; }
     .status-p { color: #28a745; font-weight: bold; }
     .status-a { color: #dc3545; font-weight: bold; }
     .status-l { color: #ffc107; font-weight: bold; }
     .status-lv { color: #6f42c1; font-weight: bold; }
     .status-h { color: #17a2b8; font-weight: bold; }
-    .status-dash { color: #6c757d; }
+    .status-i { color: #3d3d3d; font-weight: bold; }
+    .status-dash { color: #0000008e; }
+    .stat-present { background: #d4edda; color: #28a745; }
+    .stat-absent { background: #f8d7da; color: #dc3545; }
+    .stat-leave { background: #f5cdff; color: #6f42c1; }
+    .stat-late { background: #fff3cd; color: #ffc107; }
+    .stat-holiday { background: #cce5ff; color: #17a2b8; }
+    .stat-incomplete { background: #0000002b; color: #3d3d3d; }
+
     .employee-cell {
         min-width: 150px;
     }
@@ -67,11 +76,6 @@
         font-size: 12px;
         font-weight: 600;
     }
-    .stat-present { background: #d4edda; color: #28a745; }
-    .stat-absent { background: #f8d7da; color: #dc3545; }
-    .stat-leave { background: #f5cdff; color: #6f42c1; }
-    .stat-late { background: #fff3cd; color: #ffc107; }
-    .stat-holiday { background: #cce5ff; color: #17a2b8; }
     @media print {
         .no-print { display: none !important; }
         .report-card { box-shadow: none; }
@@ -138,6 +142,7 @@
             <div class="stat-item stat-late">L = Late</div>
             <div class="stat-item stat-leave">L = Leave</div>
             <div class="stat-item stat-holiday">H = Holiday/Weekly Off</div>
+            <div class="stat-item stat-incomplete">I = Incomplete</div>
         </div>
             <span class="text-muted">Total Days: {{ count($dateRange) }}</span>
         </div>
@@ -158,6 +163,7 @@
                         <th rowspan="2" class="text-center">LT</th>
                         <th rowspan="2" class="text-center">LV</th>
                         <th rowspan="2" class="text-center">H</th>
+                        <th rowspan="2" class="text-center">I</th>
                     </tr>
                     <tr>
                         @foreach($dateRange as $date)
@@ -170,14 +176,12 @@
                 <tbody>
                     @forelse($reportData ?? [] as $index => $data)
                     <tr>
-                        <td>
-                            @if($data['employee']->photo)
-                                <img src="{{ asset($data['employee']->photo) }}" alt="{{ $data['employee']->name }}" class="table-avatar">
-                            @else
-                                <span class="table-avatar-placeholder">{{ substr($data['employee']->name, 0, 1) }}</span>
-                            @endif
-                            <strong>{{ $data['employee']->name }}</strong><br>
-                            <small class="text-muted">{{ $data['employee']->employee_id ?? 'N/A' }}</small>
+                        <td class="employee-cell d-flex align-items-center">
+                                {!! $data['employee']->getAvt() !!}
+                            <div>
+                                <strong>{{ $data['employee']->name }}</strong><br>
+                                <small class="text-muted">{{ $data['employee']->employee_id ?? 'N/A' }}</small>
+                            </div>
                         </td>
                         @foreach($data['daily_data'] as $dayData)
                         <td class="day-cell {{ $dayData['status_class'] }}">
@@ -189,6 +193,8 @@
                                 <span class=" {{ $dayData['status_class'] == 'late' ? 'status-l' : 'status-lv' }}">L</span>
                             @elseif($dayData['status'] == 'H')
                                 <span class="status-h">H</span>
+                            @elseif($dayData['status'] == 'I')
+                                <span class="status-i">I</span>
                             @else
                                 <span class="status-dash">-</span>
                             @endif
@@ -199,10 +205,11 @@
                         <td class="text-center"><strong class="text-warning">{{ $data['late_count'] }}</strong></td>
                         <td class="text-center"><strong style="color: #6f42c1">{{ $data['leave_count'] }}</strong></td>
                         <td class="text-center"><strong class="text-info">{{ $data['holiday_count'] }}</strong></td>
+                        <td class="text-center"><strong class="text-dark">{{ $data['incomplete_count'] }}</strong></td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ count($dateRange) + 6 }}" class="text-center text-muted py-4">
+                        <td colspan="{{ count($dateRange) + 7 }}" class="text-center text-muted py-4">
                             No attendance data available for selected date range
                         </td>
                     </tr>

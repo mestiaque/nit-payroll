@@ -666,6 +666,21 @@ class User extends Authenticatable
         }
 
         if ($attendance) {
+
+            if (!$attendance->in_time || !$attendance->out_time) {
+                return [
+                    'status' => 'incomplete',
+                    'label' => 'I',
+                    'class' => 'incomplete',
+                    'is_working_day' => true,
+                    'details' => [
+                        'in_time' => $attendance->in_time,
+                        'out_time' => $attendance->out_time,
+                        'remarks' => $attendance->remarks,
+                    ]
+                ];
+            }
+            
             $attendanceStatus = strtolower($attendance->status);
 
             // Check for late (case insensitive)

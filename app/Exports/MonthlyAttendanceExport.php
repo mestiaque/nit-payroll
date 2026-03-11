@@ -47,11 +47,12 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithStyle
         $this->columns['Late']   = 'late';
         $this->columns['Leave']  = 'leave';
         $this->columns['Holiday'] = 'holiday';
+        $this->columns['Incomplete'] = 'incomplete';
 
         // Format data for export
         $this->data = collect($reportData)->map(function($row) use ($dateRange) {
             $employee = $row['employee'];
-            
+
             $data = [
                 'employee_id'  => $employee->employee_id ?? $employee->id,
                 'name'         => $employee->name,
@@ -70,6 +71,7 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithStyle
             $data['late']    = $row['late_count'];
             $data['leave']   = $row['leave_count'];
             $data['holiday'] = $row['holiday_count'];
+            $data['incomplete'] = $row['incomplete_count'];
 
             return $data;
         })->toArray();
@@ -131,42 +133,7 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithStyle
         $columnCount = count($this->columns) + 1; // +1 for SL column
         $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnCount);
 
-        // Company Header
-        $sheet->mergeCells('A1:' . $lastCol . '1');
-        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-        $sheet->mergeCells('A2:' . $lastCol . '2');
-        $sheet->setCellValue('A2', general()->title ?? 'Company Name');
-
-        $sheet->mergeCells('A3:' . $lastCol . '3');
-        $sheet->setCellValue('A3', websiteSetting('address') ?? '');
-
-        $sheet->mergeCells('A4:' . $lastCol . '4');
-        $sheet->setCellValue('A4', $this->title . ' - Exported on: ' . date('d M Y'));
-
-        $sheet->getRowDimension(1)->setRowHeight(60);
-        $sheet->getRowDimension(2)->setRowHeight(25);
-        $sheet->getRowDimension(3)->setRowHeight(20);
-        $sheet->getRowDimension(4)->setRowHeight(18);
-
-        // Insert logo
-        if ($logoPath = optional(general())->logo()) {
-            try {
-                $drawing = new Drawing();
-                $drawing->setPath(public_path($logoPath));
-                $drawing->setHeight(60);
-
-                $centerIndex = (int) ceil($columnCount / 2);
-                $centerCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($centerIndex);
-
-                $drawing->setCoordinates($centerCol . '1');
-                $logoPx = 80;
-                $drawing->setOffsetX(- intval($logoPx / 2));
-                $drawing->setWorksheet($sheet);
-            } catch (\Exception $e) {
-                // ignore
-            }
-        }
+        \App\Exports\BaseExport::applyCompanyHeader($sheet, $lastCol, $this->title);
 
         $sheet->getStyle('A2')->getFont()->setSize(18)->setBold(true);
         $sheet->getStyle('A3')->getFont()->setSize(12);
@@ -207,19 +174,6 @@ class MonthlyAttendanceExport implements FromCollection, WithHeadings, WithStyle
                 $totalRows = 5 + count($this->data);
                 $columnCount = count($this->columns) + 1;
                 $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnCount);
-
-                // Signature rows
-                $signatureRow = $totalRows + 3;
-
-                $sheet->setCellValue('A' . $signatureRow, 'Authorized Signature');
-                $sheet->setCellValue('F' . $signatureRow, 'HR Manager');
-                $sheet->setCellValue($lastCol . $signatureRow, 'Managing Director');
-
-                $sheet->getStyle('A' . $signatureRow . ':' . $lastCol . $signatureRow)->getFont()->setBold(true);
-                $sheet->getStyle('A' . $signatureRow . ':' . $lastCol . $signatureRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-                $sheet->getStyle('A' . $signatureRow . ':' . $lastCol . $signatureRow)->getBorders()->getTop()->setBorderStyle(Border::BORDER_THIN);
-
                 // page setup for printing
                 $ps = $sheet->getPageSetup();
                 $ps->setOrientation(PageSetup::ORIENTATION_LANDSCAPE);

@@ -754,6 +754,7 @@ class AttendanceManagementController extends Controller
             $holidayCount = 0;
             $weeklyOffCount = 0;
             $lateCount = 0;
+            $incompleteCount = 0;
 
             foreach ($dateRange as $date) {
                 $dateStr = $date->format('Y-m-d');
@@ -767,6 +768,9 @@ class AttendanceManagementController extends Controller
 
                 // Count based on status
                 switch ($status) {
+                    case 'incomplete':
+                        $incompleteCount++;
+                        break;
                     case 'present':
                         $presentCount++;
                         break;
@@ -803,6 +807,7 @@ class AttendanceManagementController extends Controller
                 'present_count' => $presentCount,
                 'absent_count' => $absentCount,
                 'leave_count' => $leaveCount,
+                'incomplete_count' => $incompleteCount,
                 'late_count' => $lateCount,
                 'holiday_count' => $holidayCount,
                 'weekly_off_count' => $weeklyOffCount,
@@ -909,6 +914,7 @@ class AttendanceManagementController extends Controller
             $holidayCount = 0;
             $weeklyOffCount = 0;
             $lateCount = 0;
+            $incompleteCount = 0;
 
             foreach ($dateRange as $date) {
                 $dateStr = $date->format('Y-m-d');
@@ -922,6 +928,9 @@ class AttendanceManagementController extends Controller
 
                 // Count based on status
                 switch ($status) {
+                    case 'incomplete':
+                            $incompleteCount++;
+                            break;
                     case 'present':
                         $presentCount++;
                         break;
@@ -961,6 +970,7 @@ class AttendanceManagementController extends Controller
                 'late_count' => $lateCount,
                 'holiday_count' => $holidayCount,
                 'weekly_off_count' => $weeklyOffCount,
+                'incomplete_count' => $incompleteCount,
                 'total_days' => count($dateRange),
             ];
         }
@@ -1020,6 +1030,7 @@ class AttendanceManagementController extends Controller
             $leaveCount = 0;
             $holidayCount = 0;
             $lateCount = 0;
+            $incompleteCount = 0;
 
             foreach ($dateRange as $date) {
                 $dateStr = $date->format('Y-m-d');
@@ -1031,6 +1042,9 @@ class AttendanceManagementController extends Controller
 
                 // Count based on status
                 switch ($status) {
+                    case 'incomplete':
+                        $incompleteCount++;
+                        break;
                     case 'present':
                         $presentCount++;
                         break;
@@ -1062,6 +1076,7 @@ class AttendanceManagementController extends Controller
                 'leave_count' => $leaveCount,
                 'late_count' => $lateCount,
                 'holiday_count' => $holidayCount,
+                'incomplete_count' => $incompleteCount,
             ];
         }
 

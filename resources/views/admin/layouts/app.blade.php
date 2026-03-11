@@ -422,7 +422,7 @@
       </script>
 
       <!-- X-Loader Component -->
-      @include('components.loader')
+      {{-- @include('components.loader') --}}
 
       @stack('js')
    </body>
