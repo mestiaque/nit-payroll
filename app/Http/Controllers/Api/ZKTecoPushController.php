@@ -133,18 +133,11 @@ class ZKTecoPushController extends Controller
                 $attendance->verify_type = $verifyType;
             }
 
-            // if (!$attendance->in_time || $time->lt($attendance->in_time)) {
-            //     $attendance->in_time = $time;
-            // }
-            // if ($attendance->in_time && (!$attendance->out_time || $time->gt($attendance->out_time))) {
-            //     $attendance->out_time = $time;
-            // }
-
-            if (!$attendance->in_time) {
-                // প্রথম লগ → শুধু in_time
+            if (!$attendance->in_time || $time->lt($attendance->in_time)) {
                 $attendance->in_time = $time;
-            } elseif (!$attendance->out_time && $time->gt($attendance->in_time)) {
-                // দ্বিতীয় লগ → শুধু out_time
+            }
+
+            if ((!$attendance->out_time || $time->gt($attendance->out_time)) && $time->gt($attendance->in_time)) {
                 $attendance->out_time = $time;
             }
 
