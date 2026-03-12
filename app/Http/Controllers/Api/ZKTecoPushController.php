@@ -121,12 +121,6 @@ class ZKTecoPushController extends Controller
             $time = Carbon::parse($timestamp, 'Asia/Dhaka');
             $shift = $user->shift;
 
-            // NOTE: card_accept window is intentionally not enforced here.
-            // if ($shift && !$this->withinCardAcceptWindow($shift, $time)) {
-            //     Log::info("Attendance skipped: outside card_accept window. User=$userId, Time=$timestamp");
-            //     return;
-            // }
-
             $attendance = Attendance::where('user_id', $user->id)
                 ->whereDate('in_time', $time->toDateString())
                 ->first();
@@ -139,10 +133,18 @@ class ZKTecoPushController extends Controller
                 $attendance->verify_type = $verifyType;
             }
 
-            if (!$attendance->in_time || $time->lt($attendance->in_time)) {
+            // if (!$attendance->in_time || $time->lt($attendance->in_time)) {
+            //     $attendance->in_time = $time;
+            // }
+            // if ($attendance->in_time && (!$attendance->out_time || $time->gt($attendance->out_time))) {
+            //     $attendance->out_time = $time;
+            // }
+
+            if (!$attendance->in_time) {
+                // প্রথম লগ → শুধু in_time
                 $attendance->in_time = $time;
-            }
-            if ($attendance->in_time && (!$attendance->out_time || $time->gt($attendance->out_time))) {
+            } elseif (!$attendance->out_time && $time->gt($attendance->in_time)) {
+                // দ্বিতীয় লগ → শুধু out_time
                 $attendance->out_time = $time;
             }
 

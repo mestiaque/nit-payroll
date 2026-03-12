@@ -711,7 +711,7 @@ class AdminController extends Controller
         // ===============================
         // Users Query (No Pagination for Print)
         // ===============================
-        $users = User::latest()
+        $users = User::filterBy('employee')->latest()
             ->whereIn('status', [0, 1])
             ->when($r->search, fn($q) =>
                 $q->where('name', 'like', '%' . $r->search . '%')

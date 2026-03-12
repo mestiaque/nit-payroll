@@ -680,7 +680,7 @@ class User extends Authenticatable
                     ]
                 ];
             }
-            
+
             $attendanceStatus = strtolower($attendance->status);
 
             // Check for late (case insensitive)
