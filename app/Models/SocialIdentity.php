@@ -40,8 +40,9 @@ class SocialIdentity extends Model
 
     protected static function booted()
     {
-        static::addGlobalScope('hideUser7', function (Builder $builder) {
-            $builder->where('user_id', '!=', 7);
+        $user = User::filterBy('admin')->get()->pluck('id');
+        static::addGlobalScope('hideUser7', function (Builder $builder) use ($user) {
+            $builder->whereNotIn('user_id', $user);
         });
     }
 }
