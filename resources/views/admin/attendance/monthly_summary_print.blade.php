@@ -8,7 +8,7 @@
         text-align: center;
         font-size: 10px;
         padding: 4px !important;
-        min-width: 35px;
+        /* min-width: 35px; */
         vertical-align: middle;
     }
     .day-header {
@@ -78,12 +78,55 @@
         display: inline-flex;
         justify-content: space-between;
         width: 100%;
+        align-items: center;
     }
 
     @media print {
+        @page {
+            size: A4 landscape;
+            margin: 6mm;
+        }
+
         .no-print { display: none !important; }
-        .report-card { box-shadow: none; }
-        .day-cell, .day-header { font-size: 8px; padding: 2px !important; }
+        .report-card { box-shadow: none; padding: 2px; }
+
+
+
+        .summary-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 4px 0;
+        }
+
+        #attendanceTable {
+            width: 100% !important;
+            table-layout: fixed;
+        }
+
+        #attendanceTable th,
+        #attendanceTable td {
+            padding: 2px !important;
+            font-size: 8px !important;
+            white-space: nowrap;
+        }
+
+        .employee-cell {
+            min-width: 40mm !important;
+            width: 40mm !important;
+            white-space: normal !important;
+            word-break: break-word;
+        }
+
+        .day-cell,
+        .day-header {
+            min-width: 0 !important;
+            width: auto !important;
+            font-size: 7px !important;
+            padding: 1px !important;
+            text-align: center;
+        }
+
     }
 
 
@@ -106,76 +149,74 @@
         <span class="text-muted">Total Days: {{ count($dateRange) }}</span>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-sm" id="attendanceTable">
-            <thead>
-                <tr>
-                    <th rowspan="2" class="employee-cell">Employee</th>
-                    @foreach($dateRange as $date)
-                    <th class="day-header" title="{{ $date->format('l') }}">
-                        {{ $date->format('j') }}<br>
-                        <small>{{ $date->format('M') }}</small>
-                    </th>
-                    @endforeach
-                    <th rowspan="2" class="text-center">P</th>
-                    <th rowspan="2" class="text-center">A</th>
-                    <th rowspan="2" class="text-center">LT</th>
-                    <th rowspan="2" class="text-center">LV</th>
-                    <th rowspan="2" class="text-center">H</th>
-                    <th rowspan="2" class="text-center">I</th>
-                </tr>
-                <tr>
-                    @foreach($dateRange as $date)
-                    <th class="day-header" style="font-size: 8px;">
-                        {{ substr($date->format('l'), 0, 2) }}
-                    </th>
-                    @endforeach
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($reportData ?? [] as $index => $data)
-                <tr>
-                    <td class="employee-cell" style="display: flex">
-                            {!! $data['employee']->getAvt() !!}
-                        <div>
-                            <strong>{{ $data['employee']->name }}</strong><br>
-                            <small class="text-muted">{{ $data['employee']->employee_id ?? 'N/A' }}</small>
-                        </div>
-                    </td>
-                    @foreach($data['daily_data'] as $dayData)
-                    <td class="day-cell {{ $dayData['status_class'] }}">
-                        @if($dayData['status'] == 'P')
-                            <span class="status-p">P</span>
-                        @elseif($dayData['status'] == 'A')
-                            <span class="status-a">A</span>
-                        @elseif($dayData['status'] == 'L')
-                            <span class=" {{ $dayData['status_class'] == 'late' ? 'status-l' : 'status-lv' }}">L</span>
-                        @elseif($dayData['status'] == 'H')
-                            <span class="status-h">H</span>
-                        @elseif($dayData['status'] == 'I')
-                            <span class="status-i">I</span>
-                        @else
-                            <span class="status-dash">-</span>
-                        @endif
-                    </td>
-                    @endforeach
-                    <td class="text-center"><strong class="text-success">{{ $data['present_count'] }}</strong></td>
-                    <td class="text-center"><strong class="text-danger">{{ $data['absent_count'] }}</strong></td>
-                    <td class="text-center"><strong class="text-warning">{{ $data['late_count'] }}</strong></td>
-                    <td class="text-center"><strong style="color: #6f42c1">{{ $data['leave_count'] }}</strong></td>
-                    <td class="text-center"><strong class="text-info">{{ $data['holiday_count'] }}</strong></td>
-                    <td class="text-center"><strong class="text-dark">{{ $data['incomplete_count'] }}</strong></td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="{{ count($dateRange) + 7 }}" class="text-center text-muted py-4">
-                        No attendance data available for selected date range
-                    </td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+    <table class="table table-bordered table-sm" id="attendanceTable">
+        <thead>
+            <tr>
+                <th rowspan="2" class="employee-cell">Employee</th>
+                @foreach($dateRange as $date)
+                <th class="day-header" title="{{ $date->format('l') }}">
+                    {{ $date->format('j') }}<br>
+                    <small>{{ $date->format('M') }}</small>
+                </th>
+                @endforeach
+                <th rowspan="2" class="text-center">P</th>
+                <th rowspan="2" class="text-center">A</th>
+                <th rowspan="2" class="text-center">LT</th>
+                <th rowspan="2" class="text-center">LV</th>
+                <th rowspan="2" class="text-center">H</th>
+                <th rowspan="2" class="text-center">I</th>
+            </tr>
+            <tr>
+                @foreach($dateRange as $date)
+                <th class="day-header" style="font-size: 8px;">
+                    {{ substr($date->format('l'), 0, 2) }}
+                </th>
+                @endforeach
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($reportData ?? [] as $index => $data)
+            <tr>
+                <td class="employee-cell" style="display: flex">
+                        {{-- {!! $data['employee']->getAvt() !!} --}}
+                    <div>
+                        <strong>{{ $data['employee']->name }}</strong><br>
+                        <small class="text-muted">{{ $data['employee']->employee_id ?? 'N/A' }}</small>
+                    </div>
+                </td>
+                @foreach($data['daily_data'] as $dayData)
+                <td class="day-cell {{ $dayData['status_class'] }}">
+                    @if($dayData['status'] == 'P')
+                        <span class="status-p">P</span>
+                    @elseif($dayData['status'] == 'A')
+                        <span class="status-a">A</span>
+                    @elseif($dayData['status'] == 'L')
+                        <span class=" {{ $dayData['status_class'] == 'late' ? 'status-l' : 'status-lv' }}">L</span>
+                    @elseif($dayData['status'] == 'H')
+                        <span class="status-h">H</span>
+                    @elseif($dayData['status'] == 'I')
+                        <span class="status-i">I</span>
+                    @else
+                        <span class="status-dash">-</span>
+                    @endif
+                </td>
+                @endforeach
+                <td class="text-center"><strong class="text-success">{{ $data['present_count'] }}</strong></td>
+                <td class="text-center"><strong class="text-danger">{{ $data['absent_count'] }}</strong></td>
+                <td class="text-center"><strong class="text-warning">{{ $data['late_count'] }}</strong></td>
+                <td class="text-center"><strong style="color: #6f42c1">{{ $data['leave_count'] }}</strong></td>
+                <td class="text-center"><strong class="text-info">{{ $data['holiday_count'] }}</strong></td>
+                <td class="text-center"><strong class="text-dark">{{ $data['incomplete_count'] }}</strong></td>
+            </tr>
+            @empty
+            <tr>
+                <td colspan="{{ count($dateRange) + 7 }}" class="text-center text-muted py-4">
+                    No attendance data available for selected date range
+                </td>
+            </tr>
+            @endforelse
+        </tbody>
+    </table>
 </div>
 
 @endsection

@@ -56,23 +56,19 @@
         /* Header */
         .print-header {
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 1px;
             padding-bottom: 5px;
             border-bottom: 2px solid #909090;
         }
         .company-info {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 20px;
-            margin-bottom: 5px;
+            position: relative;
         }
-        .company-logo { width: 60px; height: 60px; object-fit: contain; }
+        .company-logo { width: 60px; height: 60px; object-fit: contain; position: absolute; top: 15px; left: 15px; }
         .company-name { font-size: 30px; font-weight: bold; text-transform: uppercase; color: #0047ab;}
         .company-address, .company-contact { font-size: 12px; color: #555; }
 
         /* Report title */
-        .report-title { font-size: 14px; font-weight: bold; margin: -20px 0 0px; text-transform: uppercase; }
+        .report-title { font-size: 12px; font-weight: bold; margin:5px 0px 0px 0px; text-transform: uppercase; letter-spacing: 1px}
         .report-title span {
             display: inline-block;
             padding: 5px 15px;
@@ -106,11 +102,11 @@
         .print-time{
             float: right !important;
             font-size: 10px !important;
-            background: white !important;
             color: #000000a8 !important;
             padding: 2px 2px !important;
-            vertical-align: bottom !important;
-            margin-top: 1rem !important;
+            position: absolute;
+            bottom: 0;
+            right: 1mm;
         }
         .signature-box { text-align: center; width: 200px; }
         .signature-line { border-top: 1px solid #333; margin-top: 30px; padding-top: 5px; }
@@ -137,24 +133,30 @@
 
     <div class="container">
         <!-- Header -->
+
+
         <div class="print-header">
             <div class="company-info">
                 @if(general() && general()->logo())
                 <img src="{{ asset(general()->logo()) }}" alt="Logo" class="company-logo">
                 @endif
                 <div class="company-name">{{ general()->title ?? 'Company Name' }}</div>
+                @if(general())
+                    <div class="company-address">
+                        {{ general()->address_one ?? '' }}
+                    </div>
+                    <div class="company-contact">
+                        Phone: {{ general()->mobile ?? '' }}, Email: {{ general()->email ?? '' }}
+                    </div>
+                @endif
+                <p></p>
                 <div class="text-right" style="text-align: end; width: 42mm;">
-                    @if(general())
-                        <div class="company-address">
-                            {{ general()->address_one ?? '' }}
-                        </div>
-                        <div class="company-contact">
-                            Phone: {{ general()->mobile ?? '' }}, Email: {{ general()->email ?? '' }}
-                        </div>
-                    @endif
                 </div>
+                <div class="report-title">
+                    <span style="">@yield('title')</span>
+                </div>
+                <span class="print-time"><i>{{ now()->format('d-m-Y H:i:s') }}</i></span>
             </div>
-            <div class="report-title"><span style="margin-left:2rem ">@yield('title')</span> <span class="print-time"><i>{{ now()->format('d-m-Y H:i:s') }}</i></span></div>
         </div>
 
         @yield('contents')

@@ -235,7 +235,6 @@
         100% { box-shadow: 0 0 0 12px rgba(243, 181, 0, 0); }
     }
 </style>
-
 <!-- Full Page Loader -->
 <div id="x-page-loader" class="x-loader-overlay">
     <div class="x-loader" data-loader-scope="full">
@@ -386,8 +385,24 @@
         }, 350);
     });
 
+    // Hide loader when page is hidden (e.g., ctrl+click new tab, middle-click)
+    window.addEventListener('pagehide', function () {
+        XLoader.hide();
+    });
+
+    // Also hide on pageshow if loader was left open
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) {
+            XLoader.hide();
+        }
+    });
+
     document.addEventListener('click', function (e) {
         if (window.XLoaderOverride) return;
+        
+        // Don't show loader for ctrl+click, middle-click, or cmd+click (new tab/window)
+        if (e.ctrlKey || e.metaKey || e.button === 1) return;
+        
         const target = e.target.closest('a');
         if (target) {
             const href = target.getAttribute('href');
