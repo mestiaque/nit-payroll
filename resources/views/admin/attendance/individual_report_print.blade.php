@@ -1,6 +1,6 @@
 @extends('printMaster')
 @section('title')
-Individual Attendance Report Print
+Individual Attendance Report - {{ $startDate->format('F Y') }}
 @endsection
 
 @push('css')
@@ -86,10 +86,6 @@ Individual Attendance Report Print
 
 @section('contents')
 @if($employee)
-<div class="print-header">
-    <h2>Individual Attendance Report</h2>
-    <p>{{ $startDate->format('F Y') }}</p>
-</div>
 
 <div class="employee-info">
     <table>
