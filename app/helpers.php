@@ -486,7 +486,9 @@ if (!function_exists('getAttendanceStatus')) {
             $result['is_present'] = true;
             $result['in_time'] = $attendance->in_time;
             $result['out_time'] = $attendance->out_time;
-            $result['work_hours'] = $attendance->work_hour ?? 0;
+            $result['work_hours'] = isset($attendance->in_minutes)
+                ? round(((float) $attendance->in_minutes) / 60, 2)
+                : ($attendance->work_hour ?? 0);
             return $result;
         }
 

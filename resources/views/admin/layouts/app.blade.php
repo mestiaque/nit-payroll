@@ -96,6 +96,9 @@
         td{
             vertical-align: middle !important;
         }
+        label{
+            margin-bottom: 1px !important;
+        }
      </style>
 
      @stack('css')
@@ -422,7 +425,7 @@
       </script>
 
       <!-- X-Loader Component -->
-      {{-- @include('components.loader') --}}
+      @include('components.loader')
 
       @stack('js')
    </body>

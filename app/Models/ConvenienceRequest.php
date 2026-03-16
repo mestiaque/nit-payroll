@@ -16,6 +16,11 @@ class ConvenienceRequest extends Model
         'reason',
         'admin_remark',
         'status',
+        'payment_status',
+        'payment_method',
+        'payment_note',
+        'paid_by',
+        'paid_at',
         'approved_by',
         'approved_at',
     ];
@@ -23,6 +28,7 @@ class ConvenienceRequest extends Model
     protected $casts = [
         'amount' => 'decimal:2',
         'approved_at' => 'datetime',
+        'paid_at' => 'datetime',
     ];
 
     public function user()

@@ -530,11 +530,11 @@ class User extends Authenticatable
         if ($this->image()) {
             return '<img src="'.asset($this->image()).'"
                     alt="'.$this->name.'"
-                    class="rounded-circle"
+                    class="rounded-circleX"
                     style="width: '.$size.'px; height: '.$size.'px; object-fit: cover; margin-right: 10px;">';
         }
 
-        return '<div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold"
+        return '<div class="rounded-circleX d-flex align-items-center justify-content-center text-white font-weight-bold"
                     style="width: '.$size.'px; height: '.$size.'px; background-color: '.random_color($this->id ?? 0).'; margin-right: 10px;">
                     '.strtoupper(substr($this->name ?? 'U', 0, 1)).'
                 </div>';

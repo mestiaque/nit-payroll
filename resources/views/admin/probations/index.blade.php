@@ -5,10 +5,9 @@
 @section('contents')
 @include(adminTheme().'alerts')
 <div class="flex-grow-1">
-
     <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Probations List</h5>
+        <div class="card-header d-flex justify-content-between align-items-center mb-1">
+            <h3 class="mb-0">Probations List</h3>
             <div>
                 <a href="{{route('admin.probations.create')}}" class="btn btn-sm btn-success"><i class="fa fa-plus"></i> Add Probation</a>
             </div>
@@ -17,7 +16,7 @@
         <div class="card-body py-2">
             <form method="GET" action="{{ route('admin.probations.index') }}" class="row g-3">
                 <div class="col-md-3">
-                    <label for="user_id">Employee</label>
+                    <label class="mb-0" for="user_id">Employee</label>
                     <select name="user_id" id="user_id" class="form-control form-control-sm">
                         <option value="">Select Employee</option>
                         @foreach($users as $user)
@@ -26,7 +25,7 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label for="status">Status</label>
+                    <label class="mb-0" for="status">Status</label>
                     <select name="status" id="status" class="form-control form-control-sm">
                         <option value="">Select Status</option>
                         <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
@@ -36,7 +35,7 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label for="confirmation_status">Confirmation Status</label>
+                    <label class="mb-0" for="confirmation_status">Confirmation Status</label>
                     <select name="confirmation_status" id="confirmation_status" class="form-control form-control-sm">
                         <option value="">Select Status</option>
                         <option value="pending" {{ request('confirmation_status') == 'pending' ? 'selected' : '' }}>Pending</option>
@@ -44,7 +43,7 @@
                         <option value="rejected" {{ request('confirmation_status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
                     </select>
                 </div>
-                <div class="col-md-12 text-right adjustments">
+                <div class="col-md-3 text-right align-self-end">
                     <button type="submit" class="btn btn-sm btn-primary"><i class="fa fa-filter"></i> Filter</button>
                     <a href="{{ route('admin.probations.index') }}" class="btn btn-sm btn-secondary"><i class="fa fa-times"></i> Reset</a>
                 </div>
@@ -56,8 +55,8 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Employee ID</th>
                             <th>Employee Name</th>
+                            <th>Emp ID</th>
                             <th>Department</th>
                             <th>Start Date</th>
                             <th>End Date</th>
@@ -71,22 +70,11 @@
                         @forelse($probations as $key => $probation)
                         <tr>
                             <td>{{ $key + 1 }}</td>
+                            <td class="d-flex align-items-center">{!! $probation->user->getAvt() !!} {{ $probation->user->name ?? 'N/A' }}</td>
                             <td>{{ $probation->user->employee_id ?? 'N/A' }}</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    @if($probation->user && $probation->user->photo)
-                                        <img src="{{ asset('uploads/user_photo/' . $probation->user->photo) }}" alt="{{ $probation->user->name }}" class="rounded-circle" style="width: 35px; height: 35px; object-fit: cover; margin-right: 10px;">
-                                    @else
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold" style="width: 35px; height: 35px; background-color: {{ random_color($probation->user_id ?? 0) }}; margin-right: 10px;">
-                                            {{ strtoupper(substr($probation->user->name ?? 'U', 0, 1)) }}
-                                        </div>
-                                    @endif
-                                    <span>{{ $probation->user->name ?? 'N/A' }}</span>
-                                </div>
-                            </td>
                             <td>{{ $probation->user->department->name ?? 'N/A' }}</td>
-                            <td>{{ $probation->probation_start_date }}</td>
-                            <td>{{ $probation->probation_end_date }}</td>
+                            <td>{{ optional($probation->probation_start_date)->format('d M Y') ?? '-' }}</td>
+                            <td>{{ optional($probation->probation_end_date)->format('d M Y') ?? '-' }}</td>
                             <td>{{ $probation->months }}</td>
                             <td>
                                 @if($probation->status == 'active')
@@ -108,16 +96,16 @@
                                     <span class="badge badge-danger">Rejected</span>
                                 @endif
                             </td>
-                            <td>
+                            <td class="text-center">
                                 @if($probation->confirmation_status == 'pending')
-                                    <button type="button" class="btn btn-xs btn-success" data-toggle="modal" data-target="#confirmModal{{ $probation->id }}"><i class="fa fa-check"></i></button>
+                                    <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#confirmModal{{ $probation->id }}"><i class="fa fa-check"></i></button>
                                 @endif
-                                <button type="button" class="btn btn-xs btn-warning" data-toggle="modal" data-target="#extendModal{{ $probation->id }}"><i class="fa fa-extend"></i></button>
-                                <a href="{{ route('admin.probations.edit', $probation->id) }}" class="btn btn-xs btn-primary"><i class="fa fa-edit"></i></a>
+                                <button type="button" class="btn btn-sm btn-warning text-white" data-toggle="modal" data-target="#extendModal{{ $probation->id }}"><i class="fa fa-clock"></i></button>
+                                <a href="{{ route('admin.probations.edit', $probation->id) }}" class="btn btn-sm btn-primary"><i class="fa fa-edit"></i></a>
                                 <form action="{{ route('admin.probations.destroy', $probation->id) }}" method="POST" style="display:inline;">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-xs btn-danger" onclick="return confirm('Are you sure?')"><i class="fa fa-trash"></i></button>
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')"><i class="fa fa-trash"></i></button>
                                 </form>
                             </td>
                         </tr>
@@ -133,14 +121,14 @@
                                         </div>
                                         <div class="modal-body">
                                             <div class="form-group">
-                                                <label>Confirmation Status</label>
+                                                <label class="mb-0">Confirmation Status</label>
                                                 <select name="confirmation_status" class="form-control" required>
                                                     <option value="confirmed">Confirm</option>
                                                     <option value="rejected">Reject</option>
                                                 </select>
                                             </div>
                                             <div class="form-group">
-                                                <label>Notes</label>
+                                                <label class="mb-0">Notes</label>
                                                 <textarea name="confirmation_notes" class="form-control"></textarea>
                                             </div>
                                         </div>
@@ -164,11 +152,11 @@
                                         </div>
                                         <div class="modal-body">
                                             <div class="form-group">
-                                                <label>New End Date</label>
+                                                <label class="mb-0">New End Date</label>
                                                 <input type="date" name="new_end_date" class="form-control" required>
                                             </div>
                                             <div class="form-group">
-                                                <label>Performance Notes</label>
+                                                <label class="mb-0">Performance Notes</label>
                                                 <textarea name="performance_notes" class="form-control"></textarea>
                                             </div>
                                         </div>

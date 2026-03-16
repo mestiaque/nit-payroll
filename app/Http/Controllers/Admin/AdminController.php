@@ -26,6 +26,7 @@ use App\Models\Expense;
 use App\Models\General;
 use App\Models\UserLocation;
 use App\Models\Attendance;
+use App\Models\AttendanceApproval;
 use App\Models\Leave;
 use App\Models\Notice;
 use App\Models\Media;
@@ -518,6 +519,7 @@ class AdminController extends Controller
 
                 if ($leave) {
                     $finalData->push([
+                        'attendance_id' => null,
                         'id'            => $user->id,
                         'employee_id'   => $user->employee_id,
                         'name'          => $user->name,
@@ -540,6 +542,7 @@ class AdminController extends Controller
                 if ($date->isFriday()) {
 
                     $finalData->push([
+                        'attendance_id' => null,
                         'id'            => $user->id,
                         'employee_id'   => $user->employee_id,
                         'name'          => $user->name,
@@ -580,6 +583,7 @@ class AdminController extends Controller
 
 
                     $finalData->push([
+                        'attendance_id' => $att->id,
                         'id'            => $user->id,
                         'employee_id'   => $user->employee_id,
                         'name'          => $user->name,
@@ -608,6 +612,7 @@ class AdminController extends Controller
                 // Absent
                 // -----------------------
                 $finalData->push([
+                    'attendance_id' => null,
                     'id'            => $user->id,
                     'employee_id'   => $user->employee_id,
                     'name'          => $user->name,
@@ -949,6 +954,43 @@ class AdminController extends Controller
         );
     }
 
+    public function dailyAttendanceUpdate(Request $r, $id)
+    {
+        $r->validate([
+            'date' => 'required|date',
+            'in_time' => 'required|date_format:H:i',
+            'out_time' => 'required|date_format:H:i',
+            'status' => 'required|string|max:50',
+            'remarks' => 'nullable|string|max:500',
+        ]);
+
+        $attendance = Attendance::findOrFail($id);
+
+        $approval = AttendanceApproval::where('user_id', $attendance->user_id)
+            ->whereDate('attendance_date', $r->date)
+            ->where('status', 'pending')
+            ->first();
+
+        $payload = [
+            'user_id' => $attendance->user_id,
+            'attendance_date' => $r->date,
+            'in_time' => Carbon::parse($r->date . ' ' . $r->in_time, 'Asia/Dhaka'),
+            'out_time' => Carbon::parse($r->date . ' ' . $r->out_time, 'Asia/Dhaka'),
+            'original_status' => $attendance->status,
+            'requested_status' => $r->status,
+            'reason' => 'Daily attendance edit request' . ($r->remarks ? ': ' . $r->remarks : ''),
+            'status' => 'pending',
+        ];
+
+        if ($approval) {
+            $approval->update($payload);
+        } else {
+            AttendanceApproval::create($payload);
+        }
+
+        return back()->with('success', 'Attendance edit request submitted for approval. Attendance will update after approval.');
+    }
+
     public function dailyAttendanceExport(Request $r)
     {
         $startDate = $r->startDate ?? date('Y-m-d');
@@ -1195,6 +1237,48 @@ class AdminController extends Controller
 
 
         // =========================
+        // Get Leaves
+        // =========================
+        $leaves = \App\Models\Leave::whereIn('user_id', $userIds)
+            ->where('status', 'approved')
+            ->where(function($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_date', [$startDate->toDateString(), $endDate->toDateString()])
+                    ->orWhereBetween('end_date', [$startDate->toDateString(), $endDate->toDateString()])
+                    ->orWhere(function($q) use ($startDate, $endDate) {
+                        $q->where('start_date', '<=', $startDate->toDateString())
+                            ->where('end_date', '>=', $endDate->toDateString());
+                    });
+            })
+            ->get()
+            ->groupBy(function ($item) {
+                return $item->user_id;
+            });
+
+
+        // =========================
+        // Get Holidays
+        // =========================
+        $holidays = \App\Models\Holiday::where('status', 'active')
+            ->whereDate('from_date', '<=', $endDate->toDateString())
+            ->whereDate('to_date', '>=', $startDate->toDateString())
+            ->get();
+
+        $holidayDates = [];
+        foreach ($holidays as $holiday) {
+            $current = Carbon::parse($holiday->from_date);
+            $toDate = Carbon::parse($holiday->to_date);
+            while ($current->lte($toDate)) {
+                $holidayDates[] = $current->format('Y-m-d');
+                $current->addDay();
+            }
+        }
+
+        // Get weekly offday
+        $offdaySetting = Attribute::where('type', 21)->where('status', 'active')->first();
+        $offdayNumber = $offdaySetting ? array_search($offdaySetting->name, ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']) : 5;
+
+
+        // =========================
         // Date Period
         // =========================
         $period = CarbonPeriod::create(
@@ -1224,6 +1308,8 @@ class AdminController extends Controller
 
                 $present = 0;
                 $late = 0;
+                $leaveCount = 0;
+                $holidayCount = 0;
 
 
                 foreach ($deptUsers as $user) {
@@ -1232,7 +1318,23 @@ class AdminController extends Controller
 
                     $att = $attendances->get($key)?->first();
 
-                    if ($att) {
+                    // Check if it's a holiday
+                    $isHoliday = in_array($date->format('Y-m-d'), $holidayDates);
+                    
+                    // Check if it's weekly off
+                    $isWeeklyOff = ($date->dayOfWeek == $offdayNumber);
+
+                    // Check leave
+                    $userLeaves = $leaves->get($user->id) ?? collect();
+                    $onLeave = $userLeaves->filter(function($l) use ($date) {
+                        return $date->between($l->start_date, $l->end_date);
+                    })->isNotEmpty();
+
+                    if ($onLeave) {
+                        $leaveCount++;
+                    } elseif ($isHoliday || $isWeeklyOff) {
+                        $holidayCount++;
+                    } elseif ($att) {
                         $present++;
 
                         if ($att->status === 'Late') {
@@ -1242,7 +1344,8 @@ class AdminController extends Controller
                 }
 
 
-                $absent = $total - $present;
+                $absent = $total - $present - $leaveCount - $holidayCount;
+                if ($absent < 0) $absent = 0;
 
 
                 $dailyDepartments->push([
@@ -1252,6 +1355,8 @@ class AdminController extends Controller
                     'present'         => $present,
                     'late'            => $late,
                     'absent'          => $absent,
+                    'leave'           => $leaveCount,
+                    'holiday'         => $holidayCount,
                 ]);
             }
 
@@ -1269,6 +1374,155 @@ class AdminController extends Controller
         // =========================
         return view(
             adminTheme() . 'attendance.dailyAttendanceDepartmentSummary',
+            compact(
+                'dateWiseSummary',
+                'departments',
+                'startDate',
+                'endDate'
+            )
+        );
+    }
+
+    /**
+     * Print Department Attendance Summary
+     */
+    public function dailyAttendanceDepartmentSummaryPrint(Request $r)
+    {
+        // Same logic as dailyAttendanceDepartmentSummary but for printing
+        $startDate = $r->startDate
+            ? Carbon::parse($r->startDate)->startOfDay()
+            : Carbon::today()->startOfDay();
+
+        $endDate = $r->endDate
+            ? Carbon::parse($r->endDate)->endOfDay()
+            : Carbon::today()->endOfDay();
+
+        $departments = Attribute::where('type', 3)
+            ->where('status', '<>', 'temp')
+            ->when($r->department, function ($q) use ($r) {
+                $q->where('id', $r->department);
+            })
+            ->get();
+
+        $users = User::whereIn('status', [0, 1])
+            ->when($r->department, fn($q) =>
+                $q->where('department_id', $r->department)
+            )
+            ->get();
+
+        $userIds = $users->pluck('id');
+
+        $attendances = Attendance::whereIn('user_id', $userIds)
+            ->whereDate('in_time', '>=', $startDate->toDateString())
+            ->whereDate('in_time', '<=', $endDate->toDateString())
+            ->get()
+            ->groupBy(function ($item) {
+                return
+                    Carbon::parse($item->in_time)->format('Y-m-d')
+                    . '_'
+                    . $item->user_id;
+            });
+
+        $leaves = \App\Models\Leave::whereIn('user_id', $userIds)
+            ->where('status', 'approved')
+            ->where(function($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_date', [$startDate->toDateString(), $endDate->toDateString()])
+                    ->orWhereBetween('end_date', [$startDate->toDateString(), $endDate->toDateString()])
+                    ->orWhere(function($q) use ($startDate, $endDate) {
+                        $q->where('start_date', '<=', $startDate->toDateString())
+                            ->where('end_date', '>=', $endDate->toDateString());
+                    });
+            })
+            ->get()
+            ->groupBy(function ($item) {
+                return $item->user_id;
+            });
+
+        $holidays = \App\Models\Holiday::where('status', 'active')
+            ->whereDate('from_date', '<=', $endDate->toDateString())
+            ->whereDate('to_date', '>=', $startDate->toDateString())
+            ->get();
+
+        $holidayDates = [];
+        foreach ($holidays as $holiday) {
+            $current = Carbon::parse($holiday->from_date);
+            $toDate = Carbon::parse($holiday->to_date);
+            while ($current->lte($toDate)) {
+                $holidayDates[] = $current->format('Y-m-d');
+                $current->addDay();
+            }
+        }
+
+        $offdaySetting = Attribute::where('type', 21)->where('status', 'active')->first();
+        $offdayNumber = $offdaySetting ? array_search($offdaySetting->name, ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']) : 5;
+
+        $period = CarbonPeriod::create(
+            $startDate->toDateString(),
+            $endDate->toDateString()
+        );
+
+        $dateWiseSummary = collect();
+
+        foreach ($period as $date) {
+            $dailyDepartments = collect();
+
+            foreach ($departments as $dept) {
+                $deptUsers = $users->where('department_id', $dept->id);
+                $total = $deptUsers->count();
+
+                $present = 0;
+                $late = 0;
+                $leaveCount = 0;
+                $holidayCount = 0;
+
+                foreach ($deptUsers as $user) {
+                    $key = $date->format('Y-m-d') . '_' . $user->id;
+                    $att = $attendances->get($key)?->first();
+
+                    $isHoliday = in_array($date->format('Y-m-d'), $holidayDates);
+                    $isWeeklyOff = ($date->dayOfWeek == $offdayNumber);
+
+                    $userLeaves = $leaves->get($user->id) ?? collect();
+                    $onLeave = $userLeaves->filter(function($l) use ($date) {
+                        return $date->between($l->start_date, $l->end_date);
+                    })->isNotEmpty();
+
+                    if ($onLeave) {
+                        $leaveCount++;
+                    } elseif ($isHoliday || $isWeeklyOff) {
+                        $holidayCount++;
+                    } elseif ($att) {
+                        $present++;
+                        if ($att->status === 'Late') {
+                            $late++;
+                        }
+                    }
+                }
+
+                $absent = $total - $present - $leaveCount - $holidayCount;
+                if ($absent < 0) $absent = 0;
+
+                $dailyDepartments->push([
+                    'department_id'   => $dept->id,
+                    'department_name' => $dept->name,
+                    'total'           => $total,
+                    'present'         => $present,
+                    'late'            => $late,
+                    'absent'          => $absent,
+                    'leave'           => $leaveCount,
+                    'holiday'         => $holidayCount,
+                ]);
+            }
+
+            $dateWiseSummary->push([
+                'date'        => $date->format('Y-m-d'),
+                'readable'    => $date->format('d M, Y'),
+                'departments' => $dailyDepartments
+            ]);
+        }
+
+        return view(
+            adminTheme() . 'attendance.dailyAttendanceDepartmentSummaryPrint',
             compact(
                 'dateWiseSummary',
                 'departments',
@@ -3161,7 +3415,6 @@ class AdminController extends Controller
 
         return view(adminTheme().'shifts.shiftsAll', compact('shifts', 'totals'));
     }
-
 
     // Function to handle the form creation and updating logic
     public function shiftsAction(Request $r, $action, $id = null)

@@ -14,6 +14,7 @@ class Performance extends Model
         'reviewer_id',
         'year',
         'quarter',
+        'report_month',
         'rating',
         'attendance_score',
         'task_completion',
@@ -24,6 +25,17 @@ class Performance extends Model
         'weaknesses',
         'comments',
         'goals',
+        'report_start_date',
+        'report_end_date',
+        'present_days',
+        'late_days',
+        'absent_days',
+        'leave_days',
+        'approved_leave_requests',
+        'dress_score',
+        'behavior_score',
+        'dress_note',
+        'behavior_note',
         'status',
     ];
 
@@ -34,6 +46,11 @@ class Performance extends Model
         'teamwork' => 'decimal:2',
         'initiative' => 'decimal:2',
         'punctuality' => 'decimal:2',
+        'report_month' => 'integer',
+        'report_start_date' => 'date',
+        'report_end_date' => 'date',
+        'dress_score' => 'decimal:2',
+        'behavior_score' => 'decimal:2',
     ];
 
     public function user()

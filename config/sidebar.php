@@ -118,6 +118,13 @@ return [
                     'route' => 'admin/hr/sections',
                     'permission' => 'general',
                 ],
+                [
+                    'title' => 'Shift',
+                    'icon' => 'fa fa-clock',
+                    'route' => 'admin/hr/shifts',
+                    'permission' => 'general',
+                ],
+
             ]
         ],
     ],
@@ -238,10 +245,16 @@ return [
                     'route' => 'admin/working-hours',
                     'permission' => 'sms',
                 ],
+                // [
+                //     'title' => 'Attendance Approval',
+                //     'icon' => 'fa fa-check-circle',
+                //     'route' => 'admin/attendance-approval',
+                //     'permission' => 'sms',
+                // ],
                 [
-                    'title' => 'Attendance Approval',
-                    'icon' => 'fa fa-check-circle',
-                    'route' => 'admin/attendance-approval',
+                    'title' => 'Approval Management',
+                    'icon' => 'fa fa-check-double',
+                    'route' => 'admin/approvals',
                     'permission' => 'sms',
                 ],
                 [

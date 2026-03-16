@@ -7,15 +7,15 @@
 <div class="flex-grow-1">
 
     <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Terminations List</h5>
+        <div class="card-header d-flex justify-content-between align-items-center mb-1">
+            <h3 class="mb-0">Terminations List</h3>
             <div>
                 <a href="{{route('admin.terminations.create')}}" class="btn btn-sm btn-success"><i class="fa fa-plus"></i> Add Termination</a>
             </div>
         </div>
         <!-- Filter Section -->
-        <div class="card-body py-2">
-            <form method="GET" action="{{ route('admin.terminations.index') }}" class="row g-3">
+        <div class="card-body">
+            <form method="GET" action="{{ route('admin.terminations.index') }}" class="row g-3 mb-2" >
                 <div class="col-md-3">
                     <label for="user_id">Employee</label>
                     <select name="user_id" id="user_id" class="form-control form-control-sm">
@@ -61,8 +61,8 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Employee ID</th>
                             <th>Employee Name</th>
+                            <th>Emp ID</th>
                             <th>Department</th>
                             <th>Termination Date</th>
                             <th>Type</th>
@@ -75,21 +75,10 @@
                         @forelse($terminations as $key => $termination)
                         <tr>
                             <td>{{ $key + 1 }}</td>
+                            <td class="d-flex align-items-center">{!! $termination->user->getAvt() !!} {{ $termination->user->name ?? 'N/A' }}</td>
                             <td>{{ $termination->user->employee_id ?? 'N/A' }}</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    @if($termination->user && $termination->user->photo)
-                                        <img src="{{ asset('uploads/user_photo/' . $termination->user->photo) }}" alt="{{ $termination->user->name }}" class="rounded-circle" style="width: 35px; height: 35px; object-fit: cover; margin-right: 10px;">
-                                    @else
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white font-weight-bold" style="width: 35px; height: 35px; background-color: {{ random_color($termination->user_id ?? 0) }}; margin-right: 10px;">
-                                            {{ strtoupper(substr($termination->user->name ?? 'U', 0, 1)) }}
-                                        </div>
-                                    @endif
-                                    <span>{{ $termination->user->name ?? 'N/A' }}</span>
-                                </div>
-                            </td>
                             <td>{{ $termination->user->department->name ?? 'N/A' }}</td>
-                            <td>{{ $termination->termination_date }}</td>
+                            <td>{{ $termination->termination_date->format('d M Y') }}</td>
                             <td>
                                 <span class="badge badge-info">{{ ucfirst($termination->termination_type) }}</span>
                             </td>
@@ -103,16 +92,16 @@
                                     <span class="badge badge-danger">Rejected</span>
                                 @endif
                             </td>
-                            <td>
+                            <td class="text-center">
                                 @if($termination->status == 'pending')
-                                    <button type="button" class="btn btn-xs btn-success" data-toggle="modal" data-target="#approveModal{{ $termination->id }}"><i class="fa fa-check"></i></button>
-                                    <button type="button" class="btn btn-xs btn-danger" data-toggle="modal" data-target="#rejectModal{{ $termination->id }}"><i class="fa fa-times"></i></button>
+                                    <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#approveModal{{ $termination->id }}"><i class="fa fa-check"></i></button>
+                                    <button type="button" class="btn btn-sm btn-danger" data-toggle="modal" data-target="#rejectModal{{ $termination->id }}"><i class="fa fa-times"></i></button>
                                 @endif
-                                <a href="{{ route('admin.terminations.edit', $termination->id) }}" class="btn btn-xs btn-primary"><i class="fa fa-edit"></i></a>
+                                <a href="{{ route('admin.terminations.edit', $termination->id) }}" class="btn btn-sm btn-primary"><i class="fa fa-edit"></i></a>
                                 <form action="{{ route('admin.terminations.destroy', $termination->id) }}" method="POST" style="display:inline;">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-xs btn-danger" onclick="return confirm('Are you sure?')"><i class="fa fa-trash"></i></button>
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')"><i class="fa fa-trash"></i></button>
                                 </form>
                             </td>
                         </tr>

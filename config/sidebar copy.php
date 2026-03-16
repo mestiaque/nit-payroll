@@ -421,10 +421,16 @@ return [
             'route' => 'admin/retirement',
             'permission' => 'sms',
         ],
+        // [
+        //     'title' => 'Attendance Approval',
+        //     'icon' => 'fa fa-check-circle',
+        //     'route' => 'admin/attendance-approval',
+        //     'permission' => 'sms',
+        // ],
         [
-            'title' => 'Attendance Approval',
-            'icon' => 'fa fa-check-circle',
-            'route' => 'admin/attendance-approval',
+            'title' => 'Approval Management',
+            'icon' => 'fa fa-check-double',
+            'route' => 'admin/approvals',
             'permission' => 'sms',
         ],
         [

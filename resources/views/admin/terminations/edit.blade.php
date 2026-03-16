@@ -30,7 +30,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Termination Date <span class="text-danger">*</span></label>
-                            <input type="date" name="termination_date" class="form-control" value="{{ $termination->termination_date }}" required>
+                            <input type="date" name="termination_date" class="form-control" value="{{ $termination->termination_date->format('Y-m-d') }}" required>
                         </div>
                     </div>
                     <div class="col-md-6">

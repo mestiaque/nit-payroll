@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\ApprovalManagementController;
 use App\Http\Controllers\Admin\AssetController;
 use App\Http\Controllers\Admin\AttendanceApprovalController;
 use App\Http\Controllers\Admin\AttendanceManagementController;
@@ -115,9 +116,11 @@ Route::get('/dashboard',[AdminController::class,'dashboard'])->name('dashboard')
 Route::get('/daily-attendance',[AdminController::class,'dailyAttendance'])->name('dailyAttendance');
 Route::get('/daily-attendance-print',[AdminController::class,'dailyAttendancePrint'])->name('dailyAttendancePrint');
 Route::get('/daily-attendance-export',[AdminController::class,'dailyAttendanceExport'])->name('dailyAttendanceExport');
+Route::put('/daily-attendance/{id}/update',[AdminController::class,'dailyAttendanceUpdate'])->name('dailyAttendance.update');
 Route::any('/daily-attendance/{action}/{id?}',[AdminController::class,'dailyAttendanceAction'])->name('dailyAttendanceAction');
 Route::get('daily-attendance-department-wise', [AdminController::class, 'dailyAttendanceDepartmentWise'])->name('dailyAttendanceDepartmentWise');
 Route::get('daily-attendance-department-summary', [AdminController::class,'dailyAttendanceDepartmentSummary'])->name('dailyAttendanceDepartmentSummary');
+Route::get('daily-attendance-department-summary-print', [AdminController::class,'dailyAttendanceDepartmentSummaryPrint'])->name('dailyAttendanceDepartmentSummaryPrint');
 Route::get('live-location-tracking', [AdminController::class,'liveLocationTracking'])->name('liveLocationTracking');
 
 Route::get('/zkteco-data-import',[ZKTecoPushController::class,'import'])->name('importZkteco');
@@ -196,6 +199,7 @@ Route::get('/jobcard/print', [JobCardController::class, 'print'])->name('jobcard
 Route::get('/convenience', [ConvenienceController::class, 'index'])->name('convenience.index');
 Route::get('/convenience/create', [ConvenienceController::class, 'create'])->name('convenience.create');
 Route::post('/convenience', [ConvenienceController::class, 'store'])->name('convenience.store');
+Route::put('/convenience/{id}/payment', [ConvenienceController::class, 'markPayment'])->name('convenience.payment');
 Route::put('/convenience/{id}', [ConvenienceController::class, 'update'])->name('convenience.update');
 Route::delete('/convenience/{id}', [ConvenienceController::class, 'destroy'])->name('convenience.destroy');
 
@@ -220,9 +224,17 @@ Route::post('/attendance-approval', [AttendanceApprovalController::class, 'store
 Route::put('/attendance-approval/{id}', [AttendanceApprovalController::class, 'update'])->name('attendance-approval.update');
 Route::delete('/attendance-approval/{id}', [AttendanceApprovalController::class, 'destroy'])->name('attendance-approval.destroy');
 
+// Unified Approval Management
+Route::get('/approvals', [ApprovalManagementController::class, 'index'])->name('approvals.index');
+Route::get('/approvals/completed', [ApprovalManagementController::class, 'completed'])->name('approvals.completed');
+Route::put('/approvals/attendance/{id}/edit', [ApprovalManagementController::class, 'updateAttendanceRequest'])->name('approvals.attendance.edit');
+Route::post('/approvals/manual/{id}/send', [ApprovalManagementController::class, 'sendManualAttendanceApproval'])->name('approvals.manual.send');
+Route::put('/approvals/leave/{id}', [ApprovalManagementController::class, 'updateLeaveApproval'])->name('approvals.leave.update');
+
 // Performance
 Route::get('/performance', [PerformanceController::class, 'index'])->name('performance.index');
 Route::get('/performance/create', [PerformanceController::class, 'create'])->name('performance.create');
+Route::get('/performance/report-data', [PerformanceController::class, 'reportData'])->name('performance.report-data');
 Route::post('/performance', [PerformanceController::class, 'store'])->name('performance.store');
 Route::put('/performance/{id}', [PerformanceController::class, 'update'])->name('performance.update');
 Route::delete('/performance/{id}', [PerformanceController::class, 'destroy'])->name('performance.destroy');
@@ -323,6 +335,7 @@ Route::get('/attendance/monthly-summary-print', [AttendanceManagementController:
 Route::get('/attendance/monthly-summary-export', [AttendanceManagementController::class, 'monthlyAttendanceSummaryExport'])->name('attendance.monthly.summary.export');
 Route::get('/attendance/export', [AttendanceManagementController::class, 'attendanceExport'])->name('attendance.export');
 Route::get('/attendance/individual-report', [AttendanceManagementController::class, 'individualAttendanceReport'])->name('attendance.individual.report');
+Route::get('/attendance/individual-report-print', [AttendanceManagementController::class, 'individualAttendanceReportPrint'])->name('attendance.individual.report.print');
 Route::get('/attendance/absent-report', [AttendanceManagementController::class, 'absentReport'])->name('attendance.absent.report');
 Route::get('/attendance/invalid-report', [AttendanceManagementController::class, 'invalidAttendanceReport'])->name('attendance.invalid.report');
 
@@ -474,6 +487,9 @@ Route::post('/excel-export', [ExcelExportController::class, 'export'])->name('ex
 // Apps Setting
 Route::get('/setting/{type}',[AdminController::class,'setting'])->name('setting');
 Route::post('/setting/{type}/update',[AdminController::class,'settingUpdate'])->name('settingUpdate');
+Route::get('/loader-designs', function () {
+    return view(adminTheme().'theme-setting.loader-selector');
+})->name('loader.designs');
 
 Route::get('download/zk-installer', function () { $path = resource_path('apps/ZKTimeSyncInstaller.exe'); return response()->download($path); });
 Route::get('download/zk-installer-v2', function () { $path = resource_path('apps/ZKTimeAdmsInstaller.exe'); return response()->download($path); });

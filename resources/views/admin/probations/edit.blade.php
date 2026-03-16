@@ -8,7 +8,7 @@
 
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Edit Probation</h5>
+            <h3 class="mb-0">Edit Probation</h5>
             <a href="{{route('admin.probations.index')}}" class="btn btn-sm btn-primary"><i class="fa fa-arrow-left"></i> Back</a>
         </div>
         <div class="card-body">
@@ -36,13 +36,13 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Start Date <span class="text-danger">*</span></label>
-                            <input type="date" name="probation_start_date" class="form-control" value="{{ $probation->probation_start_date }}" required>
+                            <input type="date" name="probation_start_date" class="form-control" value="{{ optional($probation->probation_start_date)->format('Y-m-d') ?? '' }}" required>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>End Date <span class="text-danger">*</span></label>
-                            <input type="date" name="probation_end_date" class="form-control" value="{{ $probation->probation_end_date }}" required>
+                            <input type="date" name="probation_end_date" class="form-control" value="{{ optional($probation->probation_end_date)->format('Y-m-d') ?? '' }}" required>
                         </div>
                     </div>
                     <div class="col-md-12 text-right">

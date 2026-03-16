@@ -15,14 +15,17 @@ class ConvenienceController extends Controller
      */
     public function index(Request $request)
     {
-        $requests = ConvenienceRequest::with('user')
-            ->when($request->status, function($q) use ($request) {
-                $q->where('status', $request->status);
-            })
+        $pendingRequests = ConvenienceRequest::with('user')
+            ->where('status', 'pending')
             ->orderBy('created_at', 'desc')
             ->get();
-        
-        return view('admin.convenience.index', compact('requests'));
+
+        $completeRequests = ConvenienceRequest::with('user')
+            ->whereIn('status', ['approved', 'rejected'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('admin.convenience.index', compact('pendingRequests', 'completeRequests'));
     }
 
     /**
@@ -64,18 +67,23 @@ class ConvenienceController extends Controller
     {
         $request->validate([
             'status' => 'required|in:approved,rejected',
-            'admin_remark' => 'nullable',
+            'admin_remark' => 'nullable|required_if:status,rejected|string|max:1000',
         ]);
 
         $convenience = ConvenienceRequest::findOrFail($id);
+        $paymentStatus = $convenience->payment_status;
+        if ($request->status === 'approved' && !$paymentStatus) {
+            $paymentStatus = 'unpaid';
+        }
         $convenience->update([
             'status' => $request->status,
             'admin_remark' => $request->admin_remark,
+            'payment_status' => $paymentStatus,
             'approved_by' => auth()->id(),
             'approved_at' => Carbon::now(),
         ]);
 
-        return redirect()->route('admin.convenience.index')->with('success', 'Request updated successfully');
+        return back()->with('success', 'Request updated successfully');
     }
 
     /**
@@ -85,5 +93,32 @@ class ConvenienceController extends Controller
     {
         ConvenienceRequest::findOrFail($id)->delete();
         return redirect()->route('admin.convenience.index')->with('success', 'Request deleted successfully');
+    }
+
+    /**
+     * Mark approved convenience request as paid.
+     */
+    public function markPayment(Request $request, $id)
+    {
+        $request->validate([
+            'payment_method' => 'required|in:cash,bank,mobile_banking',
+            'payment_note' => 'nullable|string|max:1000',
+        ]);
+
+        $convenience = ConvenienceRequest::findOrFail($id);
+
+        if ($convenience->status !== 'approved') {
+            return back()->with('error', 'Only approved requests can be marked as paid.');
+        }
+
+        $convenience->update([
+            'payment_status' => 'paid',
+            'payment_method' => $request->payment_method,
+            'payment_note' => $request->payment_note,
+            'paid_by' => auth()->id(),
+            'paid_at' => Carbon::now(),
+        ]);
+
+        return back()->with('success', 'Convenience request marked as paid.');
     }
 }

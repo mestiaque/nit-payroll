@@ -8,7 +8,7 @@
 
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Add Probation</h5>
+            <h3 class="mb-0">Add Probation</h5>
             <a href="{{route('admin.probations.index')}}" class="btn btn-sm btn-primary"><i class="fa fa-arrow-left"></i> Back</a>
         </div>
         <div class="card-body">

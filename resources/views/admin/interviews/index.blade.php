@@ -7,11 +7,9 @@
 <div class="flex-grow-1">
 
     <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Interviews List</h5>
-            <div>
-                <a href="{{route('admin.interviews.create')}}" class="btn btn-sm btn-success"><i class="fa fa-plus"></i> Schedule Interview</a>
-            </div>
+        <div class="card-header d-flex justify-content-between align-items-center mb-1">
+            <h3 class="mb-0">Interviews List</h3>
+            <a href="{{route('admin.interviews.create')}}" class="btn btn-sm btn-success"><i class="fa fa-plus"></i> Schedule Interview</a>
         </div>
         <!-- Filter Section -->
         <div class="card-body py-2">
@@ -50,7 +48,7 @@
                         <option value="on_hold" {{ request('status') == 'on_hold' ? 'selected' : '' }}>On Hold</option>
                     </select>
                 </div>
-                <div class="col-md-12 text-right adjustments">
+                <div class="col-md-2 text-right align-self-end">
                     <button type="submit" class="btn btn-sm btn-primary"><i class="fa fa-filter"></i> Filter</button>
                     <a href="{{ route('admin.interviews.index') }}" class="btn btn-sm btn-secondary"><i class="fa fa-times"></i> Reset</a>
                 </div>
@@ -100,12 +98,12 @@
                                 @endif
                             </td>
                             <td>
-                                <button type="button" class="btn btn-xs btn-info" data-toggle="modal" data-target="#statusModal{{ $interview->id }}"><i class="fa fa-edit"></i></button>
-                                <a href="{{ route('admin.interviews.edit', $interview->id) }}" class="btn btn-xs btn-primary"><i class="fa fa-edit"></i></a>
+                                <button type="button" title="" class="btn btn-sm btn-info" data-toggle="modal" data-target="#statusModal{{ $interview->id }}"><i class="fa fa-info-circle"></i></button>
+                                <a href="{{ route('admin.interviews.edit', $interview->id) }}" class="btn btn-sm btn-primary"><i class="fa fa-edit"></i></a>
                                 <form action="{{ route('admin.interviews.destroy', $interview->id) }}" method="POST" style="display:inline;">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-xs btn-danger" onclick="return confirm('Are you sure?')"><i class="fa fa-trash"></i></button>
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')"><i class="fa fa-trash"></i></button>
                                 </form>
                             </td>
                         </tr>

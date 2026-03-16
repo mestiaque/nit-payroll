@@ -71,6 +71,8 @@ class PayrollManagementController extends Controller
         $request->validate([
             'month' => 'required|integer|min:1|max:12',
             'year' => 'required|integer|min:2020',
+            'attendance_start_date' => 'nullable|date',
+            'attendance_end_date' => 'nullable|date|after_or_equal:attendance_start_date',
         ]);
 
         $month = $request->month;
@@ -94,13 +96,23 @@ class PayrollManagementController extends Controller
             return back()->with('error', 'Salary for this month already processed. Enable reprocess to update.');
         }
 
-        $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
-        $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
+        $defaultStartDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
+        $defaultEndDate = Carbon::createFromDate($year, $month, 1)->endOfMonth();
 
-        // For current month, only count up to today
-        $actualEndDate = $endDate;
-        if ($isCurrentMonth) {
-            $actualEndDate = $today;
+        // For current month, default range ends at today.
+        $defaultActualEndDate = $isCurrentMonth ? $today->copy() : $defaultEndDate->copy();
+
+        // Allow custom attendance range from salary sheet page.
+        $startDate = $request->attendance_start_date
+            ? Carbon::parse($request->attendance_start_date)->startOfDay()
+            : $defaultStartDate->copy();
+
+        $actualEndDate = $request->attendance_end_date
+            ? Carbon::parse($request->attendance_end_date)->endOfDay()
+            : $defaultActualEndDate->copy();
+
+        if ($startDate->gt($actualEndDate)) {
+            return back()->with('error', 'Attendance start date must be before or equal to end date.');
         }
 
         // Calculate working days (up to actual end date)
@@ -170,14 +182,39 @@ class PayrollManagementController extends Controller
 
                 // Get attendance for the month
                 // Use centralized function for accurate attendance calculation
-                $attendanceSummary = getMonthlyAttendanceSummary($employee->id, $year, $month);
+                if ($request->attendance_start_date || $request->attendance_end_date) {
+                    $attendances = Attendance::where('user_id', $employee->id)
+                        ->whereBetween('date', [$startDate->format('Y-m-d'), $actualEndDate->format('Y-m-d')])
+                        ->get();
 
-                $presentDays = $attendanceSummary['present'];
-                $lateDays = $attendanceSummary['late'];
-                $leaveDays = $attendanceSummary['leave'];
-                $holidayDays = $attendanceSummary['holiday'];
-                $weeklyOffDays = $attendanceSummary['weekly_off'];
-                $absentDays = $attendanceSummary['absent'];
+                    $presentDays = $attendances->filter(function ($a) {
+                        return strtolower((string) $a->status) === 'present';
+                    })->count();
+                    $lateDays = $attendances->filter(function ($a) {
+                        return strtolower((string) $a->status) === 'late';
+                    })->count();
+                    $leaveDays = $attendances->filter(function ($a) {
+                        return strtolower((string) $a->status) === 'leave';
+                    })->count();
+                    $holidayDays = $attendances->filter(function ($a) {
+                        return strtolower((string) $a->status) === 'holiday';
+                    })->count();
+                    $weeklyOffDays = $attendances->filter(function ($a) {
+                        return strtolower((string) $a->status) === 'weekly_off';
+                    })->count();
+                    $attendanceSummary = [
+                        'days_counted' => $startDate->copy()->startOfDay()->diffInDays($actualEndDate->copy()->startOfDay()) + 1,
+                    ];
+                } else {
+                    $attendanceSummary = getMonthlyAttendanceSummary($employee->id, $year, $month);
+                    $presentDays = $attendanceSummary['present'];
+                    $lateDays = $attendanceSummary['late'];
+                    $leaveDays = $attendanceSummary['leave'];
+                    $holidayDays = $attendanceSummary['holiday'];
+                    $weeklyOffDays = $attendanceSummary['weekly_off'];
+                }
+
+                $absentDays = $attendanceSummary['absent'] ?? 0;
 
                 // ============ NEW LOGIC ============
                 // Holiday + Weekend = treated as paid days (like present)

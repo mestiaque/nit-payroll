@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\AttendanceApproval;
 use App\Models\AttendanceMachineLog;
 use App\Models\Attribute;
 use App\Models\Holiday;
@@ -388,64 +389,56 @@ class AttendanceManagementController extends Controller
                 $firstPunch = $logs->first();
                 $lastPunch = $logs->last();
 
-                $user = User::find($userId);
+                $user = User::with('shift')->find($userId);
                 if (!$user) continue;
 
-                // Get roaster for the day
-                $roaster = Roaster::where('user_id', $userId)
-                    ->where('roster_date', $date)
-                    ->first();
-
-                $shiftInTime = $roaster ? $roaster->in_time : '09:00:00';
-                $shiftOutTime = $roaster ? $roaster->out_time : '17:00:00';
-
-                $inTime = Carbon::parse($date . ' ' . $firstPunch->punch_time);
+                $inTime  = Carbon::parse($date . ' ' . $firstPunch->punch_time);
                 $outTime = $logs->count() > 1 ? Carbon::parse($date . ' ' . $lastPunch->punch_time) : null;
 
-                // Calculate late
-                $shiftStart = Carbon::parse($date . ' ' . $shiftInTime);
-                $lateMinutes = $inTime->greaterThan($shiftStart) ? $inTime->diffInMinutes($shiftStart) : 0;
+                // Attendance model er computeFromShift() diye shift apply kore sab calculate kori
+                $tempAtt           = new Attendance();
+                $tempAtt->in_time  = $inTime;
+                $tempAtt->out_time = $outTime;
 
-                // Calculate early out
-                $shiftEnd = Carbon::parse($date . ' ' . $shiftOutTime);
-                $earlyOutMinutes = $outTime && $outTime->lessThan($shiftEnd) ? $shiftEnd->diffInMinutes($outTime) : 0;
-
-                // Calculate work hours
-                $workHours = $outTime ? $inTime->diffInHours($outTime, true) : 0;
-
-                // Calculate overtime
-                $standardHours = 8;
-                $overtime = $workHours > $standardHours ? $workHours - $standardHours : 0;
-
-                // Determine status
-                $status = 'present';
-                if ($lateMinutes > 0) {
-                    $status = 'late';
+                if ($user->shift) {
+                    $tempAtt->computeFromShift($user->shift);
+                } else {
+                    // Shift configured na thakle basic fallback
+                    $wm = $outTime ? (int) $inTime->diffInMinutes($outTime) : 0;
+                    $tempAtt->attributes['in_minutes']       = $wm;
+                    $tempAtt->attributes['work_hour']        = round($wm / 60, 2);
+                    $tempAtt->attributes['late_time']        = 0;
+                    $tempAtt->attributes['early_out']        = 0;
+                    $tempAtt->attributes['overtime_minutes'] = 0;
+                    $tempAtt->attributes['overtime']         = 0;
+                    $tempAtt->attributes['status']           = 'present';
                 }
 
-                // Create or update attendance
+                // Computed values diye attendance save kori
                 Attendance::updateOrCreate(
                     [
                         'user_id' => $userId,
-                        'date' => $date,
+                        'date'    => $date,
                     ],
                     [
-                        'in_time' => $inTime->format('H:i:s'),
-                        'out_time' => $outTime ? $outTime->format('H:i:s') : null,
-                        'work_hour' => $workHours,
-                        'late_time' => $lateMinutes,
-                        'early_out' => $earlyOutMinutes,
-                        'overtime' => $overtime,
-                        'status' => $status,
+                        'in_time'          => $inTime->format('H:i:s'),
+                        'out_time'         => $outTime ? $outTime->format('H:i:s') : null,
+                        'in_minutes'       => $tempAtt->attributes['in_minutes'],
+                        'work_hour'        => $tempAtt->attributes['work_hour'],
+                        'late_time'        => $tempAtt->attributes['late_time'],
+                        'early_out'        => $tempAtt->attributes['early_out'],
+                        'overtime_minutes' => $tempAtt->attributes['overtime_minutes'],
+                        'overtime'         => $tempAtt->attributes['overtime'],
+                        'status'           => strtolower($tempAtt->attributes['status']),
                     ]
                 );
 
                 $processedData[] = [
-                    'user' => $user,
-                    'in_time' => $inTime,
-                    'out_time' => $outTime,
-                    'late_minutes' => $lateMinutes,
-                    'work_hours' => $workHours,
+                    'user'         => $user,
+                    'in_time'      => $inTime,
+                    'out_time'     => $outTime,
+                    'late_minutes' => $tempAtt->attributes['late_time'],
+                    'work_hours'   => $tempAtt->attributes['work_hour'],
                 ];
             }
 
@@ -581,7 +574,7 @@ class AttendanceManagementController extends Controller
                 'leave' => $attendances->where('status', 'leave')->count(),
                 'weekly_off' => $attendances->where('status', 'weekly_off')->count(),
                 'holiday' => $attendances->where('status', 'holiday')->count(),
-                'total_work_hours' => $attendances->sum('work_hour'),
+                'total_work_hours' => round($attendances->sum('in_minutes') / 60, 2),
                 'total_overtime' => $attendances->sum('overtime'),
             ];
 
@@ -602,7 +595,7 @@ class AttendanceManagementController extends Controller
                     'late' => $attendances->where('status', 'late')->count(),
                     'absent' => $attendances->where('status', 'absent')->count(),
                     'leave' => $attendances->where('status', 'leave')->count(),
-                    'work_hours' => $attendances->sum('work_hour'),
+                    'work_hours' => round($attendances->sum('in_minutes') / 60, 2),
                     'overtime' => $attendances->sum('overtime'),
                 ];
             }
@@ -1135,7 +1128,200 @@ class AttendanceManagementController extends Controller
         $startDate = Carbon::parse($month)->startOfMonth();
         $endDate = Carbon::parse($month)->endOfMonth();
 
-        // Get all employees for dropdown
+        // Use same employee source as monthly summary for consistent results
+        $employees = User::filterBy('employee')
+            ->whereIn('status', [0, 1])
+            ->orderBy('employee_id')
+            ->get();
+
+        $employee = null;
+        $dailyData = [];
+        $summary = null;
+        $gridData = null;
+        $totalWorkingHours = null;
+        $totalLateMinutes = null;
+        $totalOvertime = null;
+
+        if ($employee_id) {
+            $employee = User::with(['department', 'designation', 'shift'])->findOrFail($employee_id);
+
+            // Fetch attendance records by both date and in_time for robust time details.
+            $attendanceRecords = Attendance::where('user_id', $employee_id)
+                ->where(function ($query) use ($startDate, $endDate) {
+                    $query->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                        ->orWhere(function ($q) use ($startDate, $endDate) {
+                            $q->whereNotNull('in_time')
+                              ->whereDate('in_time', '>=', $startDate->format('Y-m-d'))
+                              ->whereDate('in_time', '<=', $endDate->format('Y-m-d'));
+                        });
+                })
+                ->orderBy('date')
+                ->orderBy('in_time')
+                ->get()
+                ->groupBy(function ($item) {
+                    if (!empty($item->date)) {
+                        return Carbon::parse($item->date)->format('Y-m-d');
+                    }
+
+                    return $item->in_time ? Carbon::parse($item->in_time)->format('Y-m-d') : null;
+                });
+
+            // Build date range
+            $dateRange = [];
+            $currentDate = $startDate->copy();
+            while ($currentDate->lte($endDate)) {
+                $dateRange[] = $currentDate->copy();
+                $currentDate->addDay();
+            }
+
+            $gridData = [
+                'dateRange' => $dateRange,
+                'daily_data' => [],
+                'present_count' => 0,
+                'absent_count' => 0,
+                'late_count' => 0,
+                'leave_count' => 0,
+                'holiday_count' => 0,
+                'incomplete_count' => 0,
+            ];
+
+            foreach ($dateRange as $date) {
+                $dateStr = $date->format('Y-m-d');
+
+                // Use the same function as monthly summary for consistency
+                $statusData = $employee->getAttendanceStatusByDate($dateStr);
+                $status = $statusData['status'];
+                $statusClass = $statusData['class'];
+                $label = $statusData['label'];
+
+                $attendance = $attendanceRecords->get($dateStr)?->first();
+
+                $inTime = '-';
+                $outTime = '-';
+                if ($attendance && $attendance->in_time) {
+                    $inTime = Carbon::parse($attendance->in_time)->format('H:i');
+                }
+                if ($attendance && $attendance->out_time) {
+                    $outTime = Carbon::parse($attendance->out_time)->format('H:i');
+                }
+
+                $workingHours = '-';
+                $lateMinutes = 0;
+                $overtimeHours = null;
+
+                if ($attendance) {
+                    // Shift apply kore model theke calculate kori (same logic everywhere)
+                    $displayVals   = $attendance->getDisplayValues($employee->shift ?? null);
+                    $hasInAndOut   = !empty($attendance->in_time) && !empty($attendance->out_time);
+                    $workingHours  = $hasInAndOut ? round((float) $displayVals['working_hours'], 2) : '-';
+                    $lateMinutes   = $displayVals['late_minutes'];
+                    $overtimeHours = $displayVals['overtime'] > 0 ? $displayVals['overtime'] : null;
+                }
+
+                $detailStatus = $label;
+                if ($status === 'late') {
+                    $detailStatus = 'LT';
+                } elseif ($status === 'offday') {
+                    $detailStatus = 'WO';
+                }
+
+                $dailyData[] = [
+                    'date' => $date,
+                    'day' => $date->format('j'),
+                    'day_name' => $date->format('D'),
+                    'status' => $detailStatus,
+                    'status_class' => $statusClass,
+                    'in_time' => $inTime,
+                    'out_time' => $outTime,
+                    'working_hours' => $workingHours,
+                    'late_minutes' => $lateMinutes,
+                    'overtime' => $overtimeHours,
+                ];
+
+                $gridData['daily_data'][] = [
+                    'date' => $date,
+                    'status' => $label,
+                    'status_class' => $statusClass,
+                ];
+
+                // Count based on status (same as monthly summary)
+                switch ($status) {
+                    case 'present':
+                        $gridData['present_count']++;
+                        break;
+                    case 'late':
+                        $gridData['late_count']++;
+                        break;
+                    case 'absent':
+                        $gridData['absent_count']++;
+                        break;
+                    case 'leave':
+                        $gridData['leave_count']++;
+                        break;
+                    case 'holiday':
+                    case 'offday':
+                    case 'weekly_off':
+                        // Combine holiday and weekly_off as H for summary display
+                        $gridData['holiday_count']++;
+                        break;
+                    case 'incomplete':
+                        $gridData['incomplete_count']++;
+                        break;
+                }
+            }
+
+            $summary = [
+                'present' => $gridData['present_count'],
+                'late' => $gridData['late_count'],
+                'absent' => $gridData['absent_count'],
+                'leave' => $gridData['leave_count'],
+                'holiday' => $gridData['holiday_count'],
+                'total' => count($dateRange),
+            ];
+
+            // Calculate totals
+            $totalWorkingHours = 0;
+            $totalLateMinutes = 0;
+            $totalOvertime = 0;
+
+            foreach ($attendanceRecords as $dateKey => $dayAttendances) {
+                foreach ($dayAttendances as $att) {
+                    // Same model method diye compute kori — show ar total same logic
+                    $dv = $att->getDisplayValues($employee->shift ?? null);
+                    $totalWorkingHours += $dv['working_hours'];
+                    $totalLateMinutes  += $dv['late_minutes'];
+                    $totalOvertime     += $dv['overtime'];
+                }
+            }
+        }
+
+        return view(adminTheme().'attendance.individual_report', compact(
+            'employee',
+            'employees',
+            'employee_id',
+            'month',
+            'dailyData',
+            'gridData',
+            'summary',
+            'totalWorkingHours',
+            'totalLateMinutes',
+            'totalOvertime',
+            'startDate',
+            'endDate'
+        ));
+    }
+
+    /**
+     * Print Individual Attendance Report
+     */
+    public function individualAttendanceReportPrint(Request $request)
+    {
+        $employee_id = $request->employee_id;
+        $month = $request->month ?? Carbon::now()->format('Y-m');
+
+        $startDate = Carbon::parse($month)->startOfMonth();
+        $endDate = Carbon::parse($month)->endOfMonth();
+
         $employees = User::where('customer', 1)
             ->where('employee_status', 'active')
             ->orderBy('name')
@@ -1144,11 +1330,11 @@ class AttendanceManagementController extends Controller
         $employee = null;
         $dailyData = [];
         $summary = null;
+        $gridData = null;
 
         if ($employee_id) {
             $employee = User::with(['department', 'designation'])->findOrFail($employee_id);
 
-            // Get holidays
             $holidays = Holiday::where('status', 'active')
                 ->whereDate('from_date', '<=', $endDate->format('Y-m-d'))
                 ->whereDate('to_date', '>=', $startDate->format('Y-m-d'))
@@ -1164,11 +1350,9 @@ class AttendanceManagementController extends Controller
                 }
             }
 
-            // Get weekly offday
             $offdaySetting = Attribute::where('type', 21)->where('status', 'active')->first();
             $offdayNumber = $offdaySetting ? array_search($offdaySetting->name, ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']) : 5;
 
-            // Get leaves
             $leaves = Leave::where('user_id', $employee_id)
                 ->where('status', 'approved')
                 ->where(function($q) use ($startDate, $endDate) {
@@ -1181,7 +1365,6 @@ class AttendanceManagementController extends Controller
                 })
                 ->get();
 
-            // Get attendance records
             $attendances = Attendance::where('user_id', $employee_id)
                 ->whereDate('in_time', '>=', $startDate->format('Y-m-d'))
                 ->whereDate('in_time', '<=', $endDate->format('Y-m-d'))
@@ -1190,7 +1373,6 @@ class AttendanceManagementController extends Controller
                     return Carbon::parse($item->in_time)->format('Y-m-d');
                 });
 
-            // Build date range
             $dateRange = [];
             $currentDate = $startDate->copy();
             while ($currentDate->lte($endDate)) {
@@ -1198,7 +1380,6 @@ class AttendanceManagementController extends Controller
                 $currentDate->addDay();
             }
 
-            // Calculate daily data
             $presentCount = 0;
             $absentCount = 0;
             $leaveCount = 0;
@@ -1209,16 +1390,13 @@ class AttendanceManagementController extends Controller
                 $dateStr = $date->format('Y-m-d');
                 $dayOfWeek = $date->dayOfWeek;
 
-                // Check holiday
                 $isHoliday = isset($holidayDates[$dateStr]);
                 $isWeeklyOff = ($dayOfWeek == $offdayNumber);
 
-                // Check leave
                 $leave = $leaves->filter(function($l) use ($date) {
                     return $date->between($l->start_date, $l->end_date);
                 })->first();
 
-                // Get attendance
                 $attendance = $attendances->get($dateStr)?->first();
 
                 $status = '';
@@ -1237,7 +1415,6 @@ class AttendanceManagementController extends Controller
                         $presentCount++;
                         if ($attendance->status == 'late') $lateCount++;
 
-                        // Get times
                         if ($attendance->in_time) {
                             $inTime = is_string($attendance->in_time) ?
                                 substr($attendance->in_time, 0, 5) :
@@ -1262,7 +1439,7 @@ class AttendanceManagementController extends Controller
                     $statusClass = 'holiday';
                     $holidayCount++;
                 } elseif ($isWeeklyOff) {
-                    $status = 'WO';
+                    $status = 'H';
                     $statusClass = 'holiday';
                     $holidayCount++;
                 } else {
@@ -1279,6 +1456,9 @@ class AttendanceManagementController extends Controller
                     'status_class' => $statusClass,
                     'in_time' => $inTime,
                     'out_time' => $outTime,
+                    'working_hours' => ($attendance && $attendance->working_hour) ? $attendance->working_hour : '-',
+                    'late_minutes' => ($attendance && $attendance->late_minutes) ? $attendance->late_minutes : 0,
+                    'overtime' => ($attendance && $attendance->overtime_hour) ? $attendance->overtime_hour : null,
                 ];
             }
 
@@ -1290,15 +1470,86 @@ class AttendanceManagementController extends Controller
                 'holiday' => $holidayCount,
                 'total' => count($dateRange),
             ];
+            
+            // Build grid data
+            $gridData = [
+                'dateRange' => $dateRange,
+                'daily_data' => [],
+                'present_count' => 0,
+                'absent_count' => 0,
+                'late_count' => 0,
+                'leave_count' => 0,
+                'holiday_count' => 0,
+                'incomplete_count' => 0,
+            ];
+            
+            foreach ($dateRange as $date) {
+                $dateStr = $date->format('Y-m-d');
+                $statusData = $employee->getAttendanceStatusByDate($dateStr);
+                $status = $statusData['status'];
+                $statusClass = $statusData['class'];
+                $label = $statusData['label'];
+                
+                $gridData['daily_data'][] = [
+                    'date' => $date,
+                    'status' => $label,
+                    'status_class' => $statusClass,
+                ];
+                
+                switch ($status) {
+                    case 'present':
+                        $gridData['present_count']++;
+                        break;
+                    case 'late':
+                        $gridData['late_count']++;
+                        break;
+                    case 'absent':
+                        $gridData['absent_count']++;
+                        break;
+                    case 'leave':
+                        $gridData['leave_count']++;
+                        break;
+                    case 'holiday':
+                    case 'offday':
+                    case 'weekly_off':
+                        $gridData['holiday_count']++;
+                        break;
+                    case 'incomplete':
+                        $gridData['incomplete_count']++;
+                        break;
+                }
+            }
+            
+            $totalWorkingHours = 0;
+            $totalLateMinutes = 0;
+            $totalOvertime = 0;
+            
+            foreach ($attendances as $dateKey => $dayAttendances) {
+                foreach ($dayAttendances as $att) {
+                    if ($att->working_hour) {
+                        $totalWorkingHours += floatval($att->working_hour);
+                    }
+                    if ($att->late_minutes) {
+                        $totalLateMinutes += intval($att->late_minutes);
+                    }
+                    if ($att->overtime_hour) {
+                        $totalOvertime += floatval($att->overtime_hour);
+                    }
+                }
+            }
         }
 
-        return view(adminTheme().'attendance.individual_report', compact(
+        return view(adminTheme().'attendance.individual_report_print', compact(
             'employee',
             'employees',
             'employee_id',
             'month',
             'dailyData',
+            'gridData',
             'summary',
+            'totalWorkingHours',
+            'totalLateMinutes',
+            'totalOvertime',
             'startDate',
             'endDate'
         ));
@@ -1361,6 +1612,8 @@ class AttendanceManagementController extends Controller
      */
     public function manualIndex(Request $request)
     {
+        $selectedDate = $request->date ?? Carbon::today()->format('Y-m-d');
+
         $query = Attendance::with('user')->where('via', '2');
         if ($request->user_id) {
             $query->where('user_id', $request->user_id);
@@ -1373,10 +1626,35 @@ class AttendanceManagementController extends Controller
         if ($request->date) {
             $query->where('date', $request->date);
         }
+
         $attendances = $query->orderBy('date', 'desc')->paginate(2);
+
         $employees = User::where('status', 1)->filterBy('employee')->get();
         $departments = Attribute::where('type', 3)->where('status', 'active')->get();
-        return view('admin.attendance.manual_index', compact('attendances', 'employees', 'departments'));
+
+        $attendanceUserIds = Attendance::whereDate('date', $selectedDate)->pluck('user_id');
+        $approvedLeaveUserIds = Leave::where('status', 'approved')
+            ->whereDate('start_date', '<=', $selectedDate)
+            ->whereDate('end_date', '>=', $selectedDate)
+            ->pluck('user_id');
+        $pendingApprovalUserIds = AttendanceApproval::whereDate('attendance_date', $selectedDate)
+            ->where('status', 'pending')
+            ->pluck('user_id');
+
+        $blockedUserIds = $attendanceUserIds
+            ->merge($approvedLeaveUserIds)
+            ->merge($pendingApprovalUserIds)
+            ->unique()
+            ->values();
+
+        $absentEmployees = User::where('status', 1)
+            ->filterBy('employee')
+            ->whereNotIn('id', $blockedUserIds)
+            ->with('department')
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.attendance.manual_index', compact('attendances', 'employees', 'departments', 'absentEmployees', 'selectedDate'));
     }
 
     /**
@@ -1401,36 +1679,35 @@ class AttendanceManagementController extends Controller
             'remarks' => 'nullable|string',
         ]);
 
-        $user = User::with('shift')->findOrFail($request->user_id);
-        $shift = $user->shift;
-
-        $inTime = Carbon::parse($request->date . ' ' . $request->in_time, 'Asia/Dhaka');
-        $outTime = Carbon::parse($request->date . ' ' . $request->out_time, 'Asia/Dhaka');
-
-        // Check if attendance already exists for this user on this date
         $attendance = Attendance::where('user_id', $request->user_id)
             ->where('date', $request->date)
             ->first();
 
-        if (!$attendance) {
-            $attendance = new Attendance();
-            $attendance->user_id = $request->user_id;
-            $attendance->date = $request->date;
-            $attendance->via = '2';
-            $attendance->device_sn = 'Manual';
-            $attendance->verify_type = 'Manual_Entry';
+        if ($attendance) {
+            return redirect()->route('admin.attendance.manual.index')->with('error', 'Attendance already exists for this employee on selected date.');
         }
 
-        $attendance->in_time = $inTime;
-        $attendance->out_time = $outTime;
-        $attendance->remarks = $request->remarks;
+        $pendingApproval = AttendanceApproval::where('user_id', $request->user_id)
+            ->whereDate('attendance_date', $request->date)
+            ->where('status', 'pending')
+            ->exists();
 
-        // Apply shift logic
-        $this->applyShiftLogic($attendance, $shift);
+        if ($pendingApproval) {
+            return redirect()->route('admin.attendance.manual.index')->with('error', 'A pending approval request already exists for this employee on selected date.');
+        }
 
-        $attendance->save();
+        AttendanceApproval::create([
+            'user_id' => $request->user_id,
+            'attendance_date' => $request->date,
+            'in_time' => Carbon::parse($request->date . ' ' . $request->in_time, 'Asia/Dhaka'),
+            'out_time' => Carbon::parse($request->date . ' ' . $request->out_time, 'Asia/Dhaka'),
+            'original_status' => 'Absent',
+            'requested_status' => 'Present',
+            'reason' => 'Manual attendance request' . ($request->remarks ? ': ' . $request->remarks : ''),
+            'status' => 'pending',
+        ]);
 
-        return redirect()->route('admin.attendance.manual.index')->with('success', 'Attendance created successfully.');
+        return redirect()->route('admin.attendance.manual.index')->with('success', 'Attendance request submitted for approval. It will be counted after approval.');
     }
 
     /**
@@ -1453,26 +1730,34 @@ class AttendanceManagementController extends Controller
             'date' => 'required|date',
             'in_time' => 'required',
             'out_time' => 'required',
+            'remarks' => 'nullable|string',
         ]);
 
-        $user = User::with('shift')->findOrFail($request->user_id);
-        $shift = $user->shift;
-
-        $inTime = Carbon::parse($request->date . ' ' . $request->in_time, 'Asia/Dhaka');
-        $outTime = Carbon::parse($request->date . ' ' . $request->out_time, 'Asia/Dhaka');
-
         $attendance = Attendance::findOrFail($id);
-        $attendance->user_id = $request->user_id;
-        $attendance->date = $request->date;
-        $attendance->in_time = $inTime;
-        $attendance->out_time = $outTime;
 
-        // Apply shift logic
-        $this->applyShiftLogic($attendance, $shift);
+        $approval = AttendanceApproval::where('user_id', $attendance->user_id)
+            ->whereDate('attendance_date', $request->date)
+            ->where('status', 'pending')
+            ->first();
 
-        $attendance->save();
+        $payload = [
+            'user_id' => $attendance->user_id,
+            'attendance_date' => $request->date,
+            'in_time' => Carbon::parse($request->date . ' ' . $request->in_time, 'Asia/Dhaka'),
+            'out_time' => Carbon::parse($request->date . ' ' . $request->out_time, 'Asia/Dhaka'),
+            'original_status' => $attendance->status,
+            'requested_status' => $attendance->status ?: 'Present',
+            'reason' => 'Manual attendance edit request' . ($request->remarks ? ': ' . $request->remarks : ''),
+            'status' => 'pending',
+        ];
 
-        return redirect()->route('admin.attendance.manual.index')->with('success', 'Attendance updated successfully.');
+        if ($approval) {
+            $approval->update($payload);
+        } else {
+            AttendanceApproval::create($payload);
+        }
+
+        return redirect()->route('admin.attendance.manual.index')->with('success', 'Attendance edit request submitted for approval. Attendance will update after approval.');
     }
 
     /**
