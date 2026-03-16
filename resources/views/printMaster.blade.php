@@ -117,9 +117,11 @@
             body { margin: 1mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .container { padding: 0; margin-top: 0rem; width: 100%; }
             .company-name { font-size: 28px !important; }
+            .sig .signature-box{ page-break-inside: avoid; }
         }
     </style>
     @stack('css')
+    @include('components.loader')
 </head>
 <body>
     <div class="no-print fixed-top">
@@ -177,6 +179,5 @@
         </div>
     </div>
     @stack('js')
-    @include('components.loader')
 </body>
 </html>
