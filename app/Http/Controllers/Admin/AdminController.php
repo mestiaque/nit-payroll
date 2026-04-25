@@ -614,6 +614,7 @@ class AdminController extends Controller
                 $finalData->push([
                     'attendance_id' => null,
                     'id'            => $user->id,
+                    'avatar'        => $user->getAvt(),
                     'employee_id'   => $user->employee_id,
                     'name'          => $user->name,
                     'designation'   => $user->designation?->name ?? '--',
@@ -1320,7 +1321,7 @@ class AdminController extends Controller
 
                     // Check if it's a holiday
                     $isHoliday = in_array($date->format('Y-m-d'), $holidayDates);
-                    
+
                     // Check if it's weekly off
                     $isWeeklyOff = ($date->dayOfWeek == $offdayNumber);
 

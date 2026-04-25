@@ -12,12 +12,7 @@
 <div class="flex-grow-1">
     @include(adminTheme().'alerts')
     <!-- Filters -->
-    <div class="attendance-filters pt-0">
-        <form action="{{ route('admin.dailyAttendance') }}" method="GET" class="row g-3 align-items-end">
-
-
-                <!-- Stats -->
-            <div class="row mb-3 w-100">
+                <div class="row  mb-3 w-100">
                 {{-- Employees --}}
                 <div class="col-md-3">
                     <div class="card shadow-sm border-0" style="background: #007bff38">
@@ -82,9 +77,14 @@
                     </div>
                 </div>
             </div>
+    <div class="attendance-filters pt-0">
+        <form action="{{ route('admin.dailyAttendance') }}" method="GET" class="row g-3 align-items-end">
 
 
-            <hr class="text-muted">
+                <!-- Stats -->
+
+
+
 
             <div class="col-md-2">
                 <label for="startDate" class="form-label mb-0">Start Date</label>
@@ -150,6 +150,7 @@
                 <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-search"></i> Search</button>
                 <a href="{{ route('admin.dailyAttendance') }}" class="btn btn-warning btn-sm"><i class="bx bx-rotate-left"></i> Reset</a>
             </div>
+
             <div class=" text-end col-md-3 offset-md-3 text-right">
                 <a href="{{ route('admin.dailyAttendanceExport', request()->query()) }}" target="_blank" class="btn btn-success btn-sm">
                     <i class="bx bx-file"></i> Export Excel
@@ -179,7 +180,7 @@
                         <tr>
                             <th>SL</th>
                             <th>Name</th>
-                            <th>ID</th>
+                            <th>Emp. ID</th>
                             <th>Designation</th>
                             <th>Department</th>
                             <th>Employee Type</th>
@@ -196,7 +197,9 @@
                         @forelse($finalData as $key => $row)
                         <tr>
                             <td>{{ $key + 1 }}</td>
-                            <td>{{ $row['name'] }}</td>
+                            <td class="d-flex align-items-center gap-2">
+                                {!! $row['avatar'] !!}
+                                {{ $row['name'] }}</td>
                             <td>{{ $row['employee_id'] ?? '--' }}</td>
                             <td>{{ $row['designation'] ?? '--' }}</td>
                             <td>{{ $row['department'] ?? '--' }}</td>
