@@ -374,7 +374,7 @@ return [
                 [
                     'title' => 'Job Card',
                     'icon' => 'fa fa-id-card',
-                    'route' => 'jobcard.index',
+                    'route' => 'admin/jobcard',
                     'permission' => 'attendance_report',
                 ]
             ]

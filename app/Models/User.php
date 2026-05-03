@@ -286,6 +286,9 @@ class User extends Authenticatable
     public function divitionN(){
         return $this->belongsTo(Country::class,'division');
     }
+    public function divisionN(){
+        return $this->belongsTo(Country::class,'division');
+    }
 
     public function districtN(){
         return $this->belongsTo(Country::class,'district');
