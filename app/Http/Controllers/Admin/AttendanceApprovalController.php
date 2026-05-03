@@ -77,6 +77,7 @@ class AttendanceApprovalController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // dd($request->all());
         $request->validate([
             'status' => 'required|in:approved,rejected',
             'admin_remark' => 'nullable|required_if:status,rejected|string|max:1000',
@@ -89,25 +90,47 @@ class AttendanceApprovalController extends Controller
             $attendance = Attendance::where('user_id', $approval->user_id)
                 ->whereDate('date', $approval->attendance_date)
                 ->first();
+            // dd($attendance);
 
             if (!$attendance) {
-                $attendance = new Attendance();
-                $attendance->user_id = $approval->user_id;
-                $attendance->date = $approval->attendance_date;
+                $attendance = Attendance::create([
+                    'user_id' => $approval->user_id,
+                    'date' => $approval->attendance_date,
+                    'status' => $approval->requested_status,
+                    'in_time' => $approval->in_time,
+                    'out_time' => $approval->out_time,
+                ]);
+                // $attendance = new Attendance();
+                // $attendance->user_id = $approval->user_id;
+                // $attendance->date = $approval->attendance_date;
             }
 
-            $attendance->status = $approval->requested_status;
-            $attendance->in_time = $approval->in_time;
-            $attendance->out_time = $approval->out_time;
+            // dd($attendance);
+
+            // $attendance->status = $approval->requested_status;
+            // $attendance->in_time = $approval->in_time;
+            // $attendance->out_time = $approval->out_time;
+
+            $attendance->update([
+                'status' => $approval->requested_status,
+                'in_time' => $approval->in_time,
+                'out_time' => $approval->out_time,
+            ]);
 
             if (str_contains(strtolower($approval->reason ?? ''), 'manual attendance request')) {
-                $attendance->via = '2';
-                $attendance->device_sn = 'Manual';
-                $attendance->verify_type = 'Manual_Entry';
-                $attendance->remarks = $approval->reason;
+                // $attendance->via = '2';
+                // $attendance->device_sn = 'Manual';
+                // $attendance->verify_type = 'Manual_Entry';
+                // $attendance->remarks = $approval->reason;
+                $attendance->update([
+                    'via' => '2',
+                    'device_sn' => 'Manual',
+                    'verify_type' => 'Manual_Entry',
+                    'remarks' => $approval->reason,
+                ]);
             }
 
-            $attendance->save();
+            // $attendance->save();
         }
 
         $approval->update([

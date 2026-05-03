@@ -128,6 +128,7 @@ class ZKTecoPushController extends Controller
             if (!$attendance) {
                 $attendance = new Attendance();
                 $attendance->user_id = $user->id;
+                $attendance->date = $time->toDateString();
                 $attendance->device_sn = $sn;
                 $attendance->via = 1;
                 $attendance->verify_type = $verifyType;

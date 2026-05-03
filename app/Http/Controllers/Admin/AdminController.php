@@ -410,7 +410,6 @@ class AdminController extends Controller
             ));
 
         } catch (\Exception $e) {
-            dd($e);
             return back()->withErrors(['error'=>$e->getMessage()]);
         }
     }
@@ -532,6 +531,7 @@ class AdminController extends Controller
                         'status'        => 'Leave (' . ($leave->leaveType->name ?? 'Leave') . ')',
                         'date'          => $date->format('Y-m-d'),
                         'map_url'       => null,
+                        'avatar'        => $user->getAvt(),
                     ]);
                     continue;
                 }
@@ -555,6 +555,8 @@ class AdminController extends Controller
                         'status'        => 'Holiday',
                         'date'          => $date->format('Y-m-d'),
                         'map_url'       => null,
+                        'avatar'        => $user->getAvt(),
+
                     ]);
 
                     continue;
@@ -602,6 +604,8 @@ class AdminController extends Controller
                         'map_url'       => ($att->latitude && $att->longitude)
                                             ? "https://www.google.com/maps?q={$att->latitude},{$att->longitude}"
                                             : null,
+                        'avatar'        => $user->getAvt(),
+
                     ]);
 
                     continue;
@@ -626,6 +630,8 @@ class AdminController extends Controller
                     'status'        => 'Absent',
                     'date'          => $date->format('Y-m-d'),
                     'map_url'       => null,
+                        'avatar'        => $user->getAvt(),
+
                 ]);
 
             }

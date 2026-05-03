@@ -195,6 +195,7 @@
                     </thead>
                     <tbody>
                         @forelse($finalData as $key => $row)
+                        {{-- @dd($row) --}}
                         <tr>
                             <td>{{ $key + 1 }}</td>
                             <td class="d-flex align-items-center gap-2">
