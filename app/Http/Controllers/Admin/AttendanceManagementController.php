@@ -1615,6 +1615,7 @@ class AttendanceManagementController extends Controller
         $selectedDate = $request->date ?? Carbon::today()->format('Y-m-d');
         $selectedUserId = $request->user_id;
         $selectedDepartmentId = $request->department_id;
+        $selectedEmployeeId = $request->employee_id;
 
         $employees = User::where('status', 1)
             ->filterBy('employee')
@@ -1650,6 +1651,9 @@ class AttendanceManagementController extends Controller
             ->when($selectedDepartmentId, function ($q) use ($selectedDepartmentId) {
                 $q->where('department_id', $selectedDepartmentId);
             })
+            ->when($selectedEmployeeId, function ($q) use ($selectedEmployeeId) {
+                $q->where('employee_id', 'like', '%' . $selectedEmployeeId . '%');
+            })
             ->with('department')
             ->orderBy('name')
             ->get();
@@ -1663,6 +1667,11 @@ class AttendanceManagementController extends Controller
             ->when($selectedDepartmentId, function ($q) use ($selectedDepartmentId) {
                 $q->whereHas('user', function ($userQuery) use ($selectedDepartmentId) {
                     $userQuery->where('department_id', $selectedDepartmentId);
+                });
+            })
+            ->when($selectedEmployeeId, function ($q) use ($selectedEmployeeId) {
+                $q->whereHas('user', function ($userQuery) use ($selectedEmployeeId) {
+                    $userQuery->where('employee_id', 'like', '%' . $selectedEmployeeId . '%');
                 });
             })
             ->where(function ($q) {
@@ -1680,7 +1689,8 @@ class AttendanceManagementController extends Controller
             'employees',
             'departments',
             'selectedUserId',
-            'selectedDepartmentId'
+            'selectedDepartmentId',
+            'selectedEmployeeId'
         ));
     }
 

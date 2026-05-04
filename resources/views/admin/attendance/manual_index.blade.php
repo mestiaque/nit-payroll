@@ -10,7 +10,7 @@
         </div>
         <div class="card-body">
             <form method="GET" action="{{ route('admin.attendance.manual.index') }}" class="row g-3 mb-4">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="user_id" class="form-label">Employee</label>
                     <select name="user_id" id="user_id" class="form-control form-control-sm">
                         <option value="">All</option>
@@ -21,7 +21,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="department_id" class="form-label">Department</label>
                     <select name="department_id" id="department_id" class="form-control form-control-sm">
                         <option value="">All</option>
@@ -32,12 +32,16 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="date" class="form-label">Date</label>
                     <input type="date" name="date" id="date" class="form-control form-control-sm" value="{{ request('date') ?? $selectedDate }}">
                 </div>
-                <div class="col-md-3 align-self-end">
-                    <button type="submit" class="btn btn-sm btn-primary w-50">Filter</button>
+                <div class="col-md-2">
+                    <label for="employee_id" class="form-label">Employee ID</label>
+                    <input type="text" name="employee_id" id="employee_id" class="form-control form-control-sm" placeholder="e.g. 1010" value="{{ $selectedEmployeeId ?? '' }}">
+                </div>
+                <div class="col-md-2 align-self-end">
+                    <button type="submit" class="btn btn-sm btn-primary">Filter</button>
                     <a href="{{ route('admin.attendance.manual.index') }}" class="btn btn-sm btn-secondary">Reset</a>
                 </div>
             </form>
