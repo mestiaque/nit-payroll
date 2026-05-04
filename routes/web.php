@@ -317,6 +317,7 @@ Route::post('/attendance/roaster/bulk-update', [AttendanceManagementController::
 Route::get('/attendance/manual', [AttendanceManagementController::class, 'manualIndex'])->name('attendance.manual.index');
 Route::get('/attendance/manual/create', [AttendanceManagementController::class, 'manualCreate'])->name('attendance.manual.create');
 Route::post('/attendance/manual', [AttendanceManagementController::class, 'manualStore'])->name('attendance.manual.store');
+Route::post('/attendance/manual/bulk-update', [AttendanceManagementController::class, 'manualBulkUpdate'])->name('attendance.manual.bulkUpdate');
 Route::get('/attendance/manual/{id}/edit', [AttendanceManagementController::class, 'manualEdit'])->name('attendance.manual.edit');
 Route::put('/attendance/manual/{id}', [AttendanceManagementController::class, 'manualUpdate'])->name('attendance.manual.update');
 Route::delete('/attendance/manual/{id}', [AttendanceManagementController::class, 'manualDestroy'])->name('attendance.manual.destroy');

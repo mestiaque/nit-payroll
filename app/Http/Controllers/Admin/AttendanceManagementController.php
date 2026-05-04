@@ -1470,7 +1470,7 @@ class AttendanceManagementController extends Controller
                 'holiday' => $holidayCount,
                 'total' => count($dateRange),
             ];
-            
+
             // Build grid data
             $gridData = [
                 'dateRange' => $dateRange,
@@ -1482,20 +1482,20 @@ class AttendanceManagementController extends Controller
                 'holiday_count' => 0,
                 'incomplete_count' => 0,
             ];
-            
+
             foreach ($dateRange as $date) {
                 $dateStr = $date->format('Y-m-d');
                 $statusData = $employee->getAttendanceStatusByDate($dateStr);
                 $status = $statusData['status'];
                 $statusClass = $statusData['class'];
                 $label = $statusData['label'];
-                
+
                 $gridData['daily_data'][] = [
                     'date' => $date,
                     'status' => $label,
                     'status_class' => $statusClass,
                 ];
-                
+
                 switch ($status) {
                     case 'present':
                         $gridData['present_count']++;
@@ -1519,11 +1519,11 @@ class AttendanceManagementController extends Controller
                         break;
                 }
             }
-            
+
             $totalWorkingHours = 0;
             $totalLateMinutes = 0;
             $totalOvertime = 0;
-            
+
             foreach ($attendances as $dateKey => $dayAttendances) {
                 foreach ($dayAttendances as $att) {
                     if ($att->working_hour) {
@@ -1613,24 +1613,18 @@ class AttendanceManagementController extends Controller
     public function manualIndex(Request $request)
     {
         $selectedDate = $request->date ?? Carbon::today()->format('Y-m-d');
+        $selectedUserId = $request->user_id;
+        $selectedDepartmentId = $request->department_id;
 
-        $query = Attendance::with('user')->where('via', '2');
-        if ($request->user_id) {
-            $query->where('user_id', $request->user_id);
-        }
-        if ($request->department_id) {
-            $query->whereHas('user', function($q) use ($request) {
-                $q->where('department_id', $request->department_id);
-            });
-        }
-        if ($request->date) {
-            $query->where('date', $request->date);
-        }
+        $employees = User::where('status', 1)
+            ->filterBy('employee')
+            ->orderBy('name')
+            ->get();
 
-        $attendances = $query->orderBy('date', 'desc')->paginate(2);
-
-        $employees = User::where('status', 1)->filterBy('employee')->get();
-        $departments = Attribute::where('type', 3)->where('status', 'active')->get();
+        $departments = Attribute::where('type', 3)
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get();
 
         $attendanceUserIds = Attendance::whereDate('date', $selectedDate)->pluck('user_id');
         $approvedLeaveUserIds = Leave::where('status', 'approved')
@@ -1650,11 +1644,160 @@ class AttendanceManagementController extends Controller
         $absentEmployees = User::where('status', 1)
             ->filterBy('employee')
             ->whereNotIn('id', $blockedUserIds)
+            ->when($selectedUserId, function ($q) use ($selectedUserId) {
+                $q->where('id', $selectedUserId);
+            })
+            ->when($selectedDepartmentId, function ($q) use ($selectedDepartmentId) {
+                $q->where('department_id', $selectedDepartmentId);
+            })
             ->with('department')
             ->orderBy('name')
             ->get();
 
-        return view('admin.attendance.manual_index', compact('attendances', 'employees', 'departments', 'absentEmployees', 'selectedDate'));
+        $lateAttendances = Attendance::with(['user.department'])
+            ->whereDate('date', $selectedDate)
+            ->whereNotIn('user_id', $pendingApprovalUserIds)
+            ->when($selectedUserId, function ($q) use ($selectedUserId) {
+                $q->where('user_id', $selectedUserId);
+            })
+            ->when($selectedDepartmentId, function ($q) use ($selectedDepartmentId) {
+                $q->whereHas('user', function ($userQuery) use ($selectedDepartmentId) {
+                    $userQuery->where('department_id', $selectedDepartmentId);
+                });
+            })
+            ->where(function ($q) {
+                $q->whereIn('status', ['Late', 'late', 'LT'])
+                    ->orWhere('late_time', '>', 0);
+            })
+            ->whereNotNull('in_time')
+            ->orderBy('in_time')
+            ->get();
+
+        return view('admin.attendance.manual_index', compact(
+            'absentEmployees',
+            'lateAttendances',
+            'selectedDate',
+            'employees',
+            'departments',
+            'selectedUserId',
+            'selectedDepartmentId'
+        ));
+    }
+
+    /**
+     * Manual Attendance Bulk Update (Absent/Late Marking)
+     */
+    public function manualBulkUpdate(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date',
+            'action_type' => 'required|in:absent_to_present,late_to_present',
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'required|exists:users,id',
+            'in_time' => 'required_if:action_type,absent_to_present,late_to_present',
+            'out_time' => 'required_if:action_type,absent_to_present,late_to_present',
+            'requested_status' => 'required|in:Present,Late',
+            'remarks' => 'nullable|string|max:255',
+            'user_id' => 'nullable|exists:users,id',
+            'department_id' => 'nullable|exists:attributes,id',
+        ]);
+
+        $date = $request->date;
+        $actionType = $request->action_type;
+        $requestedStatus = $request->requested_status;
+        $requestInTime = Carbon::parse($date . ' ' . $request->in_time, 'Asia/Dhaka');
+        $requestOutTime = Carbon::parse($date . ' ' . $request->out_time, 'Asia/Dhaka');
+        $createdOrUpdated = 0;
+        $skipped = 0;
+
+        foreach ($request->user_ids as $userId) {
+            if ($actionType === 'absent_to_present') {
+                $existingAttendance = Attendance::where('user_id', $userId)
+                    ->whereDate('date', $date)
+                    ->exists();
+
+                if ($existingAttendance) {
+                    $skipped++;
+                    continue;
+                }
+
+                $payload = [
+                    'user_id' => $userId,
+                    'attendance_date' => $date,
+                    'in_time' => $requestInTime,
+                    'out_time' => $requestOutTime,
+                    'original_status' => 'Absent',
+                    'requested_status' => $requestedStatus,
+                    'reason' => 'Absent mark update request' . ($request->remarks ? ': ' . $request->remarks : ''),
+                    'status' => 'pending',
+                ];
+
+                $approval = AttendanceApproval::where('user_id', $userId)
+                    ->whereDate('attendance_date', $date)
+                    ->where('status', 'pending')
+                    ->first();
+
+                if ($approval) {
+                    $approval->update($payload);
+                } else {
+                    AttendanceApproval::create($payload);
+                }
+
+                $createdOrUpdated++;
+                continue;
+            }
+
+            $attendance = Attendance::where('user_id', $userId)
+                ->whereDate('date', $date)
+                ->where(function ($q) {
+                    $q->whereIn('status', ['Late', 'late', 'LT'])
+                        ->orWhere('late_time', '>', 0);
+                })
+                ->first();
+
+            if (!$attendance) {
+                $skipped++;
+                continue;
+            }
+
+            $payload = [
+                'user_id' => $userId,
+                'attendance_date' => $date,
+                'in_time' => $requestInTime,
+                'out_time' => $requestOutTime,
+                'original_status' => $attendance->status,
+                'requested_status' => $requestedStatus,
+                'reason' => 'Late mark update request' . ($request->remarks ? ': ' . $request->remarks : ''),
+                'status' => 'pending',
+            ];
+
+            $approval = AttendanceApproval::where('user_id', $userId)
+                ->whereDate('attendance_date', $date)
+                ->where('status', 'pending')
+                ->first();
+
+            if ($approval) {
+                $approval->update($payload);
+            } else {
+                AttendanceApproval::create($payload);
+            }
+
+            $createdOrUpdated++;
+        }
+
+        $redirectParams = ['date' => $date];
+
+        if ($request->filled('user_id')) {
+            $redirectParams['user_id'] = $request->user_id;
+        }
+
+        if ($request->filled('department_id')) {
+            $redirectParams['department_id'] = $request->department_id;
+        }
+
+        return redirect()
+            ->route('admin.attendance.manual.index', $redirectParams)
+            ->with('success', "Bulk update request submitted. Updated: {$createdOrUpdated}, Skipped: {$skipped}.");
     }
 
     /**
