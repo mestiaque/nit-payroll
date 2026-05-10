@@ -2,18 +2,15 @@
 
 namespace App\Models;
 
-use App\Http\Controllers\Admin\RetirementController;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use App\Models\EmployeeInfo;
 use App\Models\EmployeeEducation;
 use App\Models\EmployeeTraining;
 use App\Models\EmployeeExperience;
 use App\Models\EmployeeBank;
 use App\Models\Roaster;
-use App\Models\LeaveBalance;
 use App\Models\SalarySheet;
 use App\Models\EmployeeIncrement;
 
@@ -175,6 +172,7 @@ class User extends Authenticatable
     public function employeeType(){
         return $this->belongsTo(Attribute::class,'employee_type')->where('type',16);
     }
+
 
     // Division (type = 11)
     public function divisionData()
@@ -377,11 +375,6 @@ class User extends Authenticatable
     public function leaves()
     {
         return $this->hasMany(Leave::class);
-    }
-
-    public function leaveBalances()
-    {
-        return $this->hasMany(LeaveBalance::class);
     }
 
     public function salarySheets()

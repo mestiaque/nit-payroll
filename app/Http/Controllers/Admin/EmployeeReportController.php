@@ -7,10 +7,12 @@ use App\Models\User;
 use App\Models\EmployeeIncrement;
 use App\Models\Attribute;
 use App\Models\Leave;
+use App\Models\SalarySheet;
+use App\Models\Shift;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class EmployeeReportController extends Controller
 {
@@ -49,7 +51,7 @@ class EmployeeReportController extends Controller
 
         if ($request->employee_status) {
             $status = $request->employee_status;
-            
+
             if ($status == 'terminated') {
                 $query->whereHas('terminations', function($q) {
                     $q->where('status', 'approved');
@@ -482,14 +484,285 @@ class EmployeeReportController extends Controller
      */
     public function paySlip(Request $request)
     {
-        $employees = User::where('customer', '=', 1)->where('employee_status', '=', 'active')->filterBy('employee')->get();
+        $departments = Attribute::where('type', 3)->where('status', '<>', 'temp')->orderBy('name')->get();
+        $sections = Attribute::where('type', 14)->where('status', '<>', 'temp')->orderBy('name')->get();
+        $designations = Attribute::where('type', 2)->where('status', '<>', 'temp')->orderBy('name')->get();
+        $employeeTypes = Attribute::where('type', 16)->where('status', '<>', 'temp')->orderBy('name')->get();
+        $shifts = Shift::orderBy('name_of_shift')->get();
 
-        if ($request->has('employee_id')) {
-            $employee = User::with('department')->findOrFail($request->employee_id);
-            return view(adminTheme().'documents.pay_slip', compact('employee', 'employees'));
+        $employeeQuery = User::where('customer', 1)
+            ->where('employee_status', 'active')
+            ->filterBy('employee');
+
+        if ($request->filled('department_id')) {
+            $employeeQuery->where('department_id', $request->department_id);
         }
 
-        return view(adminTheme().'documents.pay_slip', compact('employees'));
+        if ($request->filled('section_id')) {
+            $employeeQuery->where('section_id', $request->section_id);
+        }
+
+        if ($request->filled('designation_id')) {
+            $employeeQuery->where('designation_id', $request->designation_id);
+        }
+
+        if ($request->filled('employee_type')) {
+            $employeeQuery->where('employee_type', $request->employee_type);
+        }
+
+        if ($request->filled('shift_id')) {
+            $employeeQuery->where('shift_id', $request->shift_id);
+        }
+
+        $employees = $employeeQuery->with(['department', 'designation', 'section', 'shift'])->orderBy('name')->get();
+
+        return view(adminTheme().'documents.pay_slip', compact(
+            'employees',
+            'departments',
+            'sections',
+            'designations',
+            'employeeTypes',
+            'shifts'
+        ));
+    }
+
+    /**
+     * Print Pay Slip
+     */
+    public function paySlipPrint(Request $request)
+    {
+        $month = $request->month ?? Carbon::now()->format('Y-m');
+
+        $employeeQuery = User::with([
+            'department',
+            'designation',
+            'employeeType',
+            'section',
+            'shift',
+            'line',
+        ])->where('customer', 1)->where('employee_status', 'active')->filterBy('employee');
+
+        if ($request->filled('department_id')) {
+            $employeeQuery->where('department_id', $request->department_id);
+        }
+
+        if ($request->filled('section_id')) {
+            $employeeQuery->where('section_id', $request->section_id);
+        }
+
+        if ($request->filled('designation_id')) {
+            $employeeQuery->where('designation_id', $request->designation_id);
+        }
+
+        if ($request->filled('employee_type')) {
+            $employeeQuery->where('employee_type', $request->employee_type);
+        }
+
+        if ($request->filled('shift_id')) {
+            $employeeQuery->where('shift_id', $request->shift_id);
+        }
+
+        $employees = collect();
+        if ($request->filled('employee_ids')) {
+            $typedIds = array_filter(array_map('trim', explode(',', $request->employee_ids)));
+
+            foreach ($typedIds as $typedId) {
+                $employee = (clone $employeeQuery)
+                    ->where(function ($query) use ($typedId) {
+                        $query->where('id', $typedId)
+                            ->orWhere('employee_id', $typedId);
+                    })
+                    ->first();
+
+                if ($employee) {
+                    $employees->push($employee);
+                }
+            }
+        } else {
+            $employees = $employeeQuery->get();
+        }
+
+        abort_if($employees->isEmpty(), 404, 'Employee not found');
+
+        $employeesData = $employees->map(function ($employee) use ($month) {
+            return $this->preparePaySlipData($employee, $month);
+        })->values();
+
+        return view('admin.documents.pay_slip_print_page', [
+            'employeesData' => $employeesData,
+            'month' => $month,
+        ]);
+    }
+
+    /**
+     * Prepare pay slip data for print view.
+     */
+    private function preparePaySlipData(User $employee, string $month): array
+    {
+        $monthName = date('F Y', strtotime($month . '-01'));
+        $year = date('Y', strtotime($month . '-01'));
+        $monthNum = date('m', strtotime($month . '-01'));
+
+        $salarySheet = SalarySheet::where('user_id', $employee->id)
+            ->where('year', $year)
+            ->where('month', $monthNum)
+            ->first();
+
+        $basicSalary = $salarySheet?->basic_salary ?? $employee->basic_salary ?? 0;
+        $houseRent = $salarySheet?->house_rent ?? $employee->house_rent ?? 0;
+        $medical = $salarySheet?->medical_allowance ?? $employee->medical_allowance ?? 0;
+        $transport = $salarySheet?->transport_allowance ?? $employee->transport_allowance ?? 0;
+        $food = $salarySheet?->food_allowance ?? $employee->food_allowance ?? 0;
+        $conveyance = $salarySheet?->conveyance_allowance ?? $employee->conveyance_allowance ?? 0;
+        $otherAllowance = $salarySheet?->other_allowance ?? $employee->other_allowance ?? 0;
+
+        $grossSalary = $salarySheet?->gross_salary ?? (
+            $basicSalary + $houseRent + $medical + $transport + $food + $conveyance + $otherAllowance
+        );
+
+        $attendanceBonus = $salarySheet?->attendance_bonus ?? 0;
+        $overtime = $salarySheet?->overtime_amount ?? 0;
+        $specialOvertime = $salarySheet?->special_overtime_amount ?? 0;
+        $grassTime = $salarySheet?->grass_time_amount ?? 0;
+        $bonus = $salarySheet?->bonus_amount ?? 0;
+        $otherBonus = $salarySheet?->other_bonus ?? 0;
+
+        $totalEarnings = $grossSalary + $overtime + $specialOvertime + $grassTime + $attendanceBonus + $bonus + $otherBonus;
+
+        $absentDeduction = $salarySheet?->absent_deduction ?? 0;
+        $lateDeduction = $salarySheet?->late_deduction ?? 0;
+        $taxDeduction = $salarySheet?->tax_deduction ?? 0;
+        $pfDeduction = $salarySheet?->provident_fund_deduction ?? $employee->provident_fund ?? 0;
+        $loanDeduction = $salarySheet?->loan_deduction ?? 0;
+        $advance = $salarySheet?->salary_advance_deduction ?? 0;
+        $otherDeductions = $salarySheet?->deduction ?? 0;
+        $stampCharge = $salarySheet?->stamp_charge ?? 0;
+        $totalDeductions = $absentDeduction + $lateDeduction + $taxDeduction + $pfDeduction + $loanDeduction + $advance + $otherDeductions + $stampCharge;
+
+        $defaultMonthDays = Carbon::parse($month . '-01')->daysInMonth;
+        $workingDays = $salarySheet?->working_days ?? $defaultMonthDays;
+        $present = $salarySheet?->present_days ?? 0;
+        $absent = $salarySheet?->absent_days ?? 0;
+        $casual = $salarySheet?->casual_days ?? 0;
+        $sick = $salarySheet?->sick_days ?? 0;
+        $earned = $salarySheet?->earned_days ?? 0;
+        $weekly = $salarySheet?->weekly_off_days ?? 0;
+        $festival = $salarySheet?->festival_days ?? 0;
+        $general = $salarySheet?->general_days ?? 0;
+        $maternity = $salarySheet?->maternity_days ?? 0;
+        $holidayDays = $salarySheet?->holiday_days ?? 0;
+        $lateDays = $salarySheet?->late_count ?? 0;
+
+        // Fallback to attendance logs when monthly salary sheet is not generated.
+        if (!$salarySheet) {
+            $attendanceSummary = getMonthlyAttendanceSummary($employee->id, (int) $year, (int) $monthNum, false);
+
+            $present = $attendanceSummary['present'] ?? 0;
+            $absent = $attendanceSummary['absent'] ?? 0;
+            $lateDays = $attendanceSummary['late'] ?? 0;
+            $weekly = $attendanceSummary['weekly_off'] ?? 0;
+            $holidayDays = $attendanceSummary['holiday'] ?? 0;
+
+            $daysCounted = $attendanceSummary['days_counted'] ?? $defaultMonthDays;
+            $workingDays = max($daysCounted - $weekly - $holidayDays, 0);
+        }
+        $overtimeHours = $salarySheet?->overtime_hours ?? 0;
+        $totalDays = $workingDays + $holidayDays;
+        $otRate = $salarySheet?->ot_rate ?? 0;
+        $otHour = $salarySheet?->overtime_hours ?? 0;
+        $otAmount = $salarySheet?->overtime_amount ?? 0;
+        $phoneInternet = $salarySheet?->phone_internet ?? 0;
+        $extraFacility = $salarySheet?->extra_facility ?? 0;
+        $carFuel = $salarySheet?->car_fuel ?? 0;
+        $payable = $totalEarnings;
+        $totalSalary = $grossSalary;
+        $monthLabel = $monthName;
+        $salary = [
+            'basic' => $basicSalary,
+            'house' => $houseRent,
+            'medical' => $medical,
+            'transport' => $transport,
+            'food' => $food,
+            'conveyance' => $conveyance,
+            'other' => $otherAllowance,
+        ];
+        $employeeTypeName = $employee->employeeType?->name;
+        if (!$employeeTypeName && !is_null($employee->employee_type) && !is_numeric($employee->employee_type)) {
+            $employeeTypeName = $employee->employee_type;
+        }
+
+        $employeeData = [
+            'company_name' => general()->title ?? 'Company Name',
+            'company_address' => general()->address_one ?? '',
+            'employee_id' => $employee->employee_id ?: $employee->id,
+            'department' => $employee->department?->name ?? '-',
+            'section' => $employee->section?->name ?? '-',
+            'line' => $employee->line?->name ?? '-',
+            'employee_name' => $employee->name,
+            'employee_type' => $employeeTypeName ?: '-',
+            'designation' => $employee->designation?->name ?? '-',
+            'shift' => $employee->shift?->name_of_shift ?? $employee->shift?->name ?? '-',
+            'joining_date' => $employee->joining_date
+                ? Carbon::parse($employee->joining_date)->format('d-M-Y')
+                : '-',
+        ];
+
+        return compact(
+            'monthName',
+            'year',
+            'monthNum',
+            'salarySheet',
+            'employee',
+            'employeeData',
+            'salary',
+            'basicSalary',
+            'houseRent',
+            'medical',
+            'transport',
+            'food',
+            'conveyance',
+            'otherAllowance',
+            'grossSalary',
+            'attendanceBonus',
+            'overtime',
+            'specialOvertime',
+            'grassTime',
+            'bonus',
+            'otherBonus',
+            'totalEarnings',
+            'absentDeduction',
+            'lateDeduction',
+            'taxDeduction',
+            'pfDeduction',
+            'loanDeduction',
+            'advance',
+            'otherDeductions',
+            'stampCharge',
+            'totalDeductions',
+            'workingDays',
+            'present',
+            'absent',
+            'casual',
+            'sick',
+            'earned',
+            'weekly',
+            'festival',
+            'general',
+            'maternity',
+            'holidayDays',
+            'lateDays',
+            'overtimeHours',
+            'totalDays',
+            'otRate',
+            'otHour',
+            'otAmount',
+            'phoneInternet',
+            'extraFacility',
+            'carFuel',
+            'payable',
+            'totalSalary',
+            'monthLabel',
+        );
     }
 
     /**

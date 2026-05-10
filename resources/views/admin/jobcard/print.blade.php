@@ -1,275 +1,242 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Card Print - {{ $selectedUser->name }}</title>
-    <link rel="stylesheet" href="{{ asset('admin/app-assets/css/bootstrap.min.css') }}">
-    <style>
-        @media print {
-            .no-print { display: none !important; }
-            body { font-size: 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .card { border: none !important; box-shadow: none !important; margin: 0 !important; }
-            .card-body { padding: 5px !important; }
-            table { font-size: 10px; }
-            .badge { border: 1px solid #000 !important; color: #000 !important; background: none !important; }
-        }
-        body {
-            font-size: 12px;
-            background: #f5f5f5;
-        }
-        .card {
-            border: 1px solid #ddd;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin: 10px;
-            background: white;
-        }
-        .job-card-table th, .job-card-table td {
-            text-align: center;
-            vertical-align: middle;
-            padding: 4px !important;
-        }
-        .status-P { background: #d4edda; }
-        .status-LT { background: #fff3cd; }
-        .status-A { background: #f8d7da; }
-        .status-L { background: #cce5ff; }
-        .status-H { background: #d1ecf1; }
-        .status-WO { background: #e2e3e5; }
-        .employee-photo {
-            width: 100px;
-            height: 120px;
-            object-fit: cover;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-        }
-        .print-container {
-            max-width: 210mm;
-            margin: 0 auto;
-            background: white;
-            padding: 10px;
-        }
-    </style>
-</head>
-<body>
-    <div class="print-container">
-        <!-- Print Button -->
-        <div class="no-print text-center mb-3">
-            <button type="button" class="btn btn-primary btn-lg" onclick="window.print()">
-                <i class="fa fa-print"></i> Print Job Card
-            </button>
-            <button type="button" class="btn btn-secondary btn-lg" onclick="window.close()">
-                <i class="fa fa-close"></i> Close
-            </button>
-        </div>
+@extends('printMasterBlank')
 
-        <!-- Job Card Content -->
-        <div class="card">
-            <div class="card-body">
-                <div class="text-center mb-3">
-                    <h4 style="margin-bottom: 5px;"><strong> JOB CARD </strong></h4>
-                    <p style="margin: 0;">Employee Information & Monthly Attendance Report</p>
-                </div>
+@section('title', 'Job Card Print')
 
-                <!-- Employee Basic Info with Photo -->
-                <table class="table table-bordered table-sm" style="margin-bottom: 15px;">
-                    <tr>
-                        <td width="15%" rowspan="5" class="text-center">
-                            @if($selectedUser->photo)
-                                <img src="{{ asset($selectedUser->photo) }}" alt="Photo" class="employee-photo">
-                            @else
-                                <img src="{{ asset('images/no-image.png') }}" alt="Photo" class="employee-photo">
-                            @endif
-                        </td>
-                        <td width="20%"><strong>Employee Name:</strong></td>
-                        <td width="25%">{{ $selectedUser->name }}</td>
-                        <td width="15%"><strong>Employee ID:</strong></td>
-                        <td width="25%">{{ $selectedUser->employee_id ?? $selectedUser->id }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Department:</strong></td>
-                        <td>{{ $selectedUser->department ? $selectedUser->department->name : 'N/A' }}</td>
-                        <td><strong>Designation:</strong></td>
-                        <td>{{ $selectedUser->designation ? $selectedUser->designation->name : 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Join Date:</strong></td>
-                        <td>{{ $selectedUser->joining_date ? \Carbon\Carbon::parse($selectedUser->joining_date)->format('d M Y') : 'N/A' }}</td>
-                        <td><strong>Shift:</strong></td>
-                        <td>{{ $selectedUser->shift ? $selectedUser->shift->name : 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Line Number:</strong></td>
-                        <td>{{ $selectedUser->line ? $selectedUser->line->name : 'N/A' }}</td>
-                        <td><strong>Grade:</strong></td>
-                        <td>{{ $selectedUser->grade ? $selectedUser->grade->name : 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Section:</strong></td>
-                        <td>{{ $selectedUser->section ? $selectedUser->section->name : 'N/A' }}</td>
-                        <td><strong>Division:</strong></td>
-                        <td>{{ $selectedUser->divisionData ? $selectedUser->divisionData->name : 'N/A' }}</td>
-                    </tr>
-                </table>
+@push('css')
+<style>
+    @media print {
+        body { font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        @page { margin: 0.5cm; size: A4; }
+    }
+    .container {
+        max-width: 210mm;
+        background: #fff;
+        padding: 10px;
+    }
+    .report-head {
+        text-align: center;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #333;
+        padding-bottom: 10px;
+    }
+    .report-head h3 {
+        margin: 0 0 5px 0;
+        font-size: 16px;
+        font-weight: bold;
+    }
+    .report-head p {
+        margin: 0;
+        font-size: 10px;
+    }
+    .sub-title {
+        text-align: center;
+        font-weight: bold;
+        margin: 15px 0;
+        font-size: 13px;
+    }
+    .info-grid {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 15px;
+        font-size: 10px;
+    }
+    .info-grid td {
+        padding: 6px 8px;
+        border: 1px solid #999;
+    }
+    .info-grid td:nth-child(odd) {
+        background: #f9f9f9;
+        font-weight: bold;
+        width: 20%;
+    }
+    table.t {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 15px;
+    }
+    table.t thead th {
+        background: #343a40;
+        color: #fff;
+        padding: 6px;
+        text-align: center;
+        font-weight: bold;
+        border: 1px solid #999;
+        font-size: 9px;
+    }
+    table.t tbody td {
+        padding: 4px 6px;
+        border: 1px solid #999;
+        text-align: center;
+        font-size: 9px;
+    }
+    table.t tfoot td {
+        padding: 6px;
+        border: 1px solid #999;
+        font-weight: bold;
+        background: #f9f9f9;
+        font-size: 9px;
+    }
+    .text-right {
+        text-align: right;
+    }
+    .text-center,
+    .tc {
+        text-align: center;
+    }
+    .page-break {
+        page-break-after: always;
+        margin-bottom: 20px;
+    }
+</style>
+@endpush
 
-                <!-- Contact Information -->
-                <table class="table table-bordered table-sm" style="margin-bottom: 15px;">
-                    <tr>
-                        <th colspan="4" class="table-secondary text-center">Contact Information</th>
-                    </tr>
-                    <tr>
-                        <td width="25%"><strong>Mobile:</strong></td>
-                        <td width="25%">{{ $selectedUser->mobile ?? 'N/A' }}</td>
-                        <td width="25%"><strong>Email:</strong></td>
-                        <td width="25%">{{ $selectedUser->email ?? 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Address:</strong></td>
-                        <td colspan="3">
-                            {{ $selectedUser->address_line1 ?? '' }} 
-                            {{ $selectedUser->address_line2 ? ', ' . $selectedUser->address_line2 : '' }}
-                            {{ $selectedUser->city ? ', ' . $selectedUser->city : '' }}
-                            {{ $selectedUser->district ? ', ' . $selectedUser->district : '' }}
-                            {{ $selectedUser->divisionData && $selectedUser->divisionData->name ? ', ' . $selectedUser->divisionData->name : '' }}
-                            {{ $selectedUser->country ? ', ' . $selectedUser->country : '' }}
-                        </td>
-                    </tr>
-                </table>
+@section('contents')
+    @foreach($employeesData as $data)
+        @php
+            $employee = $data['employee'];
+            $summary = $data['summary'];
+            $dailyData = $data['dailyData'];
+            $increments = $data['increments'];
+        @endphp
 
-                <!-- Salary Information -->
-                <table class="table table-bordered table-sm" style="margin-bottom: 15px;">
-                    <tr>
-                        <th colspan="6" class="table-secondary text-center">Salary Information</th>
-                    </tr>
-                    <tr>
-                        <td><strong>Basic Salary:</strong><br>{{ number_format($selectedUser->basic_salary ?? 0, 2) }}</td>
-                        <td><strong>House Rent:</strong><br>{{ number_format($selectedUser->house_rent ?? 0, 2) }}</td>
-                        <td><strong>Medical Allowance:</strong><br>{{ number_format($selectedUser->medical_allowance ?? 0, 2) }}</td>
-                        <td><strong>Transport Allowance:</strong><br>{{ number_format($selectedUser->transport_allowance ?? 0, 2) }}</td>
-                        <td><strong>Other Allowance:</strong><br>{{ number_format($selectedUser->other_allowance ?? 0, 2) }}</td>
-                        <td><strong>Total Salary:</strong><br>{{ number_format(($selectedUser->basic_salary ?? 0) + ($selectedUser->house_rent ?? 0) + ($selectedUser->medical_allowance ?? 0) + ($selectedUser->transport_allowance ?? 0) + ($selectedUser->other_allowance ?? 0), 2) }}</td>
-                    </tr>
-                </table>
-
-                <!-- Increment History -->
-                @if(isset($increments) && $increments->count() > 0)
-                <table class="table table-bordered table-sm" style="margin-bottom: 15px;">
-                    <tr>
-                        <th colspan="5" class="table-secondary text-center">Increment History</th>
-                    </tr>
-                    <tr>
-                        <th>Date</th>
-                        <th>Previous Salary</th>
-                        <th>Increment Amount</th>
-                        <th>New Salary</th>
-                        <th>Remarks</th>
-                    </tr>
-                    @foreach($increments as $increment)
-                    <tr>
-                        <td>{{ \Carbon\Carbon::parse($increment->increment_date)->format('d M Y') }}</td>
-                        <td>{{ number_format($increment->previous_salary ?? 0, 2) }}</td>
-                        <td>{{ number_format($increment->increment_amount ?? 0, 2) }}</td>
-                        <td>{{ number_format($increment->new_salary ?? 0, 2) }}</td>
-                        <td>{{ $increment->remarks ?? 'N/A' }}</td>
-                    </tr>
-                    @endforeach
-                </table>
+        <div class="print-header">
+            <div class="company-info">
+                @if(general() && general()->logo())
+                <img src="{{ asset(general()->logo()) }}" alt="Logo" class="company-logo">
                 @endif
-
-                <!-- Monthly Summary -->
-                <table class="table table-bordered table-sm" style="margin-bottom: 15px;">
-                    <thead>
-                        <tr class="table-secondary">
-                            <th colspan="6" class="text-center">Attendance Summary - {{ Carbon\Carbon::parse($month)->format('F Y') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Present</strong><br><span class="badge badge-success">{{ $summary['present'] }}</span></td>
-                            <td><strong>Late</strong><br><span class="badge badge-warning">{{ $summary['late'] }}</span></td>
-                            <td><strong>Absent</strong><br><span class="badge badge-danger">{{ $summary['absent'] }}</span></td>
-                            <td><strong>Leave</strong><br><span class="badge badge-primary">{{ $summary['leave'] }}</span></td>
-                            <td><strong>Holiday</strong><br><span class="badge badge-info">{{ $summary['holiday'] }}</span></td>
-                            <td><strong>Total Work Hrs</strong><br>{{ $summary['total_work_hours'] }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <!-- Daily Attendance -->
-                <table class="table table-bordered table-sm job-card-table" style="width: 100%;">
-                    <thead>
-                        <tr style="background: #343a40; color: white;">
-                            <th>Date</th>
-                            <th>Day</th>
-                            <th>In Time</th>
-                            <th>Out Time</th>
-                            <th>Work Hrs</th>
-                            <th>Status</th>
-                            <th>Remarks</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($dailyData as $day)
-                        <tr class="status-{{ $day['status'] }}">
-                            <td>{{ $day['date'] }}</td>
-                            <td>{{ $day['day'] }}</td>
-                            <td>{{ $day['in_time'] }}</td>
-                            <td>{{ $day['out_time'] }}</td>
-                            <td>{{ $day['work_hours'] }}</td>
-                            <td>
-                                @if($day['status'] == 'P')
-                                    <span class="badge badge-success">P</span>
-                                @elseif($day['status'] == 'LT')
-                                    <span class="badge badge-warning">LT</span>
-                                @elseif($day['status'] == 'A')
-                                    <span class="badge badge-danger">A</span>
-                                @elseif($day['status'] == 'L')
-                                    <span class="badge badge-primary">L</span>
-                                @elseif($day['status'] == 'H')
-                                    <span class="badge badge-info">H</span>
-                                @elseif($day['status'] == 'WO')
-                                    <span class="badge badge-secondary">WO</span>
-                                @endif
-                            </td>
-                            <td></td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-
-                <!-- Status Legend -->
-                <div class="row mt-3">
-                    <div class="col-md-12">
-                        <strong>Status Key:</strong>
-                        <span class="badge badge-success">P = Present</span>
-                        <span class="badge badge-warning">LT = Late</span>
-                        <span class="badge badge-danger">A = Absent</span>
-                        <span class="badge badge-primary">L = Leave</span>
-                        <span class="badge badge-info">H = Holiday</span>
-                        <span class="badge badge-secondary">WO = Weekly Off</span>
+                <div class="company-name">{{ general()->title ?? 'Company Name' }}</div>
+                @if(general())
+                    <div class="company-address">
+                        {{ general()->address_one ?? '' }}
                     </div>
+                    <div class="company-contact">
+                        Phone: {{ general()->mobile ?? '' }}, Email: {{ general()->email ?? '' }}
+                    </div>
+                @endif
+                <p></p>
+                <div class="text-right" style="text-align: end; width: 42mm;">
                 </div>
-
-                <!-- Signatures -->
-                <div class="row mt-4" style="margin-top: 30px;">
-                    <div class="col-md-4 text-center">
-                        <p>__________________________<br>Employee Signature</p>
-                    </div>
-                    <div class="col-md-4 text-center">
-                        <p>__________________________<br>Supervisor Signature</p>
-                    </div>
-                    <div class="col-md-4 text-center">
-                        <p>__________________________<br>HR/Admin Signature</p>
-                    </div>
+                <div class="report-title">
+                    <span> Job Card ({{ \Carbon\Carbon::parse($month)->format('F Y') }})</span>
                 </div>
+                <span class="print-time"><i>{{ now()->format('d-m-Y H:i:s') }}</i></span>
             </div>
         </div>
-    </div>
 
-    <script>
-        // Auto-print when page loads (optional - comment out if not needed)
-        // window.onload = function() {
-        //     window.print();
-        // };
-    </script>
-</body>
-</html>
+        <table class="info-grid">
+            <tr>
+                <td>Employee ID</td><td>{{ $employee->employee_id ?? $employee->id }}</td>
+                <td>Department</td><td>{{ $employee->department ? $employee->department->name : 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td>Name</td><td>{{ $employee->name }}</td>
+                <td>Section</td><td>{{ $employee->section ? $employee->section->name : 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td>Classification</td><td>{{ $employee->employee_type ?? 'N/A' }}</td>
+                <td>Designation</td><td>{{ $employee->designation ? $employee->designation->name : 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td>Join Date</td>
+                <td>{{ $employee->joining_date ? \Carbon\Carbon::parse($employee->joining_date)->format('d-M-y') : 'N/A' }}</td>
+                <td></td><td></td>
+            </tr>
+        </table>
+
+        <table class="t">
+            <thead>
+                <tr>
+                    <th>SL</th>
+                    <th>Date</th>
+                    <th>Shift</th>
+                    <th>Day</th>
+                    <th>In Time</th>
+                    <th>Out Time</th>
+                    <th>OT Hrs</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($dailyData as $index => $day)
+                <tr>
+                    <td class="tc">{{ $index + 1 }}</td>
+                    <td class="tc">{{ $day['date'] }}</td>
+                    <td class="tc">{{ $employee->shift ? $employee->shift->name : '-' }}</td>
+                    <td class="tc">{{ $day['day'] }}</td>
+                    <td class="tc">{{ $day['in_time'] }}</td>
+                    <td class="tc">{{ $day['out_time'] }}</td>
+                    <td class="tc">-</td>
+                    <td class="tc">
+                        @if($day['status'] == 'P')
+                            P
+                        @elseif($day['status'] == 'LT')
+                            LT
+                        @elseif($day['status'] == 'A')
+                            A
+                        @elseif($day['status'] == 'L')
+                            L
+                        @elseif($day['status'] == 'H')
+                            H
+                        @elseif($day['status'] == 'WO')
+                            WO
+                        @endif
+                    </td>
+                    <td class="tc">-</td>
+                </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="6" class="text-right"><b>Total OT Hrs:</b></td>
+                    <td class="text-center"><b>-</b></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <table class="info-grid">
+            <tr>
+                <td>Total Days in Month</td>
+                <td>{{ count($dailyData) }}</td>
+                <td>Working Days</td>
+                <td>{{ $summary['present'] + $summary['late'] }}</td>
+            </tr>
+            <tr>
+                <td>Govt. Holidays</td>
+                <td>{{ $summary['holiday'] }}</td>
+                <td>Weekend Days</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>Absent Days</td>
+                <td>{{ $summary['absent'] }}</td>
+                <td>Leave Days</td>
+                <td>{{ $summary['leave'] }}</td>
+            </tr>
+            <tr>
+                <td>Present Days</td>
+                <td>{{ $summary['present'] }}</td>
+                <td>Total Attendance</td>
+                <td>{{ $summary['present'] + $summary['late'] }}</td>
+            </tr>
+            <tr>
+                <td>Late</td>
+                <td>{{ $summary['late'] }}</td>
+                <td>Punch Missing</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>Early Out</td>
+                <td>0</td>
+                <td>Late & Early Out</td>
+                <td>0</td>
+            </tr>
+        </table>
+
+        @if(!$loop->last)
+            <div class="page-break"></div>
+        @endif
+    @endforeach
+@endsection

@@ -431,6 +431,7 @@ Route::get('/documents/joining-letter', [EmployeeReportController::class, 'joini
 Route::get('/documents/increment-letter', [EmployeeReportController::class, 'incrementLetter'])->name('documents.incrementLetter');
 Route::get('/documents/confirmation-letter', [EmployeeReportController::class, 'confirmationLetter'])->name('documents.confirmationLetter');
 Route::get('/documents/pay-slip', [EmployeeReportController::class, 'paySlip'])->name('documents.paySlip');
+Route::get('/documents/pay-slip/print', [EmployeeReportController::class, 'paySlipPrint'])->name('documents.paySlipPrint');
 Route::get('/documents/age-identification', [EmployeeReportController::class, 'ageIdentificationLetter'])->name('documents.ageIdentification');
 Route::get('/documents/job-ledger', [EmployeeReportController::class, 'jobLedger'])->name('documents.jobLedger');
 Route::get('/documents/nominee-form', [EmployeeReportController::class, 'nomineeForm'])->name('documents.nomineeForm');
