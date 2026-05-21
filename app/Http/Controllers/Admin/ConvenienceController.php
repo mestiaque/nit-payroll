@@ -7,6 +7,7 @@ use App\Models\ConvenienceRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class ConvenienceController extends Controller
 {
@@ -15,17 +16,27 @@ class ConvenienceController extends Controller
      */
     public function index(Request $request)
     {
-        $pendingRequests = ConvenienceRequest::with('user')
-            ->where('status', 'pending')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $hasPaymentStatusColumn = $this->hasColumn('payment_status');
+        $filters = $this->adminFilters($request);
+        $requests = $this->adminQuery($filters, $hasPaymentStatusColumn)
+            ->paginate(20)
+            ->appends($request->query());
 
-        $completeRequests = ConvenienceRequest::with('user')
-            ->whereIn('status', ['approved', 'rejected'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $users = User::where('status', 1)
+            ->filterBy('employee')
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
-        return view('admin.convenience.index', compact('pendingRequests', 'completeRequests'));
+        return view('admin.convenience.index', compact('requests', 'filters', 'users', 'hasPaymentStatusColumn'));
+    }
+
+    public function print(Request $request)
+    {
+        $hasPaymentStatusColumn = $this->hasColumn('payment_status');
+        $filters = $this->adminFilters($request);
+        $requests = $this->adminQuery($filters, $hasPaymentStatusColumn)->get();
+
+        return view('admin.convenience.print', compact('requests', 'filters', 'hasPaymentStatusColumn'));
     }
 
     /**
@@ -71,17 +82,22 @@ class ConvenienceController extends Controller
         ]);
 
         $convenience = ConvenienceRequest::findOrFail($id);
-        $paymentStatus = $convenience->payment_status;
-        if ($request->status === 'approved' && !$paymentStatus) {
-            $paymentStatus = 'unpaid';
-        }
-        $convenience->update([
+        $data = [
             'status' => $request->status,
             'admin_remark' => $request->admin_remark,
-            'payment_status' => $paymentStatus,
             'approved_by' => auth()->id(),
             'approved_at' => Carbon::now(),
-        ]);
+        ];
+
+        if ($this->hasColumn('payment_status')) {
+            $paymentStatus = $convenience->payment_status;
+            if ($request->status === 'approved' && !$paymentStatus) {
+                $paymentStatus = 'unpaid';
+            }
+            $data['payment_status'] = $paymentStatus;
+        }
+
+        $convenience->update($data);
 
         return back()->with('success', 'Request updated successfully');
     }
@@ -100,8 +116,12 @@ class ConvenienceController extends Controller
      */
     public function markPayment(Request $request, $id)
     {
+        if (!$this->hasColumn('payment_status')) {
+            return back()->with('error', 'Payment status column is not available in database.');
+        }
+
         $request->validate([
-            'payment_method' => 'required|in:cash,bank,mobile_banking',
+            'payment_method' => 'nullable|in:cash,bank,mobile_banking',
             'payment_note' => 'nullable|string|max:1000',
         ]);
 
@@ -111,64 +131,73 @@ class ConvenienceController extends Controller
             return back()->with('error', 'Only approved requests can be marked as paid.');
         }
 
-        $convenience->update([
+        $data = [
             'payment_status' => 'paid',
-            'payment_method' => $request->payment_method,
-            'payment_note' => $request->payment_note,
-            'paid_by' => auth()->id(),
-            'paid_at' => Carbon::now(),
-        ]);
-
-        return back()->with('success', 'Convenience request marked as paid.');
-    }
-
-    /**
-     * Conveyance / convenience expense report.
-     */
-    public function report(Request $request)
-    {
-        $from = $request->from_date
-            ? Carbon::parse($request->from_date)->startOfDay()
-            : Carbon::now()->startOfMonth();
-        $to = $request->to_date
-            ? Carbon::parse($request->to_date)->endOfDay()
-            : Carbon::now()->endOfMonth();
-
-        $query = ConvenienceRequest::with(['user.department'])
-            ->whereBetween('created_at', [$from, $to]);
-
-        if ($request->status) {
-            $query->where('status', $request->status);
-        }
-        if ($request->payment_status) {
-            $query->where('payment_status', $request->payment_status);
-        }
-        if ($request->user_id) {
-            $query->where('user_id', $request->user_id);
-        }
-        if ($request->type) {
-            $query->where('type', $request->type);
-        }
-
-        $summary = [
-            'total_count' => (clone $query)->count(),
-            'pending' => (clone $query)->where('status', 'pending')->count(),
-            'approved' => (clone $query)->where('status', 'approved')->sum('amount'),
-            'rejected' => (clone $query)->where('status', 'rejected')->count(),
-            'paid' => (clone $query)->where('payment_status', 'paid')->sum('amount'),
-            'unpaid' => (clone $query)->where('status', 'approved')->where('payment_status', 'unpaid')->sum('amount'),
         ];
 
-        $requests = $query->orderByDesc('created_at')->paginate(50)->withQueryString();
+        if ($this->hasColumn('payment_method')) {
+            $data['payment_method'] = $request->input('payment_method', 'cash');
+        }
+        if ($this->hasColumn('payment_note')) {
+            $data['payment_note'] = $request->payment_note;
+        }
+        if ($this->hasColumn('paid_by')) {
+            $data['paid_by'] = auth()->id();
+        }
+        if ($this->hasColumn('paid_at')) {
+            $data['paid_at'] = Carbon::now();
+        }
 
-        $employees = User::where('status', 1)->filterBy('employee')->orderBy('name')->get(['id', 'name', 'employee_id']);
+        $convenience->update($data);
 
-        return view('admin.convenience.report', compact(
-            'requests',
-            'summary',
-            'from',
-            'to',
-            'employees'
-        ));
+        return back()->with('success', 'Convenience payment status updated successfully.');
+    }
+
+    protected function adminFilters(Request $request): array
+    {
+        $hasPaymentStatusColumn = $this->hasColumn('payment_status');
+
+        return [
+            'employee_id' => $request->input('employee_id'),
+            'type' => $request->input('type'),
+            'status' => $request->input('status'),
+            'payment_status' => $hasPaymentStatusColumn ? $request->input('payment_status') : null,
+            'date_from' => $request->input('date_from'),
+            'date_to' => $request->input('date_to'),
+        ];
+    }
+
+    protected function adminQuery(array $filters, bool $hasPaymentStatusColumn)
+    {
+        return ConvenienceRequest::with('user')
+            ->when($filters['employee_id'], function ($query, $employeeId) {
+                $query->where('user_id', $employeeId);
+            })
+            ->when($filters['type'], function ($query, $type) {
+                $query->where('type', $type);
+            })
+            ->when($filters['status'], function ($query, $status) {
+                $query->where('status', $status);
+            })
+            ->when($hasPaymentStatusColumn && $filters['payment_status'], function ($query, $paymentStatus) {
+                if ($paymentStatus === 'none') {
+                    $query->whereNull('payment_status');
+                    return;
+                }
+
+                $query->where('payment_status', $paymentStatus);
+            })
+            ->when($filters['date_from'], function ($query, $dateFrom) {
+                $query->whereDate('created_at', '>=', $dateFrom);
+            })
+            ->when($filters['date_to'], function ($query, $dateTo) {
+                $query->whereDate('created_at', '<=', $dateTo);
+            })
+            ->latest();
+    }
+
+    protected function hasColumn(string $column): bool
+    {
+        return Schema::hasColumn('convenience_requests', $column);
     }
 }

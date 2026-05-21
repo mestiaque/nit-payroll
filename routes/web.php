@@ -82,8 +82,6 @@ Route::group(['prefix'=>'employee', 'as'=>'customer.','middleware'=>['auth','rol
     Route::put('/leaves/{id}', [CustomerController::class, 'leaveUpdate'])->name('leaves.update');
     Route::delete('/leaves/{id}', [CustomerController::class, 'leaveDestroy'])->name('leaves.destroy');
 
-    Route::get('/payslips', [CustomerController::class, 'payslips'])->name('payslips.index');
-    Route::get('/payslips/{id}', [CustomerController::class, 'payslipShow'])->name('payslips.show');
 
 });
 
@@ -203,7 +201,7 @@ Route::get('/jobcard/print', [JobCardController::class, 'print'])->name('jobcard
 
 // Convenience Request
 Route::get('/convenience', [ConvenienceController::class, 'index'])->name('convenience.index');
-Route::get('/convenience/report', [ConvenienceController::class, 'report'])->name('convenience.report');
+Route::get('/convenience/print', [ConvenienceController::class, 'print'])->name('convenience.print');
 Route::get('/convenience/create', [ConvenienceController::class, 'create'])->name('convenience.create');
 Route::post('/convenience', [ConvenienceController::class, 'store'])->name('convenience.store');
 Route::put('/convenience/{id}/payment', [ConvenienceController::class, 'markPayment'])->name('convenience.payment');
@@ -225,7 +223,7 @@ Route::put('/retirement/{id}', [RetirementController::class, 'update'])->name('r
 Route::delete('/retirement/{id}', [RetirementController::class, 'destroy'])->name('retirement.destroy');
 
 // Attendance Approval
-Route::get('/attendance-approval', fn () => redirect()->route('admin.approvals.index', ['type' => 'attendance']))->name('attendance-approval.index');
+Route::get('/attendance-approval', [AttendanceApprovalController::class, 'index'])->name('attendance-approval.index');
 Route::get('/attendance-approval/create', [AttendanceApprovalController::class, 'create'])->name('attendance-approval.create');
 Route::post('/attendance-approval', [AttendanceApprovalController::class, 'store'])->name('attendance-approval.store');
 Route::put('/attendance-approval/{id}', [AttendanceApprovalController::class, 'update'])->name('attendance-approval.update');
@@ -234,9 +232,9 @@ Route::delete('/attendance-approval/{id}', [AttendanceApprovalController::class,
 // Unified Approval Management
 Route::get('/approvals', [ApprovalManagementController::class, 'index'])->name('approvals.index');
 Route::get('/approvals/completed', [ApprovalManagementController::class, 'completed'])->name('approvals.completed');
-Route::post('/approvals/{type}/{id}/approve', [ApprovalManagementController::class, 'approve'])->name('approvals.approve');
-Route::post('/approvals/{type}/{id}/reject', [ApprovalManagementController::class, 'reject'])->name('approvals.reject');
 Route::put('/approvals/attendance/{id}/edit', [ApprovalManagementController::class, 'updateAttendanceRequest'])->name('approvals.attendance.edit');
+Route::post('/approvals/manual/{id}/send', [ApprovalManagementController::class, 'sendManualAttendanceApproval'])->name('approvals.manual.send');
+Route::put('/approvals/leave/{id}', [ApprovalManagementController::class, 'updateLeaveApproval'])->name('approvals.leave.update');
 
 // Performance
 Route::get('/performance', [PerformanceController::class, 'index'])->name('performance.index');
@@ -350,8 +348,7 @@ Route::get('/attendance/invalid-report', [AttendanceManagementController::class,
 // Payroll Management
 Route::get('/payroll', [PayrollManagementController::class, 'index'])->name('payroll.index');
 Route::post('/payroll/process', [PayrollManagementController::class, 'processSalary'])->name('payroll.process');
-Route::get('/payroll/held-salary', [PayrollManagementController::class, 'heldUpSalary'])->name('payroll.heldSalary');
-Route::post('/payroll/{id}/mark-held', [PayrollManagementController::class, 'markHeld'])->name('payroll.markHeld');
+Route::get('/payroll/process', [PayrollManagementController::class, 'processSalary'])->name('payroll.processGet');
 Route::get('/payroll/salary-sheet', [PayrollManagementController::class, 'salarySheet'])->name('payroll.salarySheet');
 Route::get('/payroll/salary-summary', [PayrollManagementController::class, 'salarySummary'])->name('payroll.salarySummary');
 Route::get('/payroll/daily-salary-sheet', [PayrollManagementController::class, 'dailySalarySheet'])->name('payroll.dailySalarySheet');

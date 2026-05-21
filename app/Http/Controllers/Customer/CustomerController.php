@@ -12,7 +12,6 @@ use App\Models\Permission;
 use App\Models\Shift;
 use App\Models\User;
 use App\Models\UserLocation;
-use App\Models\SalarySheet;
 use Carbon\Carbon;
 use File;
 use Hash;
@@ -959,7 +958,7 @@ class CustomerController extends Controller
     public function conveyanceStore(Request $request)
     {
         $request->validate([
-            'type' => 'required|in:conveyance,travel,other',
+            'type' => 'required|string|max:50',
             'amount' => 'required|numeric|min:0.01',
             'reason' => 'nullable|string|max:1000',
         ]);
@@ -975,27 +974,6 @@ class CustomerController extends Controller
         return redirect()->route('customer.conveyance.index')->with('success', 'Conveyance request submitted successfully.');
     }
 
-    public function payslips(Request $request)
-    {
-        $user = Auth::user();
-        $year = $request->year ?? Carbon::now()->year;
 
-        $payslips = SalarySheet::where('user_id', $user->id)
-            ->where('year', $year)
-            ->orderByDesc('month')
-            ->get();
-
-        return view(employeeTheme().'payslips.index', compact('payslips', 'year'));
-    }
-
-    public function payslipShow($id)
-    {
-        $salarySheet = SalarySheet::with([
-            'user.department',
-            'user.designation',
-        ])->where('user_id', Auth::id())->findOrFail($id);
-
-        return view(employeeTheme().'payslips.show', compact('salarySheet'));
-    }
 
 }

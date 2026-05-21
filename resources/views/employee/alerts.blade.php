@@ -1,1 +1,0 @@
-@include(adminTheme().'alerts')

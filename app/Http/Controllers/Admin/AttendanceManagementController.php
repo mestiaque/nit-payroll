@@ -224,6 +224,7 @@ class AttendanceManagementController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            dd($e);
             return back()->with('error', 'Error creating roaster: ' . $e->getMessage());
         }
     }
@@ -269,6 +270,7 @@ class AttendanceManagementController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            dd($e);
             return back()->with('error', 'Error updating roasters: ' . $e->getMessage());
         }
     }
@@ -330,16 +332,14 @@ class AttendanceManagementController extends Controller
         $offdayNumber = $offdaySetting ? array_search($offdaySetting->name, ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']) : 5;
         $isWeeklyOff = Carbon::parse($date)->dayOfWeek == $offdayNumber;
 
-        $dayStart = Carbon::parse($date)->startOfDay();
-        $dayEnd = Carbon::parse($date)->endOfDay();
-
-        $machineLogs = AttendanceMachineLog::withoutGlobalScopes()
-            ->whereBetween('log_time', [$dayStart, $dayEnd])
-            ->orderBy('log_time')
+        // Get machine logs for the date
+        $machineLogs = DB::table('attendance_machine_logs')
+            ->where('punch_date', $date)
+            ->orderBy('punch_time')
             ->get();
 
         if ($machineLogs->isEmpty() && !$holiday && !$isWeeklyOff) {
-            return back()->with('error', 'No machine punch data found for this date. Check device sync or import logs.');
+            return back()->with('error', 'No machine data found for this date!');
         }
 
         DB::beginTransaction();
@@ -385,17 +385,15 @@ class AttendanceManagementController extends Controller
             // Group by user for regular attendance processing
             $groupedLogs = $machineLogs->groupBy('user_id');
 
-            foreach ($groupedLogs as $employeeId => $logs) {
+            foreach ($groupedLogs as $userId => $logs) {
                 $firstPunch = $logs->first();
                 $lastPunch = $logs->last();
 
-                $user = User::with('shift')->where('employee_id', $employeeId)->first();
-                if (!$user) {
-                    continue;
-                }
+                $user = User::with('shift')->find($userId);
+                if (!$user) continue;
 
-                $inTime  = Carbon::parse($firstPunch->log_time);
-                $outTime = $logs->count() > 1 ? Carbon::parse($lastPunch->log_time) : null;
+                $inTime  = Carbon::parse($date . ' ' . $firstPunch->punch_time);
+                $outTime = $logs->count() > 1 ? Carbon::parse($date . ' ' . $lastPunch->punch_time) : null;
 
                 // Attendance model er computeFromShift() diye shift apply kore sab calculate kori
                 $tempAtt           = new Attendance();
@@ -419,7 +417,7 @@ class AttendanceManagementController extends Controller
                 // Computed values diye attendance save kori
                 Attendance::updateOrCreate(
                     [
-                        'user_id' => $user->id,
+                        'user_id' => $userId,
                         'date'    => $date,
                     ],
                     [

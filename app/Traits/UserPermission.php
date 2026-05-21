@@ -1,99 +1,50 @@
 <?php
 
 namespace App\Traits;
-
 use App\Models\Permission;
 use Auth;
+trait UserPermission{
+	public function checkRequestPermission(){
 
-trait UserPermission
-{
-    public function checkRequestPermission(): void
-    {
-        if (!Auth::check()) {
-            abort(401);
-        }
+		// if($activeRole =Permission::find(Auth::user()->permission_id)){
+		// 	if(
 
-        $user = Auth::user();
 
-        if ($user->super_admin || (int) $user->permission_id === 1) {
-            return;
-        }
 
-        $role = $user->permission ?? Permission::find($user->permission_id);
-        if (!$role || empty($role->permission)) {
-            return;
-        }
+		// 		empty(json_decode($activeRole->permission, true)['salarySheet']['view']) && \Request::is('admin/salary-sheet/export*')||
 
-        $permissions = json_decode($role->permission, true);
-        if (!is_array($permissions)) {
-            return;
-        }
+		// 		empty(json_decode($activeRole->permission, true)['expenses']['delete']) && \Request::is('admin/expenses/delete*')||
+		// 		empty(json_decode($activeRole->permission, true)['expenses']['report']) && \Request::is('admin/expenses/reports*')||
+		// 		empty(json_decode($activeRole->permission, true)['expenses']['type']) && \Request::is('admin//expenses/types*')||
 
-        $required = $this->resolveRoutePermission();
-        if ($required === null) {
-            return;
-        }
 
-        [$module, $action] = $required;
+		// 		empty(json_decode($activeRole->permission, true)['departments']['list']) && \Request::is('admin/hr/departments*')||
+		// 		empty(json_decode($activeRole->permission, true)['designations']['list']) && \Request::is('admin/hr/designations*')||
+		// 		empty(json_decode($activeRole->permission, true)['companies']['list']) && \Request::is('admin/hr/companies*')||
+		// 		empty(json_decode($activeRole->permission, true)['merchandisers']['list']) && \Request::is('admin/hr/merchandisers*')||
 
-        if ($this->permissionGranted($permissions, $module, $action)) {
-            return;
-        }
+		// 		empty(json_decode($activeRole->permission, true)['paymentMethod']['list']) && \Request::is('admin/accounts/payment-methods*')||
+		// 		empty(json_decode($activeRole->permission, true)['accounts']['list']) && \Request::is('admin/accounts/accounts-methods*')||
+		// 		empty(json_decode($activeRole->permission, true)['deposit']['list']) && \Request::is('admin/accounts/deposits*')||
+		// 		empty(json_decode($activeRole->permission, true)['loanManagement']['list']) && \Request::is('admin/accounts/loans*')||
 
-        abort(403, 'You do not have permission to access this page.');
-    }
+		// 		empty(json_decode($activeRole->permission, true)['employees']['list']) && \Request::is('admin/users/customer*')||
 
-    protected function resolveRoutePermission(): ?array
-    {
-        $path = trim(request()->path(), '/');
-        $method = strtoupper(request()->method());
+		// 		empty(json_decode($activeRole->permission, true)['adminUsers']['list']) && \Request::is('admin/users/admin*')||
 
-        $map = [
-            'admin/payroll/process' => ['payroll_process', $method === 'POST' ? 'process' : 'view'],
-            'admin/payroll' => ['payroll_process', 'view'],
-            'admin/payroll/salary-sheet' => ['salary_sheet', 'view'],
-            'admin/payroll/salary-summary' => ['salary_sheet', 'view'],
-            'admin/payroll/daily-salary-sheet' => ['salary_sheet', 'view'],
-            'admin/payroll/held-salary' => ['salary_sheet', 'view'],
-            'admin/payroll/export' => ['salary_sheet', 'export'],
-            'admin/payroll/salary-sheet/export' => ['salary_sheet', 'export'],
-            'admin/payroll/bulk-pay-slip' => ['payslip', 'print'],
-            'admin/payroll/bulk-mark-paid' => ['payroll_process', 'edit'],
-            'admin/reports/payroll' => ['payroll_report', 'view'],
-            'admin/tax' => ['payroll_process', 'edit'],
-            'admin/provident-fund' => ['payroll_process', 'edit'],
-        ];
+		// 		// empty(json_decode($activeRole->permission, true)['adminRoles']['list']) && \Request::is('admin/users/roles*') ||
 
-        if (isset($map[$path])) {
-            return $map[$path];
-        }
+		// 		empty(json_decode($activeRole->permission, true)['appsSetting']['general']) && \Request::is('admin/setting/general*') ||
+		// 		empty(json_decode($activeRole->permission, true)['appsSetting']['general']) && \Request::is('admin/setting/logo*') ||
+		// 		empty(json_decode($activeRole->permission, true)['appsSetting']['general']) && \Request::is('admin/setting/favicon*') ||
+		// 		empty(json_decode($activeRole->permission, true)['appsSetting']['mail']) && \Request::is('admin/setting/mail*') ||
+		// 		empty(json_decode($activeRole->permission, true)['appsSetting']['sms']) && \Request::is('admin/setting/sms*') ||
+		// 		empty(json_decode($activeRole->permission, true)['appsSetting']['social']) && \Request::is('admin/setting/social*')
 
-        if (preg_match('#^admin/payroll/pay-slip/\d+#', $path)) {
-            return ['payslip', 'view'];
-        }
-        if (preg_match('#^admin/payroll/\d+/(mark-paid|update|mark-held)#', $path)) {
-            return ['payroll_process', 'edit'];
-        }
 
-        return null;
-    }
-
-    protected function permissionGranted(array $permissions, string $module, string $action): bool
-    {
-        if (!isset($permissions[$module]) || !is_array($permissions[$module])) {
-            return false;
-        }
-
-        $modulePerms = $permissions[$module];
-
-        if (!empty($modulePerms['all']) && in_array($modulePerms['all'], ['on', '1', true, 1], true)) {
-            return true;
-        }
-
-        if (!empty($modulePerms[$action]) && in_array($modulePerms[$action], ['on', '1', true, 1], true)) {
-            return true;
-        }
-
-        return false;
-    }
+		// 	){
+		// 		return abort('401');
+		// 	}
+		// }
+	}
 }

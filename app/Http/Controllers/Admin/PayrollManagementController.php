@@ -20,9 +20,7 @@ use App\Models\ProvidentFund;
 use App\Models\WorkingHour;
 use App\Models\Policy;
 use App\Models\Holiday;
-use App\Services\Payroll\PayrollDeductionService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -286,12 +284,9 @@ class PayrollManagementController extends Controller
                 $dailyEarning = $perDaySalary;
 
                 // Calculate earnings for each category
-                $latePayRate = PayrollDeductionService::latePayMultiplier();
-                $lateDeductionRate = PayrollDeductionService::lateDeductionMultiplier();
-
                 $presentEarning = $presentDays * $dailyEarning;           // Present = full pay
-                $lateEarning = $lateDays * ($dailyEarning * $latePayRate);
-                $lateDeduction = $lateDays * ($dailyEarning * $lateDeductionRate);
+                $lateEarning = $lateDays * ($dailyEarning * 0.9);         // Late = 90% pay
+                $lateDeduction = $lateDays * ($dailyEarning * 0.1);       // Late deduction = 10%
                 $leaveEarning = $leaveDays * $dailyEarning;               // Leave = full pay
                 $holidayEarning = $combinedHolidayDays * $dailyEarning;   // Holiday/Weekend = full pay
 
@@ -332,31 +327,25 @@ class PayrollManagementController extends Controller
                     ->where('status', 'deducted')
                     ->sum('amount');
 
+                // 4. Get Tax from Tax model or calculate
+                $taxRecord = Tax::where('user_id', $employee->id)
+                    ->where('month', $month)
+                    ->where('year', $year)
+                    ->first();
+                $tax = $taxRecord ? $taxRecord->net_tax : $this->calculateTax($monthlyGrossSalary);
+
                 // 5. Get Loan installment deduction
                 $loanDeductionAmount = Loan::where('user_id', $employee->id)
                     ->where('status', 'active')
                     ->sum('monthly_installment');
 
-                // Tax & PF (unified services)
-                $tax = PayrollDeductionService::resolveMonthlyTax($employee, $month, $year, $monthlyGrossSalary);
-                $providentFund = PayrollDeductionService::resolveEmployeeProvidentFund(
-                    $employee,
-                    $month,
-                    $year,
-                    $monthlyGrossSalary
-                );
-
-                $monthPadded = PayrollDeductionService::normalizeMonth($month);
+                // 6. Get Provident Fund from ProvidentFund model
                 $pfRecord = ProvidentFund::where('user_id', $employee->id)
+                    ->where('month', $month)
                     ->where('year', $year)
-                    ->where(function ($q) use ($month, $monthPadded) {
-                        $q->where('month', $month)->orWhere('month', $monthPadded);
-                    })
                     ->where('status', 'active')
                     ->first();
-                $companyPf = $pfRecord
-                    ? round((float) $pfRecord->company_contribution, 2)
-                    : round($monthlyGrossSalary * (Policy::getProvidentFundPercentage() / 100), 2);
+                $providentFund = $pfRecord ? ($pfRecord->employee_contribution + $pfRecord->company_contribution) : ($monthlyGrossSalary * 0.05);
 
                 // 7. Get Salary Advance deduction
                 $salaryAdvanceDeduction = SalaryAdvance::where('user_id', $employee->id)
@@ -376,6 +365,12 @@ class PayrollManagementController extends Controller
                 $totalEarning += $overtimeEarning + $bonusEarning + $grassTimeEarning;
 
                 // ============ END NEW FEATURES ============
+
+                // Calculate tax (simplified) - tax on full gross salary
+                $tax = $this->calculateTax($monthlyGrossSalary);
+
+                // Use provident fund from User table or default 5%
+                $providentFund = $providentFund > 0 ? $providentFund : ($monthlyGrossSalary * 0.05);
 
                 // Stamp charge as deduction - use from User table
                 $stampDeduction = $stampCharge > 0 ? $stampCharge : 0;
@@ -433,8 +428,6 @@ class PayrollManagementController extends Controller
                         'late_deduction' => $lateDeduction,
                         'tax' => $tax,
                         'provident_fund' => $providentFund,
-                        'company_pf' => $companyPf,
-                        'processed_by' => Auth::id(),
                         'loan_deduction' => $loanDeduction,
                         'salary_advance_deduction' => $salaryAdvanceDeduction,
                         'deduction' => $deductionAmount,
@@ -559,6 +552,31 @@ class PayrollManagementController extends Controller
         return $weekendDays;
     }
 
+    /**
+     * Calculate tax (simplified progressive tax for Bangladesh)
+     */
+    private function calculateTax(float $monthlyGrossSalary): float
+    {
+        $annualSalary = $monthlyGrossSalary * 12;
+        $tax = 0;
+
+        // Bangladesh tax slabs (simplified)
+        if ($annualSalary <= 350000) {
+            $tax = 0;
+        } elseif ($annualSalary <= 500000) {
+            $tax = ($annualSalary - 350000) * 0.05 / 12;
+        } elseif ($annualSalary <= 750000) {
+            $tax = (150000 * 0.05 + ($annualSalary - 500000) * 0.10) / 12;
+        } elseif ($annualSalary <= 1150000) {
+            $tax = (150000 * 0.05 + 250000 * 0.10 + ($annualSalary - 750000) * 0.15) / 12;
+        } elseif ($annualSalary <= 1700000) {
+            $tax = (150000 * 0.05 + 250000 * 0.10 + 400000 * 0.15 + ($annualSalary - 1150000) * 0.20) / 12;
+        } else {
+            $tax = (150000 * 0.05 + 250000 * 0.10 + 400000 * 0.15 + 550000 * 0.20 + ($annualSalary - 1700000) * 0.25) / 12;
+        }
+
+        return round($tax, 2);
+    }
 
     /**
      * Calculate working days in a month (excluding Fridays/Saturdays)
@@ -804,7 +822,6 @@ class PayrollManagementController extends Controller
         $salarySheet = SalarySheet::findOrFail($id);
         $salarySheet->payment_status = 'paid';
         $salarySheet->payment_date = $request->payment_date ?? Carbon::now();
-        $salarySheet->updated_by = Auth::id();
         $salarySheet->save();
 
         return back()->with('success', 'Salary marked as paid!');
@@ -854,7 +871,6 @@ class PayrollManagementController extends Controller
         $salarySheet = SalarySheet::findOrFail($id);
         $salarySheet->payment_status = 'held';
         $salarySheet->remarks = $request->remarks;
-        $salarySheet->updated_by = Auth::id();
         $salarySheet->save();
 
         return back()->with('success', 'Salary held!');
@@ -887,27 +903,12 @@ class PayrollManagementController extends Controller
             $salarySheet->overtime_amount = $request->overtime_amount;
         }
 
-        // Recalculate totals (include all stored components)
-        $salarySheet->total_earning = ($salarySheet->total_earning > 0)
-            ? $salarySheet->total_earning
-            : ($salarySheet->gross_salary
-                + ($salarySheet->overtime_amount ?? 0)
-                + ($salarySheet->special_overtime_amount ?? 0)
-                + ($salarySheet->grass_time_amount ?? 0)
-                + ($salarySheet->other_bonus ?? 0)
-                + ($salarySheet->bonus ?? 0));
-
-        $salarySheet->total_deduction = ($salarySheet->absent_deduction ?? 0)
-            + ($salarySheet->late_deduction ?? 0)
-            + ($salarySheet->tax ?? 0)
-            + ($salarySheet->provident_fund ?? 0)
-            + ($salarySheet->loan_deduction ?? 0)
-            + ($salarySheet->salary_advance_deduction ?? 0)
-            + ($salarySheet->deduction ?? 0)
-            + ($salarySheet->other_deduction ?? 0);
-
-        $salarySheet->net_salary = max(0, $salarySheet->total_earning - $salarySheet->total_deduction);
-        $salarySheet->updated_by = Auth::id();
+        // Recalculate totals
+        $salarySheet->total_earning = $salarySheet->gross_salary + $salarySheet->overtime_amount + $salarySheet->bonus;
+        $salarySheet->total_deduction = $salarySheet->absent_deduction + $salarySheet->late_deduction +
+                                       $salarySheet->tax + $salarySheet->provident_fund +
+                                       $salarySheet->loan_deduction + $salarySheet->other_deduction;
+        $salarySheet->net_salary = $salarySheet->total_earning - $salarySheet->total_deduction;
 
         $salarySheet->save();
 

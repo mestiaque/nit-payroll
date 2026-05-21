@@ -12,103 +12,33 @@ use Carbon\Carbon;
 
 class ZKTecoPushController extends Controller
 {
-    public function handshake(Request $request)
-    {
-        return response("OK\n", 200)->header('Content-Type', 'text/plain');
-    }
-
-    public function getCommand(Request $request)
-    {
-        return response("OK", 200)->header('Content-Type', 'text/plain');
-    }
-
-    public function deviceReply(Request $request)
-    {
-        return response("OK", 200)->header('Content-Type', 'text/plain');
-    }
-
     public function receiveData(Request $request)
     {
-        if (!$this->deviceAuthorized($request)) {
-            return response('Unauthorized', 401);
-        }
-
         try {
-            $rawBody = trim((string) $request->getContent());
-            if ($rawBody !== '' && (str_contains($rawBody, "\t") || stripos($rawBody, 'ATTLOG') !== false)) {
-                $count = $this->parseAdmsPayload($rawBody, $request->input('SN') ?? $request->query('SN'));
+            Log::info("ZKTeco Data Received", ['payload' => $request->all()]);
 
-                return response("OK: {$count}\n", 200)->header('Content-Type', 'text/plain');
-            }
-
-            Log::info('ZKTeco Data Received', ['payload' => $request->all()]);
-
-            $userId = $request->input('user_id') ?? $request->input('pin');
-            $timestamp = $request->input('time') ?? $request->input('timestamp');
-            $sn = $request->input('device_sn') ?? $request->input('SN');
+            $userId     = $request->input('user_id');
+            $timestamp  = $request->input('time') ?? $request->input('timestamp');
+            $sn         = $request->input('device_sn');
             $verifyType = $request->input('type_name');
-            $typeCode = $request->input('type_code');
+            $typeCode   = $request->input('type_code');
 
             if (!$userId || !$timestamp) {
-                return response('Invalid Data', 400);
+                return response()->json(['status' => 'error', 'message' => 'Invalid Data'], 400);
             }
 
+            // Save machine log
             $this->saveMachineLog($userId, $timestamp, $sn, $verifyType, $typeCode);
+
+            // Save attendance applying shift rules
             $this->saveAttendance($userId, $timestamp, $sn, $verifyType);
 
-            return response("OK\n", 200)->header('Content-Type', 'text/plain');
+            return response()->json(['status' => 'success', 'message' => 'Attendance Processed'], 200);
 
         } catch (\Exception $e) {
-            Log::error('ZKTeco Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-
-            return response('ERROR', 500);
+            Log::error("Shift Action Error: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
-    }
-
-    private function deviceAuthorized(Request $request): bool
-    {
-        $expectedToken = config('services.zkteco.token', env('ZKTECO_DEVICE_TOKEN'));
-        if (!$expectedToken) {
-            return true;
-        }
-
-        $provided = $request->header('X-Device-Token')
-            ?? $request->input('device_token')
-            ?? $request->query('token');
-
-        return hash_equals((string) $expectedToken, (string) $provided);
-    }
-
-    private function parseAdmsPayload(string $body, ?string $deviceSn = null): int
-    {
-        $count = 0;
-
-        foreach (preg_split('/\r\n|\r|\n/', $body) as $line) {
-            $line = trim($line);
-            if ($line === '' || stripos($line, 'ATTLOG') === 0) {
-                continue;
-            }
-
-            $parts = preg_split('/\s+/', $line);
-            $parts = array_values(array_filter($parts, fn ($p) => $p !== ''));
-            if (count($parts) < 2) {
-                continue;
-            }
-
-            $pin = $parts[0];
-            $timestamp = count($parts) >= 3 && preg_match('/\d{2}:\d{2}/', $parts[2])
-                ? ($parts[1] . ' ' . $parts[2])
-                : $parts[1];
-
-            $verifyType = $parts[3] ?? 'ADMS';
-            $typeCode = $parts[4] ?? null;
-
-            $this->saveMachineLog($pin, $timestamp, $deviceSn, $verifyType, $typeCode);
-            $this->saveAttendance($pin, $timestamp, $deviceSn, $verifyType);
-            $count++;
-        }
-
-        return $count;
     }
 
     private function withinCardAcceptWindow(?Shift $shift, Carbon $time): bool

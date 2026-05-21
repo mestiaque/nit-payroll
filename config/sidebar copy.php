@@ -421,18 +421,6 @@ return [
             'route' => 'admin/retirement',
             'permission' => 'sms',
         ],
-        // [
-        //     'title' => 'Attendance Approval',
-        //     'icon' => 'fa fa-check-circle',
-        //     'route' => 'admin/attendance-approval',
-        //     'permission' => 'sms',
-        // ],
-        [
-            'title' => 'Approval Management',
-            'icon' => 'fa fa-check-double',
-            'route' => 'admin/approvals',
-            'permission' => 'sms',
-        ],
         [
             'title' => 'Employee Performance',
             'icon' => 'fa fa-chart-line',
@@ -504,6 +492,22 @@ return [
             'title' => 'Convenience Request',
             'icon' => 'fa fa-file-signature',
             'route' => 'admin/convenience',
+            'permission' => 'sms',
+        ],
+    ],
+    //Approval Management
+    [
+        'group_title' => 'Approvals',
+        [
+            'title' => 'Pending Approvals',
+            'icon' => 'fa fa-hourglass-half',
+            'route' => 'admin/approvals',
+            'permission' => 'sms',
+        ],
+        [
+            'title' => 'Completed Approvals',
+            'icon' => 'fa fa-check-circle',
+            'route' => 'admin/approvals/completed',
             'permission' => 'sms',
         ],
     ],

@@ -245,18 +245,6 @@ return [
                     'route' => 'admin/working-hours',
                     'permission' => 'sms',
                 ],
-                // [
-                //     'title' => 'Attendance Approval',
-                //     'icon' => 'fa fa-check-circle',
-                //     'route' => 'admin/attendance-approval',
-                //     'permission' => 'sms',
-                // ],
-                [
-                    'title' => 'Approval Management',
-                    'icon' => 'fa fa-check-double',
-                    'route' => 'admin/approvals',
-                    'permission' => 'sms',
-                ],
                 [
                     'title' => 'Live Location',
                     'icon' => 'fa fa-map-marker',
@@ -273,6 +261,30 @@ return [
                     'title' => 'Attendance Machine Logs',
                     'icon' => 'fa fa-fingerprint',
                     'route' => 'admin/attendance/machine-log',
+                    'permission' => 'sms',
+                ],
+            ]
+        ],
+    ],
+
+    // Approval Management
+    [
+        'group_title' => '',
+        [
+            'title' => 'Approval Management',
+            'icon' => 'fa fa-check-double',
+            'permission' => '',
+            'children' => [
+                [
+                    'title' => 'Pending Approvals',
+                    'icon' => 'fa fa-hourglass-half',
+                    'route' => 'admin/approvals',
+                    'permission' => 'sms',
+                ],
+                [
+                    'title' => 'Completed Approvals',
+                    'icon' => 'fa fa-check-circle',
+                    'route' => 'admin/approvals/completed',
                     'permission' => 'sms',
                 ],
             ]
@@ -459,10 +471,6 @@ return [
                     'title' => 'Convenience Request',
                     'icon' => 'fa fa-file-signature',
                     'route' => 'admin/convenience',
-                ],
-                [
-                    'title' => 'Conveyance Report',
-                    'route' => 'admin/convenience/report',
                     'permission' => 'sms',
                 ]
             ]

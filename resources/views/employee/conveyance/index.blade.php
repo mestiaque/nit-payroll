@@ -4,7 +4,7 @@
 @endsection
 
 @section('contents')
-@include(employeeTheme().'alerts')
+@include(adminTheme().'alerts')
 <div class="flex-grow-1">
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">

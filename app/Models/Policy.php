@@ -111,14 +111,6 @@ class Policy extends Model
     }
 
     /**
-     * Percent of daily salary paid on late days (default 90%).
-     */
-    public static function getLatePayPercentage()
-    {
-        return self::getValue('late_pay_percentage', 90);
-    }
-
-    /**
      * Get working hours per day
      */
     public static function getWorkingHoursPerDay()
