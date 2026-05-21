@@ -50,6 +50,18 @@
                     <span class="menu-title">My Attendance </span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('customer.payslips.index') }}" class="nav-link">
+                    <span class="icon"><i class="bx bx-receipt"></i></span>
+                    <span class="menu-title">My Payslips </span>
+                </a>
+            </li>
+            <li class="nav-item {{Request::is('employee/conveyance')? 'mm-active' : ''}}">
+                <a href="{{route('customer.conveyance.index')}}" class="nav-link">
+                    <span class="icon"><i class="bx bx-wallet"></i></span>
+                    <span class="menu-title">Conveyance </span>
+                </a>
+            </li>
             <li class="nav-item {{Request::is('employee/share-location')? 'mm-active' : ''}}">
                 <a href="{{route('customer.shareLocation')}}" class="nav-link">
                     <span class="icon"><i class="bx bx-map"></i></span>

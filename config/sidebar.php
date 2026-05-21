@@ -459,6 +459,10 @@ return [
                     'title' => 'Convenience Request',
                     'icon' => 'fa fa-file-signature',
                     'route' => 'admin/convenience',
+                ],
+                [
+                    'title' => 'Conveyance Report',
+                    'route' => 'admin/convenience/report',
                     'permission' => 'sms',
                 ]
             ]

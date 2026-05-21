@@ -69,7 +69,7 @@ class AttendanceApprovalController extends Controller
             'status' => 'pending',
         ]);
 
-        return redirect()->route('admin.attendance-approval.index')->with('success', 'Attendance approval request submitted');
+        return redirect()->route('admin.approvals.index', ['type' => 'attendance'])->with('success', 'Attendance approval request submitted');
     }
 
     /**
@@ -149,6 +149,6 @@ class AttendanceApprovalController extends Controller
     public function destroy($id)
     {
         AttendanceApproval::findOrFail($id)->delete();
-        return redirect()->route('admin.attendance-approval.index')->with('success', 'Attendance approval deleted successfully');
+        return redirect()->route('admin.approvals.index', ['type' => 'attendance'])->with('success', 'Attendance approval deleted successfully');
     }
 }

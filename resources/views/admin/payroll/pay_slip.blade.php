@@ -100,6 +100,7 @@
 
 @section('contents')
 
+@if(empty($employeePortal))
 <div class="breadcrumb-area no-print">
     <h1>Pay Slip</h1>
     <ol class="breadcrumb">
@@ -108,11 +109,13 @@
         <li class="item">Pay Slip</li>
     </ol>
 </div>
+@endif
 
 @include(adminTheme().'alerts')
 
 <div class="flex-grow-1">
 
+    @if(empty($employeePortal))
     <div class="text-center mb-3 no-print">
         <a href="{{route('admin.payroll.paySlip', $salarySheet->id)}}" target="_blank" class="btn btn-primary">
             <i class="bx bx-printer"></i> Print
@@ -121,6 +124,7 @@
             <i class="bx bx-arrow-back"></i> Back
         </a>
     </div>
+    @endif
 
     @php
         $monthName = date('F Y', mktime(0, 0, 0, $salarySheet->month, 1, $salarySheet->year));
@@ -340,8 +344,14 @@
                     @endif
                     @if(($salarySheet->provident_fund ?? 0) > 0)
                     <tr>
-                        <td>Provident Fund (PF)</td>
+                        <td>Provident Fund (Employee)</td>
                         <td class="text-end text-danger">৳{{ number_format($salarySheet->provident_fund ?? 0, 2) }}</td>
+                    </tr>
+                    @endif
+                    @if(($salarySheet->company_pf ?? 0) > 0)
+                    <tr>
+                        <td>Provident Fund (Employer — info)</td>
+                        <td class="text-end text-muted">৳{{ number_format($salarySheet->company_pf ?? 0, 2) }}</td>
                     </tr>
                     @endif
                     @if(($salarySheet->loan_deduction ?? 0) > 0)
@@ -429,8 +439,10 @@
             <p class="mb-0">
                 <small>
                     This is a computer-generated pay slip and does not require a signature.<br>
+                    Income tax and provident fund are calculated per company policy and applicable Bangladesh rules (simplified slabs).<br>
                     Generated on: {{ date('d F Y, h:i A') }} |
                     Salary Sheet ID: {{ $salarySheet->id }}
+                    @if($employee->etin ?? false) | e-TIN: {{ $employee->etin }}@endif
                 </small>
             </p>
         </div>

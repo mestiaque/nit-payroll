@@ -202,6 +202,17 @@
 
         </div>
         <div class="row mt-3">
+            <div class="col-md-4 col-12 mb-3">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <h5 class="mb-1">Conveyance</h5>
+                            <p class="mb-0 text-muted">Submit and track your requests.</p>
+                        </div>
+                        <a href="{{ route('customer.conveyance.index') }}" class="btn btn-primary btn-sm">Open</a>
+                    </div>
+                </div>
+            </div>
             <div class="col-md-12">
                 <div class="card shadow-sm border-0">
                     <div class="card-header">Leave Summary</div>

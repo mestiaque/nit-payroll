@@ -11,7 +11,11 @@
                 <h5 class="mb-0">Convenience Request</h5>
             </div>
             <div class="col-md-6 text-end">
-                <a href="{{ route('admin.convenience.create') }}" class="btn btn-primary">
+                <a href="{{ route('admin.convenience.report') }}" class="btn btn-info btn-sm">
+                    <i class="fa fa-chart-bar"></i> Report
+                </a>
+                <a href="{{ route('admin.approvals.index', ['type' => 'conveyance']) }}" class="btn btn-warning btn-sm">Approvals</a>
+                <a href="{{ route('admin.convenience.create') }}" class="btn btn-primary btn-sm">
                     <i class="fa fa-plus"></i> Add New
                 </a>
             </div>
@@ -48,7 +52,7 @@
                         </td>
                         <td>{{ $request->created_at->format('d M Y') }}</td>
                         <td>
-                            <a href="{{ route('admin.approvals.index') }}" class="btn btn-sm btn-info">Go to Approvals</a>
+                            <a href="{{ route('admin.approvals.index', ['type' => 'conveyance']) }}" class="btn btn-sm btn-info">Approve here</a>
                         </td>
                     </tr>
                     @empty

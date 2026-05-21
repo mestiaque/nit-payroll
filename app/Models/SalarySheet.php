@@ -14,7 +14,7 @@ class SalarySheet extends Model
         'salary_advance_deduction', 'deduction', 'other_deduction', 'total_deduction',
         'net_salary', 'working_days', 'present_days', 'absent_days', 'leave_days', 'holiday_days',
         'overtime_hours', 'payment_method', 'payment_status', 'payment_date',
-        'salary_type', 'remarks'
+        'salary_type', 'remarks', 'processed_by', 'updated_by', 'company_pf'
     ];
 
     protected $casts = [
@@ -51,14 +51,7 @@ class SalarySheet extends Model
 
     public function employee()
     {
-        return $this->hasOneThrough(
-            EmployeeInfo::class,
-            User::class,
-            'id',
-            'user_id',
-            'user_id',
-            'id'
-        );
+        return $this->user();
     }
 
     // Note: Removed hideUser7 global scope - it was causing duplicate entry issues

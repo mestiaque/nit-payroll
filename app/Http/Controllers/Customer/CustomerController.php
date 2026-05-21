@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Attribute;
+use App\Models\ConvenienceRequest;
 use App\Models\Leave;
 use App\Models\Notice;
 use App\Models\Permission;
 use App\Models\Shift;
 use App\Models\User;
 use App\Models\UserLocation;
+use App\Models\SalarySheet;
 use Carbon\Carbon;
 use File;
 use Hash;
@@ -248,25 +250,25 @@ class CustomerController extends Controller
         // ================= LEAVE SUMMARY =================
         $user = Auth::user();
         $currentYear = Carbon::now()->year;
-        
+
         // Get all active leave types (type = 20)
         $leaveTypes = Attribute::where('type', 20)
             ->where('status', 'active')
             ->get();
-        
+
         // Get all approved leaves for current user in current year
         $approvedLeaves = Leave::where('user_id', $user->id)
             ->where('status', 'approved')
             ->whereYear('start_date', $currentYear)
             ->get();
-        
+
         // Calculate used days by leave type
         $leaveSummary = [];
         foreach ($leaveTypes as $type) {
             $usedDays = $approvedLeaves
                 ->where('leave_type_id', $type->id)
                 ->sum('days');
-            
+
             $leaveSummary[] = [
                 'id' => $type->id,
                 'name' => $type->name,
@@ -624,7 +626,7 @@ class CustomerController extends Controller
     public function shareLocation(Request $r)
     {
         $user = Auth::user();
-        
+
         // If POST, update location
         if ($r->isMethod('post')) {
             $r->validate([
@@ -945,6 +947,55 @@ class CustomerController extends Controller
         return redirect()->route('customer.leaves.index')->with('success', 'Leave deleted successfully.');
     }
 
+    public function conveyanceIndex(Request $request)
+    {
+        $requests = ConvenienceRequest::where('user_id', Auth::id())
+            ->latest()
+            ->paginate(20);
 
+        return view(employeeTheme().'conveyance.index', compact('requests'));
+    }
+
+    public function conveyanceStore(Request $request)
+    {
+        $request->validate([
+            'type' => 'required|in:conveyance,travel,other',
+            'amount' => 'required|numeric|min:0.01',
+            'reason' => 'nullable|string|max:1000',
+        ]);
+
+        ConvenienceRequest::create([
+            'user_id' => Auth::id(),
+            'type' => $request->type,
+            'amount' => $request->amount,
+            'reason' => $request->reason,
+            'status' => 'pending',
+        ]);
+
+        return redirect()->route('customer.conveyance.index')->with('success', 'Conveyance request submitted successfully.');
+    }
+
+    public function payslips(Request $request)
+    {
+        $user = Auth::user();
+        $year = $request->year ?? Carbon::now()->year;
+
+        $payslips = SalarySheet::where('user_id', $user->id)
+            ->where('year', $year)
+            ->orderByDesc('month')
+            ->get();
+
+        return view(employeeTheme().'payslips.index', compact('payslips', 'year'));
+    }
+
+    public function payslipShow($id)
+    {
+        $salarySheet = SalarySheet::with([
+            'user.department',
+            'user.designation',
+        ])->where('user_id', Auth::id())->findOrFail($id);
+
+        return view(employeeTheme().'payslips.show', compact('salarySheet'));
+    }
 
 }

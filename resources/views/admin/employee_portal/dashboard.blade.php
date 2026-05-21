@@ -110,6 +110,9 @@
                                 <a href="{{ route('admin.employee.portal.monthly.attendance') }}" class="btn btn-app">
                                     <i class="fas fa-calendar-alt"></i> Monthly Report
                                 </a>
+                                <a href="{{ route('admin.employee.portal.conveyance') }}" class="btn btn-app">
+                                    <i class="fas fa-wallet"></i> Conveyance
+                                </a>
                             </div>
                         </div>
                     </div>

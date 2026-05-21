@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tax;
+use App\Services\Payroll\TaxCalculator;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -52,25 +53,9 @@ class TaxController extends Controller
             'month' => 'required',
         ]);
 
-        $taxableIncome = $request->gross_salary - ($request->rebate ?? 0);
-        
-        // Simple tax calculation (can be customized based on tax rules)
-        $taxAmount = 0;
-        if ($taxableIncome > 0) {
-            if ($taxableIncome <= 300000) {
-                $taxAmount = 0;
-            } elseif ($taxableIncome <= 400000) {
-                $taxAmount = ($taxableIncome - 300000) * 0.05;
-            } elseif ($taxableIncome <= 700000) {
-                $taxAmount = 5000 + ($taxableIncome - 400000) * 0.10;
-            } elseif ($taxableIncome <= 1100000) {
-                $taxAmount = 5000 + 30000 + ($taxableIncome - 700000) * 0.15;
-            } else {
-                $taxAmount = 5000 + 30000 + 60000 + ($taxableIncome - 1100000) * 0.20;
-            }
-        }
-
-        $netTax = max(0, $taxAmount - ($request->rebate ?? 0));
+        $taxableIncome = max(0, $request->gross_salary - ($request->rebate ?? 0));
+        $netTax = TaxCalculator::monthlyTaxFromGross($taxableIncome, 0);
+        $taxAmount = round($netTax * 12, 2);
 
         Tax::create([
             'user_id' => $request->user_id,

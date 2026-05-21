@@ -121,4 +121,54 @@ class ConvenienceController extends Controller
 
         return back()->with('success', 'Convenience request marked as paid.');
     }
+
+    /**
+     * Conveyance / convenience expense report.
+     */
+    public function report(Request $request)
+    {
+        $from = $request->from_date
+            ? Carbon::parse($request->from_date)->startOfDay()
+            : Carbon::now()->startOfMonth();
+        $to = $request->to_date
+            ? Carbon::parse($request->to_date)->endOfDay()
+            : Carbon::now()->endOfMonth();
+
+        $query = ConvenienceRequest::with(['user.department'])
+            ->whereBetween('created_at', [$from, $to]);
+
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
+        if ($request->payment_status) {
+            $query->where('payment_status', $request->payment_status);
+        }
+        if ($request->user_id) {
+            $query->where('user_id', $request->user_id);
+        }
+        if ($request->type) {
+            $query->where('type', $request->type);
+        }
+
+        $summary = [
+            'total_count' => (clone $query)->count(),
+            'pending' => (clone $query)->where('status', 'pending')->count(),
+            'approved' => (clone $query)->where('status', 'approved')->sum('amount'),
+            'rejected' => (clone $query)->where('status', 'rejected')->count(),
+            'paid' => (clone $query)->where('payment_status', 'paid')->sum('amount'),
+            'unpaid' => (clone $query)->where('status', 'approved')->where('payment_status', 'unpaid')->sum('amount'),
+        ];
+
+        $requests = $query->orderByDesc('created_at')->paginate(50)->withQueryString();
+
+        $employees = User::where('status', 1)->filterBy('employee')->orderBy('name')->get(['id', 'name', 'employee_id']);
+
+        return view('admin.convenience.report', compact(
+            'requests',
+            'summary',
+            'from',
+            'to',
+            'employees'
+        ));
+    }
 }

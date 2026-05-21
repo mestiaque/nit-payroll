@@ -12,33 +12,103 @@ use Carbon\Carbon;
 
 class ZKTecoPushController extends Controller
 {
+    public function handshake(Request $request)
+    {
+        return response("OK\n", 200)->header('Content-Type', 'text/plain');
+    }
+
+    public function getCommand(Request $request)
+    {
+        return response("OK", 200)->header('Content-Type', 'text/plain');
+    }
+
+    public function deviceReply(Request $request)
+    {
+        return response("OK", 200)->header('Content-Type', 'text/plain');
+    }
+
     public function receiveData(Request $request)
     {
+        if (!$this->deviceAuthorized($request)) {
+            return response('Unauthorized', 401);
+        }
+
         try {
-            Log::info("ZKTeco Data Received", ['payload' => $request->all()]);
+            $rawBody = trim((string) $request->getContent());
+            if ($rawBody !== '' && (str_contains($rawBody, "\t") || stripos($rawBody, 'ATTLOG') !== false)) {
+                $count = $this->parseAdmsPayload($rawBody, $request->input('SN') ?? $request->query('SN'));
 
-            $userId     = $request->input('user_id');
-            $timestamp  = $request->input('time') ?? $request->input('timestamp');
-            $sn         = $request->input('device_sn');
-            $verifyType = $request->input('type_name');
-            $typeCode   = $request->input('type_code');
-
-            if (!$userId || !$timestamp) {
-                return response()->json(['status' => 'error', 'message' => 'Invalid Data'], 400);
+                return response("OK: {$count}\n", 200)->header('Content-Type', 'text/plain');
             }
 
-            // Save machine log
-            $this->saveMachineLog($userId, $timestamp, $sn, $verifyType, $typeCode);
+            Log::info('ZKTeco Data Received', ['payload' => $request->all()]);
 
-            // Save attendance applying shift rules
+            $userId = $request->input('user_id') ?? $request->input('pin');
+            $timestamp = $request->input('time') ?? $request->input('timestamp');
+            $sn = $request->input('device_sn') ?? $request->input('SN');
+            $verifyType = $request->input('type_name');
+            $typeCode = $request->input('type_code');
+
+            if (!$userId || !$timestamp) {
+                return response('Invalid Data', 400);
+            }
+
+            $this->saveMachineLog($userId, $timestamp, $sn, $verifyType, $typeCode);
             $this->saveAttendance($userId, $timestamp, $sn, $verifyType);
 
-            return response()->json(['status' => 'success', 'message' => 'Attendance Processed'], 200);
+            return response("OK\n", 200)->header('Content-Type', 'text/plain');
 
         } catch (\Exception $e) {
-            Log::error("Shift Action Error: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            Log::error('ZKTeco Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+
+            return response('ERROR', 500);
         }
+    }
+
+    private function deviceAuthorized(Request $request): bool
+    {
+        $expectedToken = config('services.zkteco.token', env('ZKTECO_DEVICE_TOKEN'));
+        if (!$expectedToken) {
+            return true;
+        }
+
+        $provided = $request->header('X-Device-Token')
+            ?? $request->input('device_token')
+            ?? $request->query('token');
+
+        return hash_equals((string) $expectedToken, (string) $provided);
+    }
+
+    private function parseAdmsPayload(string $body, ?string $deviceSn = null): int
+    {
+        $count = 0;
+
+        foreach (preg_split('/\r\n|\r|\n/', $body) as $line) {
+            $line = trim($line);
+            if ($line === '' || stripos($line, 'ATTLOG') === 0) {
+                continue;
+            }
+
+            $parts = preg_split('/\s+/', $line);
+            $parts = array_values(array_filter($parts, fn ($p) => $p !== ''));
+            if (count($parts) < 2) {
+                continue;
+            }
+
+            $pin = $parts[0];
+            $timestamp = count($parts) >= 3 && preg_match('/\d{2}:\d{2}/', $parts[2])
+                ? ($parts[1] . ' ' . $parts[2])
+                : $parts[1];
+
+            $verifyType = $parts[3] ?? 'ADMS';
+            $typeCode = $parts[4] ?? null;
+
+            $this->saveMachineLog($pin, $timestamp, $deviceSn, $verifyType, $typeCode);
+            $this->saveAttendance($pin, $timestamp, $deviceSn, $verifyType);
+            $count++;
+        }
+
+        return $count;
     }
 
     private function withinCardAcceptWindow(?Shift $shift, Carbon $time): bool
@@ -122,44 +192,56 @@ class ZKTecoPushController extends Controller
             $shift = $user->shift;
 
             $attendance = Attendance::where('user_id', $user->id)
-                ->whereDate('in_time', $time->toDateString())
+                ->where(function ($query) use ($time) {
+                    $query->whereDate('date', $time->toDateString())
+                        ->orWhere(function ($subQuery) use ($time) {
+                            $subQuery->whereNull('date')
+                                ->whereDate('created_at', $time->toDateString());
+                        });
+                })
                 ->first();
 
             if (!$attendance) {
                 $attendance = new Attendance();
                 $attendance->user_id = $user->id;
-                $attendance->date = $time->toDateString();
                 $attendance->device_sn = $sn;
                 $attendance->via = 1;
                 $attendance->verify_type = $verifyType;
             }
 
-            if (!$attendance->in_time || $time->lt($attendance->in_time)) {
-                $attendance->in_time = $time;
+            $attendance->date = $attendance->date ?: $time->toDateString();
+
+            $currentIn = $this->attendanceDateTime($attendance->date, $attendance->in_time);
+            $currentOut = $this->attendanceDateTime($attendance->date, $attendance->out_time);
+
+            if (!$currentIn || $time->lt($currentIn)) {
+                $attendance->in_time = $time->format('H:i:s');
+                $currentIn = $this->attendanceDateTime($attendance->date, $attendance->in_time);
             }
 
-            if ((!$attendance->out_time || $time->gt($attendance->out_time)) && $time->gt($attendance->in_time)) {
-                $attendance->out_time = $time;
+            if ((!$currentOut || $time->gt($currentOut)) && $currentIn && $time->gt($currentIn)) {
+                $attendance->out_time = $time->format('H:i:s');
+                $currentOut = $this->attendanceDateTime($attendance->date, $attendance->out_time);
             }
 
-            if ($attendance->in_time) {
-                $shiftStart = $this->shiftStartDateTime($shift, $attendance->in_time);
+            if ($currentIn) {
+                $shiftStart = $this->shiftStartDateTime($shift, $currentIn);
                 if ($shiftStart) {
-                    $attendance->status = $attendance->in_time->greaterThan($shiftStart) ? 'Late' : 'Present';
+                    $attendance->status = $currentIn->greaterThan($shiftStart) ? 'Late' : 'Present';
                 } else {
                     $attendance->status = 'Present';
                 }
             }
 
-            if ($attendance->in_time && $attendance->out_time) {
-                $attendance->in_minutes = $attendance->in_time->diffInMinutes($attendance->out_time);
+            if ($currentIn && $currentOut) {
+                $attendance->in_minutes = $currentIn->diffInMinutes($currentOut);
 
-                $shiftEnd = $this->shiftEndDateTime($shift, $attendance->in_time);
-                $otEnd    = $this->overtimeEndDateTime($shift, $attendance->in_time);
+                $shiftEnd = $this->shiftEndDateTime($shift, $currentIn);
+                $otEnd    = $this->overtimeEndDateTime($shift, $currentIn);
 
-                if ($shiftEnd && $this->isWeeklyOvertimeAllowed($shift, $attendance->in_time)) {
-                    $cap = $otEnd ?? $attendance->out_time;
-                    $out = $attendance->out_time->lt($cap) ? $attendance->out_time : $cap;
+                if ($shiftEnd && $this->isWeeklyOvertimeAllowed($shift, $currentIn)) {
+                    $cap = $otEnd ?? $currentOut;
+                    $out = $currentOut->lt($cap) ? $currentOut : $cap;
 
                     $attendance->overtime_minutes = $out->greaterThan($shiftEnd)
                         ? $shiftEnd->diffInMinutes($out)
@@ -178,6 +260,23 @@ class ZKTecoPushController extends Controller
         } catch (\Exception $e) {
             Log::error("Failed to save attendance for UserID $userId: " . $e->getMessage());
         }
+    }
+
+    private function attendanceDateTime(?string $date, $timeValue): ?Carbon
+    {
+        if (!$timeValue) {
+            return null;
+        }
+
+        $baseDate = $date ?: Carbon::today('Asia/Dhaka')->toDateString();
+
+        if ($timeValue instanceof Carbon) {
+            $timePart = $timeValue->format('H:i:s');
+        } else {
+            $timePart = Carbon::parse($timeValue, 'Asia/Dhaka')->format('H:i:s');
+        }
+
+        return Carbon::parse($baseDate . ' ' . $timePart, 'Asia/Dhaka');
     }
 
     private function saveMachineLog($userId, $timestamp, $sn, $verifyType, $typeCode = null)

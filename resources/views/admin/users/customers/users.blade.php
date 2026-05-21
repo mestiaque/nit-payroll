@@ -172,7 +172,7 @@
 
                                 <td class="">
                                     <div class="d-flex align-items-center">
-                                        <button class="btn btn-sm btn-custom yellow copyBtn mr-1" type="button" data-id="{{ $user->employee_id ?? $user->email }}" data-password="{{ $user->password_show }}"><i class="bx bx-copy"></i></button>
+                                        <button class="btn btn-sm btn-custom yellow copyBtn mr-1" type="button" data-id="{{ $user->employee_id ?? $user->email }}" title="Copy Employee ID"><i class="bx bx-copy"></i></button>
                                         <a href="{{route('admin.usersCustomerAction',['edit',$user->id])}}" class="btn-custom success mr-1">
                                             <i class="bx bx-edit"></i>
                                         </a>
@@ -248,9 +248,7 @@ $(document).ready(function() {
     $(".copyBtn").click(function() {
 
         const email = $(this).data('id');
-        const password = $(this).data('password');
-        const loginUrl = "{{route('login')}}";
-        const finalText = `id: ${email}\npassword: ${password}\nlogin: ${loginUrl}`;
+        const finalText = `Employee ID: ${email}`;
 
         navigator.clipboard.writeText(finalText).then(() => {
             const $btn = $(this);

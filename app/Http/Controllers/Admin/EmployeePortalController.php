@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Models\Attendance;
+use App\Models\ConvenienceRequest;
 use App\Models\Leave;
 use App\Models\Notice;
 use Carbon\Carbon;
@@ -149,5 +149,51 @@ class EmployeePortalController extends Controller
             ->get();
 
         return view('admin.employee_portal.monthly_attendance', compact('attendances', 'leaves', 'month', 'year'));
+    }
+
+    public function conveyanceList(Request $request)
+    {
+        $filters = $this->conveyanceFilters($request);
+        $requests = $this->conveyanceQuery(Auth::id(), $filters)
+            ->paginate(20)
+            ->appends($request->query());
+
+        return view('admin.employee_portal.conveyance', compact('requests', 'filters'));
+    }
+
+    public function conveyancePrint(Request $request)
+    {
+        $filters = $this->conveyanceFilters($request);
+        $requests = $this->conveyanceQuery(Auth::id(), $filters)->get();
+
+        return view('admin.employee_portal.conveyance_print', compact('requests', 'filters'));
+    }
+
+    protected function conveyanceFilters(Request $request): array
+    {
+        return [
+            'type' => $request->input('type'),
+            'status' => $request->input('status'),
+            'date_from' => $request->input('date_from'),
+            'date_to' => $request->input('date_to'),
+        ];
+    }
+
+    protected function conveyanceQuery(int $userId, array $filters)
+    {
+        return ConvenienceRequest::where('user_id', $userId)
+            ->when($filters['type'], function ($query, $type) {
+                $query->where('type', $type);
+            })
+            ->when($filters['status'], function ($query, $status) {
+                $query->where('status', $status);
+            })
+            ->when($filters['date_from'], function ($query, $dateFrom) {
+                $query->whereDate('created_at', '>=', $dateFrom);
+            })
+            ->when($filters['date_to'], function ($query, $dateTo) {
+                $query->whereDate('created_at', '<=', $dateTo);
+            })
+            ->latest();
     }
 }
