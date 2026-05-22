@@ -384,6 +384,12 @@ return [
                     'permission' => 'personal_info',
                 ],
                 [
+                    'title' => 'Bulk Print',
+                    'icon' => 'fa fa-print',
+                    'route' => 'admin/documents/bulk-print',
+                    'permission' => 'sms',
+                ],
+                [
                     'title' => 'Job Card',
                     'icon' => 'fa fa-id-card',
                     'route' => 'admin/jobcard',
@@ -394,40 +400,40 @@ return [
     ],
 
     // Letters
-    [
-        'group_title' => '',
-        [
-            'title' => 'Letters Management',
-            'icon' => 'fa fa-envelope-open',
-            'permission' => '',
-            'children' => [
-                [
-                    'title' => 'Appointment Letters',
-                    'icon' => 'fa fa-envelope',
-                    'route' => 'admin/letters/appointment',
-                    'permission' => 'sms',
-                ],
-                [
-                    'title' => 'Joining Letters',
-                    'icon' => 'fa fa-sign-in',
-                    'route' => 'admin/letters/joining',
-                    'permission' => 'sms',
-                ],
-                [
-                    'title' => 'Confirmation Letters',
-                    'icon' => 'fa fa-check-circle',
-                    'route' => 'admin/letters/confirmation',
-                    'permission' => 'sms',
-                ],
-                [
-                    'title' => 'Salary Increments',
-                    'icon' => 'fa fa-arrow-up',
-                    'route' => 'admin/letters/increment',
-                    'permission' => 'sms',
-                ],
-            ]
-        ],
-    ],
+    // [
+    //     'group_title' => '',
+    //     [
+    //         'title' => 'Letters Management',
+    //         'icon' => 'fa fa-envelope-open',
+    //         'permission' => '',
+    //         'children' => [
+    //             [
+    //                 'title' => 'Appointment Letters',
+    //                 'icon' => 'fa fa-envelope',
+    //                 'route' => 'admin/letters/appointment',
+    //                 'permission' => 'sms',
+    //             ],
+    //             [
+    //                 'title' => 'Joining Letters',
+    //                 'icon' => 'fa fa-sign-in',
+    //                 'route' => 'admin/letters/joining',
+    //                 'permission' => 'sms',
+    //             ],
+    //             [
+    //                 'title' => 'Confirmation Letters',
+    //                 'icon' => 'fa fa-check-circle',
+    //                 'route' => 'admin/letters/confirmation',
+    //                 'permission' => 'sms',
+    //             ],
+    //             [
+    //                 'title' => 'Salary Increments',
+    //                 'icon' => 'fa fa-arrow-up',
+    //                 'route' => 'admin/letters/increment',
+    //                 'permission' => 'sms',
+    //             ],
+    //         ]
+    //     ],
+    // ],
 
     // Assets
     [

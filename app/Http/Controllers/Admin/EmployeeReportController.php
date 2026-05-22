@@ -849,4 +849,247 @@ class EmployeeReportController extends Controller
         $pdf = PDF::loadView('admin.documents.job_application', compact('employee'));
         return $pdf->stream('job_application_' . $employee->name . '.pdf');
     }
+
+    /**
+     * Bulk Print - Selection Form
+     */
+    public function bulkPrint()
+    {
+        $employees   = User::filterBy('employee')->orderBy('employee_id')->get();
+        $sections    = Attribute::where('type', 14)->orderBy('name')->get();
+        $departments = Attribute::where('type', 3)->orderBy('name')->get();
+
+        return view(adminTheme() . 'documents.bulk_print', compact('employees', 'sections', 'departments'));
+    }
+
+    /**
+     * Bulk Print - Preview / Print Output
+     */
+    public function bulkPrintPreview(Request $request)
+    {
+        $docType      = $request->input('doc_type', 'id-card');
+        $language     = $request->input('language', 'bn');
+        $sectionId    = trim((string) $request->input('section_id', ''));
+        $departmentId = trim((string) $request->input('department_id', ''));
+        $employeeIds  = collect((array) $request->input('employee_ids', []))
+            ->map(function ($id) {
+                return is_string($id) ? trim($id) : $id;
+            })
+            ->filter(function ($id) {
+                return !is_null($id) && $id !== '';
+            })
+            ->values()
+            ->all();
+
+        $query = User::with(['designation', 'department', 'section', 'grade'])
+            ->filterBy('employee')
+            ->orderBy('employee_id');
+
+        if (count($employeeIds) > 0) {
+            $query->whereIn('id', $employeeIds);
+        } elseif ($sectionId !== '') {
+            $query->where('section_id', $sectionId);
+        } elseif ($departmentId !== '') {
+            $query->where('department_id', $departmentId);
+        }
+
+        $employees = $query->get();
+
+        $employeesData = [];
+        foreach ($employees as $employee) {
+            $employeesData[] = $this->prepareLetterData($employee, $docType, $language, $request);
+        }
+
+        return view('admin.documents.bulk_print_preview', compact('employeesData', 'docType', 'language'));
+    }
+
+    /**
+     * Prepare letter-specific data for one employee.
+     */
+    private function prepareLetterData($employee, string $docType, string $language, Request $request): array
+    {
+        $general        = general();
+        $companyName    = $general->title ?? '';
+        $companyAddress = $general->address_one ?? $general->address ?? '';
+        $isBangla       = $language === 'bn';
+        $t              = fn($bn, $en) => $isBangla ? $bn : $en;
+        $na             = $isBangla ? 'প্রযোজ্য নয়' : 'N/A';
+        $fmtDate        = fn($date) => $date ? Carbon::parse($date)->format('d-M-Y') : $na;
+
+        $employeeName     = $isBangla ? ($employee->bn_name ?: $employee->name) : $employee->name;
+        $fatherName       = $isBangla ? ($employee->father_name_bn ?: $employee->father_name) : ($employee->father_name ?? $na);
+        $motherName       = $isBangla ? ($employee->mother_name_bn ?: $employee->mother_name) : ($employee->mother_name ?? $na);
+        $spouseName       = $isBangla ? ($employee->spouse_name_bn ?: $employee->spouse_name) : ($employee->spouse_name ?? $na);
+        $designation      = $employee->designation?->name ?? $na;
+        $department       = $employee->department?->name ?? $na;
+        $section          = $employee->section?->name ?? $na;
+        $grade            = $employee->grade?->name ?? $na;
+        $joiningDate      = $employee->joining_date ? Carbon::parse($employee->joining_date)->format('d-M-Y') : $na;
+        $permanentAddress = $isBangla ? ($employee->permanent_address_bn ?: $employee->permanent_address) : ($employee->permanent_address ?? $na);
+        $presentAddress   = $isBangla ? ($employee->present_address_bn ?: $employee->present_address) : ($employee->present_address ?? $na);
+        $employeeId       = $employee->employee_id ?: $employee->id;
+        $nid              = $employee->nid_number ?? $na;
+        $nationality      = $employee->nationality ?? ($isBangla ? 'বাংলাদেশী' : 'Bangladeshi');
+        $bloodGroup       = $employee->blood_group ?? $na;
+        $birthDate        = $employee->dob ?? $na;
+        $gender           = $employee->gender ?? $na;
+        $religion         = $employee->religion ?? $na;
+        $maritalStatus    = $employee->marital_status ?? $na;
+        $boys             = (int) ($employee->boys ?? 0);
+        $girls            = (int) ($employee->girls ?? 0);
+        $mobileNumber     = $employee->mobile ?? $na;
+        $emergencyMobile  = $employee->emergency_mobile ?? $na;
+        $basic            = $employee->basic_salary ?? 0;
+        $house            = $employee->house_rent ?? 0;
+        $medical          = $employee->medical_allowance ?? 0;
+        $transport        = $employee->transport_allowance ?? 0;
+        $food             = $employee->food_allowance ?? 0;
+        $gross            = $employee->gross_salary ?? ($basic + $house + $medical + $transport + $food);
+        $employeeAge      = $employee->dob ? Carbon::parse($employee->dob)->age : $na;
+        $qualification    = $employee->education ?? $na;
+        $hasTrailingEndif = false;
+
+        $vars = [
+            'companyName'    => $companyName,
+            'companyAddress' => $companyAddress,
+            't'              => $t,
+            'isBangla'       => $isBangla,
+            'na'             => $na,
+            'fmtDate'        => $fmtDate,
+            'general'        => $general,
+            'employee'       => $employee,
+            'employeeName'   => $employeeName,
+            'fatherName'     => $fatherName,
+            'motherName'     => $motherName,
+            'spouseName'     => $spouseName,
+            'employeeId'     => $employeeId,
+            'designation'    => $designation,
+            'department'     => $department,
+            'section'        => $section,
+            'grade'          => $grade,
+            'joiningDate'    => $joiningDate,
+            'joinDate'       => $joiningDate,
+            'permanentAddress' => $permanentAddress,
+            'permanentAddressFull' => $permanentAddress,
+            'presentAddress'   => $presentAddress,
+            'presentAddressFull' => $presentAddress,
+            'nid'            => $nid,
+            'nationality'    => $nationality,
+            'bloodGroup'     => $bloodGroup,
+            'birthDate'      => $birthDate,
+            'employeeAge'    => $employeeAge,
+            'education'      => $qualification,
+            'gender'         => $gender,
+            'religion'       => $religion,
+            'maritalStatus'  => $maritalStatus,
+            'boys'           => $boys,
+            'girls'          => $girls,
+            'mobileNumber'   => $mobileNumber,
+            'emergencyMobile'=> $emergencyMobile,
+            'basic'          => $basic,
+            'house'          => $house,
+            'medical'        => $medical,
+            'transport'      => $transport,
+            'food'           => $food,
+            'gross'          => $gross,
+        ];
+
+        switch ($docType) {
+            case 'id-card':
+                $template = 'admin.letters.id-card';
+                $vars['idNumber']          = $employeeId;
+                $vars['classification']    = $employee->work_type ?? $na;
+                $vars['emergency']         = ($employee->emergency_mobile ?? $na) . ' (' . ($employee->emergency_relation ?? '') . ')';
+                $vars['nameFontSize']      = mb_strlen($employeeName) > 20 ? '11px' : '13px';
+                $vars['permanentAddressFull'] = $permanentAddress;
+                break;
+
+            case 'nominee-form':
+                $template         = 'admin.letters.nominee';
+                $hasTrailingEndif = true;
+                $vars['employeeAge']        = $employeeAge;
+                $vars['qualification']      = $qualification;
+                $vars['nomineeImage']       = '';
+                $vars['nomineeName']        = $isBangla ? ($employee->nominee_bn ?: $employee->nominee) : ($employee->nominee ?? $na);
+                $vars['nomineeVillage']     = '';
+                $vars['nomineePostOffice']  = '';
+                $vars['nomineePoStation']   = '';
+                $vars['nomineeDistrict']    = '';
+                $vars['nomineeNid']         = '';
+                $vars['nomineeMobile']      = '';
+                $vars['nomineeRelation']    = $employee->nominee_relation ?? $na;
+                $vars['nomineeAge']         = $employee->nominee_age ?? $na;
+                $vars['nominee']            = $employee;
+                break;
+
+            case 'age-verification':
+                $template = 'admin.letters.age-verification';
+                $vars['permanentAddressFull'] = $permanentAddress;
+                $vars['physicalAbility']      = $isBangla ? 'সক্ষম' : 'Capable';
+                break;
+
+            case 'job-application':
+                $template = 'admin.letters.application';
+                $vars['employeePhoto']   = $employee->image() ?: $na;
+                $vars['applicationDate'] = Carbon::now()->format('d-M-Y');
+                break;
+
+            case 'appointment-letter':
+                $template = 'admin.letters.appointment-letter';
+                $vars['jobType'] = $employee->work_type ?? $na;
+                $vars['otRate']  = 0;
+                break;
+
+            case 'employment-letter':
+                $template       = 'admin.letters.employment-letter';
+                $vars['today']  = Carbon::now()->format('d-M-Y');
+                break;
+
+            case 'employment-notes':
+                $template          = 'admin.letters.employment-notes';
+                $vars['label']     = fn($bn, $en) => $isBangla ? $bn : $en;
+                $vars['resignInfo'] = null;
+                break;
+
+            case 'increment-letter':
+                $template  = 'admin.letters.increment-letter';
+                $increment = EmployeeIncrement::where('user_id', $employee->id)->latest('increment_date')->first();
+                $vars['incrementDate']    = $increment ? $fmtDate($increment->increment_date) : $na;
+                $vars['previousSalary']   = $increment?->previous_salary ?? $basic;
+                $vars['newSalary']        = $increment?->new_salary ?? $gross;
+                $vars['incrementAmount']  = $increment?->increment_amount ?? 0;
+                $vars['incrementPercent'] = $increment?->increment_percentage ?? 0;
+                break;
+
+            case 'job-responsibility':
+                $template                    = 'admin.letters.job-responsibility';
+                $vars['designationAttibute'] = Attribute::find($employee->designation_id);
+                break;
+
+            case 'joining-letter':
+                $template = 'admin.letters.joining-letter';
+                break;
+
+            case 'appraisal-letter':
+                $template = 'admin.letters.appraisal-letter';
+                $vars['request']   = $request;
+                $vars['factory']   = null;
+                $vars['salaryKey'] = null;
+                $vars['profile']   = null;
+                $vars['nominee']   = null;
+                $vars['increment'] = EmployeeIncrement::where('user_id', $employee->id)->latest('increment_date')->first();
+                $vars['language']  = $language;
+                break;
+
+            default:
+                $template = 'admin.letters.id-card';
+        }
+
+        return [
+            'template'        => $template,
+            'vars'            => $vars,
+            'employee'        => $employee,
+            'hasTrailingEndif' => $hasTrailingEndif,
+        ];
+    }
 }

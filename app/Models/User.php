@@ -235,9 +235,10 @@ class User extends Authenticatable
             }else{
                return $this->imageFile->file_url;
             }
+          }elseif(!empty($this->photo)){
+                return $this->photo;
         }else{
-            return false;
-            // return 'public/medies/profile.png';
+                return 'public/medies/profile.png';
         }
     }
 

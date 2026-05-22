@@ -444,6 +444,8 @@ Route::get('/documents/resign-letter', [EmployeeReportController::class, 'resign
 Route::get('/documents/commitment-letter', [EmployeeReportController::class, 'commitmentLetter'])->name('documents.commitmentLetter');
 Route::get('/documents/settlement-letter', [EmployeeReportController::class, 'settlementLetter'])->name('documents.settlementLetter');
 Route::get('/documents/job-application', [EmployeeReportController::class, 'jobApplicationForm'])->name('documents.jobApplication');
+Route::get('/documents/bulk-print', [EmployeeReportController::class, 'bulkPrint'])->name('documents.bulkPrint');
+Route::get('/documents/bulk-print/preview', [EmployeeReportController::class, 'bulkPrintPreview'])->name('documents.bulkPrintPreview');
 
 // Letter Management - Database Stored
 Route::get('/letters/appointment', [LettersController::class, 'appointmentIndex'])->name('letters.appointment.index');

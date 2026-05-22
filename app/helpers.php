@@ -573,6 +573,26 @@ if (!function_exists('getMonthlyAttendanceSummary')) {
  * @param mixed $default Default value if not found
  * @return mixed
  */
+if (!function_exists('bn_date')) {
+    function bn_date($date) {
+        if (!$date) return '';
+        try {
+            $formatted = \Carbon\Carbon::parse($date)->format('d-m-Y');
+        } catch (\Exception $e) {
+            $formatted = (string) $date;
+        }
+        return en2bnNumber($formatted);
+    }
+}
+
+if (!function_exists('hr_factory')) {
+    function hr_factory($key = null) {
+        $gen = general();
+        if ($key === null) return $gen;
+        return $gen->{$key} ?? null;
+    }
+}
+
 if (!function_exists('getPolicyValue')) {
     function getPolicyValue($type, $default = 0) {
         return \App\Models\Policy::getValue($type, $default);
