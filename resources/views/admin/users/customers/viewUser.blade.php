@@ -506,6 +506,7 @@
 
                 <!-- Salary Tab -->
                 <div class="tab-pane fade" id="salary" role="tabpanel">
+                    @php($salaryInfo = $user->salaryInfo())
                     <div class="row">
                         <div class="col-md-6">
                             <div class="info-card">
@@ -521,23 +522,27 @@
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Basic Salary</div>
-                                        <div class="info-value">{{$user->basic_salary ? number_format($user->basic_salary, 2) : 'N/A'}}</div>
+                                        <div class="info-value">{{number_format($salaryInfo['basic_salary'], 2)}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">House Rent</div>
-                                        <div class="info-value">{{$user->house_rent ? number_format($user->house_rent, 2) : 'N/A'}}</div>
+                                        <div class="info-value">{{number_format($salaryInfo['house_rent'], 2)}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Medical Allowance</div>
-                                        <div class="info-value">{{$user->medical_allowance ? number_format($user->medical_allowance, 2) : 'N/A'}}</div>
+                                        <div class="info-value">{{number_format($salaryInfo['medical_allowance'], 2)}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Transport Allowance</div>
-                                        <div class="info-value">{{$user->transport_allowance ? number_format($user->transport_allowance, 2) : 'N/A'}}</div>
+                                        <div class="info-value">{{number_format($salaryInfo['transport_allowance'], 2)}}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <div class="info-label">Food Allowance</div>
-                                        <div class="info-value">{{$user->food_allowance ? number_format($user->food_allowance, 2) : 'N/A'}}</div>
+                                        <div class="info-value">{{number_format($salaryInfo['food_allowance'], 2)}}</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="info-label">OT Rate</div>
+                                        <div class="info-value">{{number_format($salaryInfo['ot_rate'], 2)}}</div>
                                     </div>
                                 </div>
                             </div>

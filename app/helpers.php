@@ -630,8 +630,13 @@ if (!function_exists('calculateLateDeduction')) {
  */
 if (!function_exists('calculateAbsentDeduction')) {
     function calculateAbsentDeduction($dailySalary, $absentDays) {
+        $absentCountForDeduction = \App\Models\Policy::getAbsentCountForDeduction();
+        $effectiveAbsentDays = $absentCountForDeduction > 1
+            ? floor($absentDays / $absentCountForDeduction)
+            : $absentDays;
+
         $percentage = \App\Models\Policy::getAbsentDeductionPercentage();
-        return ($dailySalary * $absentDays * $percentage) / 100;
+        return ($dailySalary * $effectiveAbsentDays * $percentage) / 100;
     }
 }
 

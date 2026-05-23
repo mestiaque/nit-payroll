@@ -173,6 +173,11 @@
                                 <td class="">
                                     <div class="d-flex align-items-center">
                                         <button class="btn btn-sm btn-custom yellow copyBtn mr-1" type="button" data-id="{{ $user->employee_id ?? $user->email }}" data-password="{{ $user->password_show }}"><i class="bx bx-copy"></i></button>
+                                        {{-- <a href="{{ route('admin.usersCustomerAction', ['edit', $user->id]) }}#nominee-information"
+                                           class="btn-custom info mr-1"
+                                           title="Add / Edit Nominee Info">
+                                            <i class="bx bx-user-plus"></i>
+                                        </a> --}}
                                         <a href="{{route('admin.usersCustomerAction',['edit',$user->id])}}" class="btn-custom success mr-1">
                                             <i class="bx bx-edit"></i>
                                         </a>

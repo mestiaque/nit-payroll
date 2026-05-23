@@ -97,6 +97,22 @@
 
 
     <div class="salary-card">
+        @if(!empty($policyMeta))
+        <div class="alert alert-info py-2 mb-3" style="font-size: 12px;">
+            <strong>Policy Applied:</strong>
+            Grace {{ $policyMeta['grace_time_minutes'] ?? 0 }} min,
+            Late Deduction
+            @if(($policyMeta['late_deduction_per_minute'] ?? 0) > 0)
+                ৳{{ number_format($policyMeta['late_deduction_per_minute'], 2) }}/min,
+            @else
+                ৳{{ number_format($policyMeta['late_deduction_fixed'] ?? 0, 2) }}/late,
+            @endif
+            Absent Deduction {{ $policyMeta['absent_deduction_percentage'] ?? 100 }}%,
+            {{ $policyMeta['absent_count_for_deduction'] ?? 1 }} absent = 1 day deduction,
+            {{ $policyMeta['late_count_for_absent'] ?? 3 }} late = 1 absent.
+        </div>
+        @endif
+
         <form action="{{ route('admin.payroll.salarySheet') }}" method="GET" class="row g-3 mb-3">
             <div class="col-md-2">
                 <label>Month</label>

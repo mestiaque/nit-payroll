@@ -1904,6 +1904,7 @@ class AdminController extends Controller
 
             $grade = Attribute::where('type',12)->find($user->grade_lavel);
             $gradeJson = $grade ? json_decode($grade->description, true) : [];
+            $salaryInfo = $user->salaryInfo();
 
             $salaryPaid = $salaryRecords->get($user->id);
             $totalPaid = $salaryPaid ? $salaryPaid->sum('net_salary_amount') : 0;
@@ -1916,15 +1917,15 @@ class AdminController extends Controller
                 'designation' => $user->designation?->name ?? '--',
                 'department' => $user->department?->name ?? '--',
                 'employee_type' => $user->employeeType?->name ?? '--',
-                'basic' => $gradeJson['basic_salary'] ?? 0,
-                'house_rent' => $gradeJson['house_rent'] ?? 0,
-                'medical' => $gradeJson['medical_allowance'] ?? 0,
-                'transport' => $gradeJson['transport_allowance'] ?? 0,
-                'food' => $gradeJson['food_allowance'] ?? 0,
+                'basic' => $salaryInfo['basic_salary'] ?? 0,
+                'house_rent' => $salaryInfo['house_rent'] ?? 0,
+                'medical' => $salaryInfo['medical_allowance'] ?? 0,
+                'transport' => $salaryInfo['transport_allowance'] ?? 0,
+                'food' => $salaryInfo['food_allowance'] ?? 0,
                 'attendance_bonus' => $gradeJson['attendance_bonus'] ?? 0,
                 'other_allowance' => $gradeJson['other_allowance'] ?? 0,
                 'stamp_charge' => $gradeJson['stamp_charge'] ?? 0,
-                'computed_salary' => ($gradeJson['basic_salary'] ?? 0) + ($gradeJson['house_rent'] ?? 0) + ($gradeJson['medical_allowance'] ?? 0) + ($gradeJson['transport_allowance'] ?? 0) + ($gradeJson['food_allowance'] ?? 0) + ($gradeJson['attendance_bonus'] ?? 0) + ($gradeJson['other_allowance'] ?? 0) + ($gradeJson['stamp_charge'] ?? 0),
+                'computed_salary' => ($salaryInfo['basic_salary'] ?? 0) + ($salaryInfo['house_rent'] ?? 0) + ($salaryInfo['medical_allowance'] ?? 0) + ($salaryInfo['transport_allowance'] ?? 0) + ($salaryInfo['food_allowance'] ?? 0) + ($gradeJson['attendance_bonus'] ?? 0) + ($gradeJson['other_allowance'] ?? 0) + ($gradeJson['stamp_charge'] ?? 0),
                 'total_paid' => $totalPaid,
                 'last_paid' => $lastPaid ? Carbon::parse($lastPaid)->format('Y-m-d') : '--',
             ];
@@ -2892,6 +2893,19 @@ class AdminController extends Controller
 
     public function gradesAction(Request $r,$action,$id=null){
 
+          $gradeJsonPayload = [
+              'basic_salary' => 0,
+              'house_rent' => 0,
+              'medical_allowance' => (float) $r->input('json.medical_allowance', 0),
+              'transport_allowance' => (float) $r->input('json.transport_allowance', 0),
+              'food_allowance' => (float) $r->input('json.food_allowance', 0),
+              'attendance_bonus' => (float) $r->input('json.attendance_bonus', 0),
+              'other_allowance' => (float) $r->input('json.other_allowance', 0),
+              'stamp_charge' => (float) $r->input('json.stamp_charge', 0),
+              'conveyance_allowance' => (float) $r->input('json.conveyance_allowance', 0),
+              'provident_fund' => (float) $r->input('json.provident_fund', 0),
+          ];
+
           if($action=='create'){
             $check = $r->validate([
                 'name' => 'required|max:100',
@@ -2904,7 +2918,7 @@ class AdminController extends Controller
             }
 
             $grade->name=$r->name;
-            $grade->description=json_encode($r->json);
+            $grade->description=json_encode($gradeJsonPayload);
             $grade->type =12;
             $grade->status ='active';
             $grade->addedby_id =Auth::id();
@@ -2948,7 +2962,7 @@ class AdminController extends Controller
               ]);
 
               $grade->name=$r->name;
-              $grade->description=json_encode($r->json);
+              $grade->description=json_encode($gradeJsonPayload);
 
               $slug =Str::slug($r->name);
               if($slug==null){
@@ -4169,6 +4183,7 @@ class AdminController extends Controller
                     $user->food_allowance = $r->food_allowance ?? 0;
                     $user->conveyance_allowance = $r->conveyance_allowance ?? 0;
                     $user->provident_fund = $r->provident_fund ?? 0;
+                    $user->applySalaryFormula();
 
                     // NEW EMPLOYEE FIELDS - Employment Dates
                     $user->joining_date = $r->joining_date;

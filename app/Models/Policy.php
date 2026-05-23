@@ -27,6 +27,7 @@ class Policy extends Model
      * - late_deduction_per_minute: Deduction per minute of late
      * - late_deduction_fixed: Fixed deduction per late occurrence
      * - absent_deduction_percentage: Deduction percentage of daily salary per absent
+    * - absent_count_for_deduction: Number of absents that count as 1 absent deduction day (e.g., 3)
      * - late_count_for_absent: Number of lates that count as 1 absent (e.g., 3)
      * - grace_time_minutes: Grace period before counting as late
      * - overtime_rate_general: Rate per hour for general overtime
@@ -68,6 +69,14 @@ class Policy extends Model
     public static function getAbsentDeductionPercentage()
     {
         return self::getValue('absent_deduction_percentage', 100); // Default 100% of daily salary
+    }
+
+    /**
+     * Get number of absents that count as 1 deduction day
+     */
+    public static function getAbsentCountForDeduction()
+    {
+        return max(1, (int) self::getValue('absent_count_for_deduction', 1));
     }
 
     /**

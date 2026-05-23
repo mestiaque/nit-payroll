@@ -125,6 +125,12 @@
     @php
         $monthName = date('F Y', mktime(0, 0, 0, $salarySheet->month, 1, $salarySheet->year));
         $employee = $salarySheet->user;
+        $salaryInfo = $employee->salaryInfo([
+            'gross_salary' => (float) ($salarySheet->gross_salary ?? $employee->gross_salary ?? 0),
+            'medical_allowance' => (float) ($salarySheet->medical_allowance ?? $employee->medical_allowance ?? 0),
+            'transport_allowance' => (float) ($salarySheet->transport_allowance ?? $employee->transport_allowance ?? 0),
+            'food_allowance' => (float) ($employee->food_allowance ?? 0),
+        ]);
     @endphp
 
     <div class="payslip-container">
@@ -218,14 +224,9 @@
                 </td>
                 <th>Total Days:</th>
                 <td class="text-center">{{ ($salarySheet->working_days ?? 0) + ($salarySheet->holiday_days ?? 0) }}</td>
-                <th>Attendance Rate:</th>
+                <th>OT Rate:</th>
                 <td class="text-center">
-                    @php
-                        $totalWorkDays = $salarySheet->working_days ?? 1;
-                        $presentDays = $salarySheet->present_days ?? 0;
-                        $attendanceRate = $totalWorkDays > 0 ? round(($presentDays / $totalWorkDays) * 100, 1) : 0;
-                    @endphp
-                    <span class="{{ $attendanceRate >= 80 ? 'text-success' : 'text-danger' }}"><strong>{{ $attendanceRate }}%</strong></span>
+                    <strong>৳{{ number_format($salarySheet->ot_rate ?? $salaryInfo['ot_rate'], 2) }}</strong>
                 </td>
             </tr>
             @php
@@ -255,19 +256,19 @@
                 <table class="payslip-table">
                     <tr>
                         <td>Basic Salary</td>
-                        <td class="text-end">৳{{ number_format($salarySheet->basic_salary ?? 0, 2) }}</td>
+                        <td class="text-end">৳{{ number_format($salaryInfo['basic_salary'], 2) }}</td>
                     </tr>
                     <tr>
                         <td>House Rent Allowance</td>
-                        <td class="text-end">৳{{ number_format($salarySheet->house_rent ?? 0, 2) }}</td>
+                        <td class="text-end">৳{{ number_format($salaryInfo['house_rent'], 2) }}</td>
                     </tr>
                     <tr>
                         <td>Medical Allowance</td>
-                        <td class="text-end">৳{{ number_format($salarySheet->medical_allowance ?? 0, 2) }}</td>
+                        <td class="text-end">৳{{ number_format($salaryInfo['medical_allowance'], 2) }}</td>
                     </tr>
                     <tr>
                         <td>Transport Allowance</td>
-                        <td class="text-end">৳{{ number_format($salarySheet->transport_allowance ?? 0, 2) }}</td>
+                        <td class="text-end">৳{{ number_format($salaryInfo['transport_allowance'], 2) }}</td>
                     </tr>
                     <tr>
                         <td>Other Allowance (Food/Conveyance)</td>

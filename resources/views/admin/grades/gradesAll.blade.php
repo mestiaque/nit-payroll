@@ -126,8 +126,9 @@
                                     $data = json_decode($grade->description, true);
                                 @endphp
                                 <ul>
-                                    <li>Basic Salary: {{ $data['basic_salary'] ?? 0 }}%</li>
-                                    <li>House Rent: {{ $data['house_rent'] ?? 0 }}%</li>
+                                    <li>Basic Salary: Formula based ((Gross - (Medical + Transport + Food)) / 1.5)</li>
+                                    <li>House Rent: Formula based (Basic / 2)</li>
+                                    <li>OT Rate: Formula based ((Basic / 208) x 2)</li>
                                     <li>Medical Allowance: {{ $data['medical_allowance'] ?? 0 }}TK</li>
                                     <li>Transport Allowance: {{ $data['transport_allowance'] ?? 0 }}TK</li>
                                     <li>Food Allowance: {{ $data['food_allowance'] ?? 0 }}TK</li>
@@ -179,13 +180,11 @@
 
                 <!-- JSON INPUTS ADDED HERE -->
                 <div class="form-group">
-                    <label>Basic Salary (%)</label>
-                    <input type="text" class="form-control" name="json[basic_salary]" placeholder="%">
-                </div>
-
-                <div class="form-group">
-                    <label>House Rent (%)</label>
-                    <input type="text" class="form-control" name="json[house_rent]" placeholder="%">
+                    <div class="alert alert-info mb-2" role="alert" style="font-size: 12px;">
+                        Basic Salary, House Rent, and OT Rate are now auto-calculated from Gross Salary using the legal formula.
+                    </div>
+                    <input type="hidden" name="json[basic_salary]" value="0">
+                    <input type="hidden" name="json[house_rent]" value="0">
                 </div>
 
                 <div class="form-group">
@@ -256,13 +255,11 @@ $json = json_decode($dpm->description, true);
 
                 <!-- JSON INPUTS EDIT MODE -->
                 <div class="form-group">
-                    <label>Basic Salary (%)</label>
-                    <input type="text" class="form-control" name="json[basic_salary]" value="{{$json['basic_salary'] ?? ''}}">
-                </div>
-
-                <div class="form-group">
-                    <label>House Rent (%)</label>
-                    <input type="text" class="form-control" name="json[house_rent]" value="{{$json['house_rent'] ?? ''}}">
+                    <div class="alert alert-info mb-2" role="alert" style="font-size: 12px;">
+                        Basic Salary, House Rent, and OT Rate are auto-calculated from Gross Salary using the legal formula.
+                    </div>
+                    <input type="hidden" name="json[basic_salary]" value="0">
+                    <input type="hidden" name="json[house_rent]" value="0">
                 </div>
 
                 <div class="form-group">

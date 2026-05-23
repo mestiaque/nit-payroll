@@ -64,7 +64,13 @@ class OvertimeController extends Controller
         $endTime = Carbon::parse($request->end_time);
         $hours = $endTime->diffInMinutes($startTime) / 60;
 
-        $rate = $request->overtime_type === 'special' ? (general()->special_overtime_rate ?? 200) : (general()->general_overtime_rate ?? 100);
+        $employee = User::findOrFail($request->user_id);
+        $salaryInfo = $employee->salaryInfo();
+        $baseRate = (float) ($salaryInfo['ot_rate'] ?? 0);
+        if ($baseRate <= 0) {
+            $baseRate = (float) (general()->general_overtime_rate ?? 100);
+        }
+        $rate = $request->overtime_type === 'special' ? ($baseRate * 1.5) : $baseRate;
         $amount = $hours * $rate;
 
         Overtime::create([
@@ -109,7 +115,13 @@ class OvertimeController extends Controller
         $endTime = Carbon::parse($request->end_time);
         $hours = $endTime->diffInMinutes($startTime) / 60;
 
-        $rate = $request->overtime_type === 'special' ? (general()->special_overtime_rate ?? 200) : (general()->general_overtime_rate ?? 100);
+        $employee = User::findOrFail($request->user_id);
+        $salaryInfo = $employee->salaryInfo();
+        $baseRate = (float) ($salaryInfo['ot_rate'] ?? 0);
+        if ($baseRate <= 0) {
+            $baseRate = (float) (general()->general_overtime_rate ?? 100);
+        }
+        $rate = $request->overtime_type === 'special' ? ($baseRate * 1.5) : $baseRate;
         $amount = $hours * $rate;
 
         $overtime->update([

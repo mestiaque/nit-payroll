@@ -21,7 +21,8 @@
                             <option value="late_deduction_per_minute">Late Deduction (Per Minute)</option>
                             <option value="late_deduction_fixed">Late Deduction (Fixed Amount)</option>
                             <option value="absent_deduction_percentage">Absent Deduction (% of Daily Salary)</option>
-                            <option value="late_count_for_absent">Late Count for 1 Absent (e.g., 3 late = 1 absent)</option>
+                            <option value="absent_count_for_deduction">Absent Count Rule (e.g., 3 absent = 1 day deduction)</option>
+                            <option value="late_count_for_absent">Late to Absent Rule (e.g., 3 late = 1 absent day deduction)</option>
                         </optgroup>
                         <optgroup label="Time Settings">
                             <option value="grace_time_minutes">Grace Time (Minutes before Late)</option>
@@ -72,7 +73,8 @@
                     <li><strong>Late Deduction Per Minute:</strong> Amount deducted for each minute of late arrival</li>
                     <li><strong>Late Deduction Fixed:</strong> Fixed amount deducted per late occurrence</li>
                     <li><strong>Absent Deduction %:</strong> Percentage of daily salary deducted per absent day</li>
-                    <li><strong>Late Count for Absent:</strong> Number of lates that equal 1 absent (e.g., 3 lates = 1 absent worth of deduction)</li>
+                    <li><strong>Absent Count Rule:</strong> If value is 3, then every 3 absent days will deduct salary equal to 1 day</li>
+                    <li><strong>Late to Absent Rule:</strong> If value is 3, then 3 lates will deduct salary equal to 1 absent day</li>
                     <li><strong>Grace Time:</strong> Minutes allowed before marking as late (e.g., 10 minutes)</li>
                     <li><strong>Overtime Rates:</strong> Payment per hour for overtime work</li>
                 </ul>
@@ -112,10 +114,13 @@ document.getElementById('policyType').addEventListener('change', function() {
             hint.textContent = 'Enter working hours (e.g., 8)';
             break;
         case 'late_count_for_absent':
+        case 'absent_count_for_deduction':
             unit.value = 'count';
-            hint.textContent = 'Enter number of lates (e.g., 3)';
+            hint.textContent = 'Enter count (e.g., 3 means every 3 events = 1 absent day deduction)';
             break;
     }
 });
+
+document.getElementById('policyType').dispatchEvent(new Event('change'));
 </script>
 @endsection

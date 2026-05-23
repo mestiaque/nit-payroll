@@ -966,9 +966,9 @@
 
         function updateSalaries() {
             let gross = parseFloat($('input[name="gross_salary"]').val());
-            if (isNaN(gross) || !gradeData.basic_salary) return;
+            if (isNaN(gross)) return;
 
-            // ১. ফিক্সড ভ্যালুগুলো আগে বের করে নিচ্ছি (MTF + ATS)
+            // Fixed allowance values from grade config
             let medical = parseFloat(gradeData.medical_allowance || 0);
             let transport = parseFloat(gradeData.transport_allowance || 0);
             let food = parseFloat(gradeData.food_allowance || 0);
@@ -977,21 +977,16 @@
             let other = parseFloat(gradeData.other_allowance || 0);
             let stamp = parseFloat(gradeData.stamp_charge || 0);
 
-            let MTF = medical + transport + food; // ২টো যোগফল
-            let ATS = attendance + other + stamp;
+            // Law-based formula
+            let MTF = medical + transport + food;
+            let basicSalary = (gross > MTF) ? ((gross - MTF) / 1.5) : 0;
+            let houseRent = basicSalary / 2;
+            let otRate = (basicSalary / 208) * 2;
+            void otRate;
 
-            // ২. অবশিষ্ট টাকা বের করা (Gross - (MTF + ATS))
-            let remainder = gross - (MTF + ATS);
-
-            // ৩. পার্সেন্টেজ অনুযায়ী Basic এবং House Rent ক্যালকুলেশন
-            let basicSalary = (remainder * parseFloat(gradeData.basic_salary) / 100);
-            let houseRent = (remainder * parseFloat(gradeData.house_rent) / 100);
-
-            // ৪. ফিল্ডগুলোতে ভ্যালু বসানো
             $('input[data-key="basic_salary"]').val(basicSalary.toFixed(2));
             $('input[data-key="house_rent"]').val(houseRent.toFixed(2));
 
-            // ফিক্সড অ্যামাউন্টগুলো সরাসরি বসবে
             $('input[data-key="medical_allowance"]').val(medical.toFixed(2));
             $('input[data-key="transport_allowance"]').val(transport.toFixed(2));
             $('input[data-key="food_allowance"]').val(food.toFixed(2));

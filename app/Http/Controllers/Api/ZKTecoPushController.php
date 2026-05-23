@@ -41,6 +41,38 @@ class ZKTecoPushController extends Controller
         }
     }
 
+    public function receiveBulkData(Request $request)
+    {
+        try {
+            $data = $request->input('data');
+            if (!is_array($data)) {
+                return response()->json(['status' => 'error', 'message' => 'Invalid Data Format'], 400);
+            }
+
+            foreach ($data as $entry) {
+                $userId     = $entry['user_id'] ?? null;
+                $timestamp  = $entry['time'] ?? $entry['timestamp'] ?? null;
+                $sn         = $entry['device_sn'] ?? null;
+                $verifyType = $entry['type_name'] ?? null;
+                $typeCode   = $entry['type_code'] ?? null;
+
+                if ($userId && $timestamp) {
+                    // Save machine log
+                    $this->saveMachineLog($userId, $timestamp, $sn, $verifyType, $typeCode);
+
+                    // Save attendance applying shift rules
+                    $this->saveAttendance($userId, $timestamp, $sn, $verifyType);
+                }
+            }
+
+            return response()->json(['status' => 'success', 'message' => 'Bulk Attendance Processed'], 200);
+
+        } catch (\Exception $e) {
+            Log::error("Bulk Shift Action Error: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
     private function withinCardAcceptWindow(?Shift $shift, Carbon $time): bool
     {
         if (!$shift || !$shift->card_accept_from || !$shift->card_accept_to) return true;

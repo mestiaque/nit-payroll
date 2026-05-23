@@ -608,17 +608,22 @@ class EmployeeReportController extends Controller
             ->where('month', $monthNum)
             ->first();
 
-        $basicSalary = $salarySheet?->basic_salary ?? $employee->basic_salary ?? 0;
-        $houseRent = $salarySheet?->house_rent ?? $employee->house_rent ?? 0;
-        $medical = $salarySheet?->medical_allowance ?? $employee->medical_allowance ?? 0;
-        $transport = $salarySheet?->transport_allowance ?? $employee->transport_allowance ?? 0;
-        $food = $salarySheet?->food_allowance ?? $employee->food_allowance ?? 0;
+        $salaryInfo = $employee->salaryInfo([
+            'gross_salary' => (float) ($salarySheet?->gross_salary ?? $employee->gross_salary ?? 0),
+            'medical_allowance' => (float) ($salarySheet?->medical_allowance ?? $employee->medical_allowance ?? 0),
+            'transport_allowance' => (float) ($salarySheet?->transport_allowance ?? $employee->transport_allowance ?? 0),
+            'food_allowance' => (float) ($salarySheet?->food_allowance ?? $employee->food_allowance ?? 0),
+        ]);
+
+        $basicSalary = $salaryInfo['basic_salary'];
+        $houseRent = $salaryInfo['house_rent'];
+        $medical = $salaryInfo['medical_allowance'];
+        $transport = $salaryInfo['transport_allowance'];
+        $food = $salaryInfo['food_allowance'];
         $conveyance = $salarySheet?->conveyance_allowance ?? $employee->conveyance_allowance ?? 0;
         $otherAllowance = $salarySheet?->other_allowance ?? $employee->other_allowance ?? 0;
 
-        $grossSalary = $salarySheet?->gross_salary ?? (
-            $basicSalary + $houseRent + $medical + $transport + $food + $conveyance + $otherAllowance
-        );
+        $grossSalary = $salaryInfo['gross_salary'];
 
         $attendanceBonus = $salarySheet?->attendance_bonus ?? 0;
         $overtime = $salarySheet?->overtime_amount ?? 0;
@@ -668,9 +673,12 @@ class EmployeeReportController extends Controller
         }
         $overtimeHours = $salarySheet?->overtime_hours ?? 0;
         $totalDays = $workingDays + $holidayDays;
-        $otRate = $salarySheet?->ot_rate ?? 0;
+        $otRate = $salarySheet?->ot_rate ?? $salaryInfo['ot_rate'];
         $otHour = $salarySheet?->overtime_hours ?? 0;
-        $otAmount = $salarySheet?->overtime_amount ?? 0;
+        $otAmount = $salarySheet?->overtime_amount ?? ($otHour * $otRate);
+        if ($overtime <= 0) {
+            $overtime = $otAmount;
+        }
         $phoneInternet = $salarySheet?->phone_internet ?? 0;
         $extraFacility = $salarySheet?->extra_facility ?? 0;
         $carFuel = $salarySheet?->car_fuel ?? 0;
@@ -939,14 +947,45 @@ class EmployeeReportController extends Controller
         $girls            = (int) ($employee->girls ?? 0);
         $mobileNumber     = $employee->mobile ?? $na;
         $emergencyMobile  = $employee->emergency_mobile ?? $na;
-        $basic            = $employee->basic_salary ?? 0;
-        $house            = $employee->house_rent ?? 0;
-        $medical          = $employee->medical_allowance ?? 0;
-        $transport        = $employee->transport_allowance ?? 0;
-        $food             = $employee->food_allowance ?? 0;
-        $gross            = $employee->gross_salary ?? ($basic + $house + $medical + $transport + $food);
+        $gradeMeta        = is_array($employee->grade?->description)
+            ? $employee->grade->description
+            : (json_decode((string) ($employee->grade?->description ?? ''), true) ?: []);
+
+        // Central salary calculation source for document details.
+        $salaryInfo       = $employee->salaryInfo([
+            'gross_salary' => (float) ($employee->gross_salary ?? 0),
+            'medical_allowance' => (float) ($gradeMeta['medical_allowance'] ?? $employee->medical_allowance ?? 0),
+            'transport_allowance' => (float) ($gradeMeta['transport_allowance'] ?? $employee->transport_allowance ?? 0),
+            'food_allowance' => (float) ($gradeMeta['food_allowance'] ?? $employee->food_allowance ?? 0),
+        ]);
+        $basic            = $salaryInfo['basic_salary'];
+        $house            = $salaryInfo['house_rent'];
+        $medical          = $salaryInfo['medical_allowance'];
+        $transport        = $salaryInfo['transport_allowance'];
+        $food             = $salaryInfo['food_allowance'];
+        $gross            = $salaryInfo['gross_salary'];
         $employeeAge      = $employee->dob ? Carbon::parse($employee->dob)->age : $na;
         $qualification    = $employee->education ?? $na;
+        $nomineeData      = [
+            'name' => $isBangla
+                ? (data_get($employee, 'nominee_bn') ?: data_get($employee, 'nominee') ?: $na)
+                : (data_get($employee, 'nominee') ?: data_get($employee, 'nominee_bn') ?: $na),
+            'village'      => data_get($employee, 'nominee_village', ''),
+            'post_office'  => data_get($employee, 'nominee_post_office', ''),
+            'po_station'   => data_get($employee, 'nominee_po_station', ''),
+            'district'     => data_get($employee, 'nominee_district', ''),
+            'nid'          => data_get($employee, 'nominee_nid', ''),
+            'mobile'       => data_get($employee, 'nominee_mobile', ''),
+            'relation'     => data_get($employee, 'nominee_relation', $na),
+            'age'          => data_get($employee, 'nominee_age', $na),
+            'image'        => data_get($employee, 'nominee_image', ''),
+            'distribution_net_payment'   => data_get($employee, 'distribution_net_payment', 0),
+            'distribution_provident_fund'=> data_get($employee, 'distribution_provident_fund', 0),
+            'distribution_insurance'     => data_get($employee, 'distribution_insurance', 0),
+            'distribution_accident_fine' => data_get($employee, 'distribution_accident_fine', 0),
+            'distribution_profit'        => data_get($employee, 'distribution_profit', 0),
+            'distribution_others'        => data_get($employee, 'distribution_others', 0),
+        ];
         $hasTrailingEndif = false;
 
         $vars = [
@@ -1009,17 +1048,24 @@ class EmployeeReportController extends Controller
                 $hasTrailingEndif = true;
                 $vars['employeeAge']        = $employeeAge;
                 $vars['qualification']      = $qualification;
-                $vars['nomineeImage']       = '';
-                $vars['nomineeName']        = $isBangla ? ($employee->nominee_bn ?: $employee->nominee) : ($employee->nominee ?? $na);
-                $vars['nomineeVillage']     = '';
-                $vars['nomineePostOffice']  = '';
-                $vars['nomineePoStation']   = '';
-                $vars['nomineeDistrict']    = '';
-                $vars['nomineeNid']         = '';
-                $vars['nomineeMobile']      = '';
-                $vars['nomineeRelation']    = $employee->nominee_relation ?? $na;
-                $vars['nomineeAge']         = $employee->nominee_age ?? $na;
-                $vars['nominee']            = $employee;
+                $vars['nomineeImage']       = $nomineeData['image'];
+                $vars['nomineeName']        = $nomineeData['name'];
+                $vars['nomineeVillage']     = $nomineeData['village'];
+                $vars['nomineePostOffice']  = $nomineeData['post_office'];
+                $vars['nomineePoStation']   = $nomineeData['po_station'];
+                $vars['nomineeDistrict']    = $nomineeData['district'];
+                $vars['nomineeNid']         = $nomineeData['nid'];
+                $vars['nomineeMobile']      = $nomineeData['mobile'];
+                $vars['nomineeRelation']    = $nomineeData['relation'];
+                $vars['nomineeAge']         = $nomineeData['age'];
+                $vars['nominee']            = (object) array_merge($employee->toArray(), [
+                    'distribution_net_payment'    => $nomineeData['distribution_net_payment'],
+                    'distribution_provident_fund' => $nomineeData['distribution_provident_fund'],
+                    'distribution_insurance'      => $nomineeData['distribution_insurance'],
+                    'distribution_accident_fine'  => $nomineeData['distribution_accident_fine'],
+                    'distribution_profit'         => $nomineeData['distribution_profit'],
+                    'distribution_others'         => $nomineeData['distribution_others'],
+                ]);
                 break;
 
             case 'age-verification':
@@ -1037,7 +1083,7 @@ class EmployeeReportController extends Controller
             case 'appointment-letter':
                 $template = 'admin.letters.appointment-letter';
                 $vars['jobType'] = $employee->work_type ?? $na;
-                $vars['otRate']  = 0;
+                $vars['otRate']  = $salaryInfo['ot_rate'];
                 break;
 
             case 'employment-letter':

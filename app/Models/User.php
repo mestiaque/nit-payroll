@@ -557,6 +557,50 @@ class User extends Authenticatable
         }
     }
 
+    /**
+     * Central salary breakdown based on business formula.
+     *
+     * MTF = medical + transport + food
+     * Basic = (gross - MTF) / 1.5
+     * House Rent = basic / 2
+     * OT Rate = (basic / 208) * 2
+     */
+    public function salaryInfo(array $overrides = []): array
+    {
+        $gross = (float) ($overrides['gross_salary'] ?? $this->gross_salary ?? 0);
+        $medical = (float) ($overrides['medical_allowance'] ?? $this->medical_allowance ?? 0);
+        $transport = (float) ($overrides['transport_allowance'] ?? $this->transport_allowance ?? 0);
+        $food = (float) ($overrides['food_allowance'] ?? $this->food_allowance ?? 0);
+
+        $mtf = $medical + $transport + $food;
+        $basic = ($gross > $mtf) ? (($gross - $mtf) / 1.5) : 0;
+        $houseRent = $basic / 2;
+        $otRate = ($basic / 208) * 2;
+
+        return [
+            'gross_salary' => round($gross, 2),
+            'medical_allowance' => round($medical, 2),
+            'transport_allowance' => round($transport, 2),
+            'food_allowance' => round($food, 2),
+            'mtf' => round($mtf, 2),
+            'basic_salary' => round($basic, 2),
+            'house_rent' => round($houseRent, 2),
+            'ot_rate' => round($otRate, 2),
+        ];
+    }
+
+    /**
+     * Apply central salary formula values to user salary columns.
+     */
+    public function applySalaryFormula(array $overrides = []): array
+    {
+        $salaryInfo = $this->salaryInfo($overrides);
+        $this->basic_salary = $salaryInfo['basic_salary'];
+        $this->house_rent = $salaryInfo['house_rent'];
+
+        return $salaryInfo;
+    }
+
     public function getEmployeeStatusAttribute()
     {
         $latestTermination = Termination::where('user_id', $this->id)->where('status', 'approved')->latest()->first();

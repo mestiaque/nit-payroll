@@ -312,7 +312,8 @@
                                         <tr>
                                             <th>Basic Salary</th>
                                             <td style="padding:2px;">
-                                                <input type="number" name="basic_salary" data-key="basic_salary" class="form-control form-control-sm {{$errors->has('gross_salary')?'error':''}}"  placeholder="Enter Basic Salary" readonly="" value="{{$user->basic_salary ?: ($user->gross_salary * 0.50) }}"  />
+                                                @php($salaryInfo = $user->salaryInfo())
+                                                <input type="number" name="basic_salary" data-key="basic_salary" class="form-control form-control-sm {{$errors->has('gross_salary')?'error':''}}"  placeholder="Enter Basic Salary" readonly="" value="{{ old('basic_salary', $user->basic_salary ?: ($salaryInfo['basic_salary'] ?? 0)) }}"  />
                                                 @if ($errors->has('basic_salary'))
                                                 <p style="color: red; margin: 0; font-size: 10px;">{{ $errors->first('gross_salary') }}</p>
                                                 @endif
@@ -808,7 +809,7 @@
                                             </td>
                                         </tr>
 
-                                        <tr>
+                                        <tr id="nominee-information">
                                             <th>Nominee Information</th>
                                             <td style="padding:2px;">
                                                 <input type="text" class="form-control form-control-sm"
@@ -1075,12 +1076,12 @@ $(document).ready(function() {
 
 function updateSalaries() {
     let gross = parseFloat($('input[name="gross_salary"]').val());
-    if (isNaN(gross) || !gradeData.basic_salary) return;
+    if (isNaN(gross)) return;
 
-    // ১. ফিক্সড ভ্যালুগুলো আগে বের করে নিচ্ছি (MTF + ATS)
-    let medical = parseFloat(gradeData.medical_allowance || 0);
-    let transport = parseFloat(gradeData.transport_allowance || 0);
-    let food = parseFloat(gradeData.food_allowance || 0);
+    // Keep allowance fields from grade config if available.
+    let medical = parseFloat(gradeData.medical_allowance || $('input[data-key="medical_allowance"]').val() || 0);
+    let transport = parseFloat(gradeData.transport_allowance || $('input[data-key="transport_allowance"]').val() || 0);
+    let food = parseFloat(gradeData.food_allowance || $('input[data-key="food_allowance"]').val() || 0);
 
     let attendance = parseFloat(gradeData.attendance_bonus || 0);
     let other = parseFloat(gradeData.other_allowance || 0);
@@ -1088,23 +1089,20 @@ function updateSalaries() {
     let providentFund = parseFloat(gradeData.provident_fund || 0);
     let conveyance = parseFloat(gradeData.conveyance_allowance || 0);
 
-    let MTF = medical + transport + food; // ২টো যোগফল
-    let ATS = attendance + other + stamp;
+    // সূত্র: MTF = medical + transport + food
+    let MTF = medical + transport + food;
 
-    // ২. অবশিষ্ট টাকা বের করা (Gross - (MTF + ATS))
-    let remainder = gross - (MTF + ATS);
+    // সূত্র: Basic = (Gross - MTF) / 1.5, House Rent = Basic / 2
+    let basicSalary = (gross > MTF) ? ((gross - MTF) / 1.5) : 0;
+    let houseRent = basicSalary / 2;
 
-    // ৩. পার্সেন্টেজ অনুযায়ী Basic এবং House Rent ক্যালকুলেশন
+    // সূত্র: OT Rate = (Basic / 208) * 2 (UI field না থাকায় শুধু calc রাখা হয়েছে)
+    let otRate = (basicSalary / 208) * 2;
+    void otRate;
 
-    let basicSalary = (remainder * parseFloat(gradeData.basic_salary) / 100);
-    let houseRent = (remainder * parseFloat(gradeData.house_rent) / 100);
-    console.log(houseRent);
-
-    // ৪. ফিল্ডগুলোতে ভ্যালু বসানো
     $('input[data-key="basic_salary"]').val(basicSalary.toFixed(2));
     $('input[data-key="house_rent"]').val(houseRent.toFixed(2));
 
-    // ফিক্সড অ্যামাউন্টগুলো সরাসরি বসবে
     $('input[data-key="medical_allowance"]').val(medical.toFixed(2));
     $('input[data-key="transport_allowance"]').val(transport.toFixed(2));
     $('input[data-key="food_allowance"]').val(food.toFixed(2));

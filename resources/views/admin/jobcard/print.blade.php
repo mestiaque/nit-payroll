@@ -166,7 +166,7 @@
                     <td class="tc">{{ $day['day'] }}</td>
                     <td class="tc">{{ $day['in_time'] }}</td>
                     <td class="tc">{{ $day['out_time'] }}</td>
-                    <td class="tc">-</td>
+                    <td class="tc">{{ number_format($day['ot_hours'] ?? 0, 2) }}</td>
                     <td class="tc">
                         @if($day['status'] == 'P')
                             P
@@ -189,7 +189,7 @@
             <tfoot>
                 <tr>
                     <td colspan="6" class="text-right"><b>Total OT Hrs:</b></td>
-                    <td class="text-center"><b>-</b></td>
+                    <td class="text-center"><b>{{ number_format($summary['total_ot_hours'] ?? 0, 2) }}</b></td>
                     <td></td>
                     <td></td>
                 </tr>
@@ -230,6 +230,12 @@
             <tr>
                 <td>Early Out</td>
                 <td>0</td>
+                <td>OT Rate / Hour</td>
+                <td>{{ number_format($summary['ot_rate'] ?? 0, 2) }}</td>
+            </tr>
+            <tr>
+                <td>Total OT Amount</td>
+                <td>{{ number_format($summary['total_ot_amount'] ?? 0, 2) }}</td>
                 <td>Late & Early Out</td>
                 <td>0</td>
             </tr>

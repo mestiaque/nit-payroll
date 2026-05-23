@@ -13,7 +13,7 @@ class SalarySheet extends Model
         'absent_deduction', 'late_deduction', 'tax', 'provident_fund', 'loan_deduction',
         'salary_advance_deduction', 'deduction', 'other_deduction', 'total_deduction',
         'net_salary', 'working_days', 'present_days', 'absent_days', 'leave_days', 'holiday_days',
-        'overtime_hours', 'payment_method', 'payment_status', 'payment_date',
+        'overtime_hours', 'ot_rate', 'payment_method', 'payment_status', 'payment_date',
         'salary_type', 'remarks'
     ];
 
@@ -42,6 +42,7 @@ class SalarySheet extends Model
         'total_deduction' => 'decimal:2',
         'net_salary' => 'decimal:2',
         'overtime_hours' => 'decimal:2',
+        'ot_rate' => 'decimal:2',
     ];
 
     public function user()

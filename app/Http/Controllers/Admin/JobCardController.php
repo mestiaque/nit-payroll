@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Attribute;
+use App\Models\Attendance;
 use App\Models\EmployeeIncrement;
 use App\Models\Shift;
 use Carbon\Carbon;
@@ -100,6 +101,18 @@ class JobCardController extends Controller
         // Get employee increments
         $increments = EmployeeIncrement::where('user_id', $employee->id)->orderBy('increment_date', 'desc')->get();
 
+        $monthStart = Carbon::parse($month)->startOfMonth();
+        $monthEnd = Carbon::parse($month)->endOfMonth();
+        $salaryInfo = $employee->salaryInfo();
+        $otRate = (float) ($salaryInfo['ot_rate'] ?? 0);
+
+        $attendanceMap = Attendance::where('user_id', $employee->id)
+            ->whereBetween('date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])
+            ->get()
+            ->keyBy(function ($item) {
+                return Carbon::parse($item->date)->format('Y-m-d');
+            });
+
         // Get all dates in month
         $dates = Carbon::parse($month)->startOfMonth()->toPeriod(Carbon::parse($month)->endOfMonth());
 
@@ -148,15 +161,26 @@ class JobCardController extends Controller
                     break;
             }
 
+            $attendance = $attendanceMap->get($dateStr);
+            $dayOtHours = 0;
+            if ($attendance) {
+                $dayOtHours = (float) ($attendance->overtime ?? 0);
+                $dayOtHours += ((float) ($attendance->overtime_minutes ?? 0)) / 60;
+            }
+
             $dailyData[] = [
                 'date' => $date->format('d'),
                 'day' => substr($date->format('l'), 0, 3),
                 'in_time' => $inTime,
                 'out_time' => $outTime,
                 'work_hours' => $workHours,
+                'ot_hours' => round($dayOtHours, 2),
                 'status' => $statusCode,
             ];
         }
+
+        $totalOtHours = collect($dailyData)->sum('ot_hours');
+        $totalOtAmount = $totalOtHours * $otRate;
 
         $summary = [
             'present' => $present,
@@ -166,6 +190,9 @@ class JobCardController extends Controller
             'holiday' => $holiday,
             'weekly_off' => $weeklyOff,
             'total_work_hours' => $totalWorkHours,
+            'ot_rate' => round($otRate, 2),
+            'total_ot_hours' => round($totalOtHours, 2),
+            'total_ot_amount' => round($totalOtAmount, 2),
         ];
 
         return [

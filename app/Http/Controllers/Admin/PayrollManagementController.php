@@ -19,7 +19,6 @@ use App\Models\SalaryAdvance;
 use App\Models\ProvidentFund;
 use App\Models\WorkingHour;
 use App\Models\Policy;
-use App\Models\Holiday;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -136,12 +135,16 @@ class PayrollManagementController extends Controller
                 // Get gross salary directly from User table - this is the main salary figure
                 $monthlyGrossSalary = $employee->gross_salary ?? 0;
 
-                // Get salary components from User table
-                $basicSalary = $employee->basic_salary ?? 0;
-                $houseRent = $employee->house_rent ?? 0;
-                $medicalAllowance = $employee->medical_allowance ?? 0;
-                $transportAllowance = $employee->transport_allowance ?? 0;
-                $foodAllowance = $employee->food_allowance ?? 0;
+                // Central salary formula for payroll components and OT rate.
+                $salaryInfo = $employee->salaryInfo([
+                    'gross_salary' => $monthlyGrossSalary,
+                ]);
+                $basicSalary = $salaryInfo['basic_salary'];
+                $houseRent = $salaryInfo['house_rent'];
+                $medicalAllowance = $salaryInfo['medical_allowance'];
+                $transportAllowance = $salaryInfo['transport_allowance'];
+                $foodAllowance = $salaryInfo['food_allowance'];
+                $otRate = $salaryInfo['ot_rate'];
                 $conveyanceAllowance = $employee->conveyance_allowance ?? 0;
 
                 // Get other allowances and deductions from User table
@@ -149,27 +152,6 @@ class PayrollManagementController extends Controller
                 $otherAllowanceFromUser = $employee->other_allowance ?? 0;
                 $stampCharge = $employee->stamp_charge ?? 0;
                 $providentFund = $employee->provident_fund ?? 0;
-
-                // If components are not properly set (both basic and house_rent are 0), calculate from gross
-                // OR if basic_salary equals gross_salary (bug case), recalculate
-                if ($monthlyGrossSalary > 0 && $basicSalary == 0 && $houseRent == 0) {
-                    // Default distribution: Basic 50%, House Rent 30%, Medical 5%, Transport 5%, Food 5%, Conveyance 5%
-                    $basicSalary = $monthlyGrossSalary * 0.50;
-                    $houseRent = $monthlyGrossSalary * 0.30;
-                    $medicalAllowance = $monthlyGrossSalary * 0.05;
-                    $transportAllowance = $monthlyGrossSalary * 0.05;
-                    $foodAllowance = $monthlyGrossSalary * 0.05;
-                    $conveyanceAllowance = $monthlyGrossSalary * 0.05;
-                } elseif ($monthlyGrossSalary > 0 && $basicSalary > 0 && $basicSalary == $monthlyGrossSalary) {
-                    // Fix for bug where basic_salary was set equal to gross_salary - recalculate
-                    $basicSalary = $monthlyGrossSalary * 0.50;
-                    $houseRent = $monthlyGrossSalary * 0.30;
-                    $medicalAllowance = $monthlyGrossSalary * 0.05;
-                    $transportAllowance = $monthlyGrossSalary * 0.05;
-                    $foodAllowance = $monthlyGrossSalary * 0.05;
-                    $conveyanceAllowance = $monthlyGrossSalary * 0.05;
-                }
-                // Otherwise, use the stored values from User table
 
                 // Get employee's shift (from roster or default shift)
                 $employeeShift = $this->getEmployeeShift($employee, $startDate);
@@ -272,8 +254,8 @@ class PayrollManagementController extends Controller
                 $perDaySalary = $totalCalendarDays > 0 ? $monthlyGrossSalary / $totalCalendarDays : 0;
                 $perHourRate = $hoursPerDay > 0 ? $monthlyGrossSalary / ($totalCalendarDays * $hoursPerDay) : 0;
 
-                // Calculate overtime amount (1.5x rate)
-                $overtimeAmount = $overtimeHours * $perHourRate * 1.5;
+                // Formula OT amount: hours x ((basic / 208) * 2)
+                $overtimeAmount = $overtimeHours * $otRate;
 
                 // ============ SALARY CALCULATION ============
                 // Holiday + Weekend = PAID (full pay)
@@ -285,13 +267,26 @@ class PayrollManagementController extends Controller
 
                 // Calculate earnings for each category
                 $presentEarning = $presentDays * $dailyEarning;           // Present = full pay
-                $lateEarning = $lateDays * ($dailyEarning * 0.9);         // Late = 90% pay
-                $lateDeduction = $lateDays * ($dailyEarning * 0.1);       // Late deduction = 10%
                 $leaveEarning = $leaveDays * $dailyEarning;               // Leave = full pay
                 $holidayEarning = $combinedHolidayDays * $dailyEarning;   // Holiday/Weekend = full pay
 
-                // Absent deduction = absent days * per day salary
-                $absentDeduction = $absentDays * $dailyEarning;
+                // Policy-based deduction calculation
+                $lateAttendances = $attendances->filter(function ($a) {
+                    return strtolower((string) $a->status) === 'late';
+                });
+
+                $lateDeduction = 0;
+                foreach ($lateAttendances as $lateAttendance) {
+                    $lateMinutes = (int) ($lateAttendance->late_time ?? 0);
+                    $lateDeduction += calculateLateDeduction($lateMinutes, $dailyEarning);
+                }
+
+                $additionalAbsentFromLate = calculateLateToAbsent($lateDays);
+                $totalAbsentForDeduction = $absentDays + $additionalAbsentFromLate;
+                $absentDeduction = calculateAbsentDeduction($dailyEarning, $totalAbsentForDeduction);
+
+                // Deduction-aware late earning for display parity
+                $lateEarning = max(0, ($lateDays * $dailyEarning) - $lateDeduction);
 
                 // Total base earnings = All paid days
                 // For monthly salary, start with gross and deduct absents
@@ -313,6 +308,9 @@ class PayrollManagementController extends Controller
                     ->where('year', $year)
                     ->where('status', 'approved')
                     ->sum('amount');
+                if ($overtimeEarning <= 0 && $overtimeHours > 0) {
+                    $overtimeEarning = $overtimeAmount;
+                }
 
                 // 2. Get Bonus from Bonus model
                 $bonusEarning = Bonus::where('user_id', $employee->id)
@@ -378,8 +376,8 @@ class PayrollManagementController extends Controller
                 // Loan deduction (from Loan model)
                 $loanDeduction = $loanDeductionAmount;
 
-                // Total deductions
-                $totalDeduction = $lateDeduction + $tax + $providentFund + $loanDeduction + $stampDeduction + $deductionAmount + $salaryAdvanceDeduction;
+                // Total deductions (policy-based late/absent deductions included)
+                $totalDeduction = $absentDeduction + $lateDeduction + $tax + $providentFund + $loanDeduction + $stampDeduction + $deductionAmount + $salaryAdvanceDeduction;
 
                 // Net salary
                 $netSalary = $totalEarning - $totalDeduction;
@@ -440,6 +438,7 @@ class PayrollManagementController extends Controller
                         'leave_days' => $leaveDays,
                         'holiday_days' => $combinedHolidayDays, // Holiday + Weekend
                         'overtime_hours' => $overtimeHours,
+                        'ot_rate' => $otRate,
                         'payment_method' => $paymentMethod,
                         'payment_status' => 'pending',
                         'salary_type' => $salaryType,
@@ -648,8 +647,16 @@ class PayrollManagementController extends Controller
         $departments = Attribute::where('type', 3)->where('status', 'active')->get();
         $designations = Attribute::where('type', 4)->where('status', 'active')->get();
         $employees = User::where('status', 1)->filterBy('employee')->get();
+        $policyMeta = [
+            'grace_time_minutes' => Policy::getGraceTimeMinutes(),
+            'late_deduction_per_minute' => Policy::getValue('late_deduction_per_minute', 0),
+            'late_deduction_fixed' => Policy::getValue('late_deduction_fixed', 0),
+            'absent_deduction_percentage' => Policy::getAbsentDeductionPercentage(),
+            'absent_count_for_deduction' => Policy::getAbsentCountForDeduction(),
+            'late_count_for_absent' => Policy::getLateCountForAbsent(),
+        ];
 
-        return view(adminTheme().'payroll.salary_sheet', compact('salaries', 'summary', 'month', 'year', 'departments', 'designations', 'employees'));
+        return view(adminTheme().'payroll.salary_sheet', compact('salaries', 'summary', 'month', 'year', 'departments', 'designations', 'employees', 'policyMeta'));
     }
 
     /**
