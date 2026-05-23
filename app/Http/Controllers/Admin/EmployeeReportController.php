@@ -922,7 +922,28 @@ class EmployeeReportController extends Controller
         $isBangla       = $language === 'bn';
         $t              = fn($bn, $en) => $isBangla ? $bn : $en;
         $na             = $isBangla ? 'প্রযোজ্য নয়' : 'N/A';
-        $fmtDate        = fn($date) => $date ? Carbon::parse($date)->format('d-M-Y') : $na;
+        $safeDate       = function ($date) {
+            if (is_null($date)) {
+                return null;
+            }
+
+            $value = trim((string) $date);
+            if ($value === '') {
+                return null;
+            }
+
+            $invalidValues = ['n/a', 'na', 'null', '-', '--', 'প্রযোজ্য নয়'];
+            if (in_array(mb_strtolower($value), $invalidValues, true)) {
+                return null;
+            }
+
+            try {
+                return Carbon::parse($value);
+            } catch (\Throwable $e) {
+                return null;
+            }
+        };
+        $fmtDate        = fn($date) => ($parsed = $safeDate($date)) ? $parsed->format('d-M-Y') : $na;
 
         $employeeName     = $isBangla ? ($employee->bn_name ?: $employee->name) : $employee->name;
         $fatherName       = $isBangla ? ($employee->father_name_bn ?: $employee->father_name) : ($employee->father_name ?? $na);
@@ -932,14 +953,14 @@ class EmployeeReportController extends Controller
         $department       = $employee->department?->name ?? $na;
         $section          = $employee->section?->name ?? $na;
         $grade            = $employee->grade?->name ?? $na;
-        $joiningDate      = $employee->joining_date ? Carbon::parse($employee->joining_date)->format('d-M-Y') : $na;
+        $joiningDate      = $fmtDate($employee->joining_date);
         $permanentAddress = $isBangla ? ($employee->permanent_address_bn ?: $employee->permanent_address) : ($employee->permanent_address ?? $na);
         $presentAddress   = $isBangla ? ($employee->present_address_bn ?: $employee->present_address) : ($employee->present_address ?? $na);
         $employeeId       = $employee->employee_id ?: $employee->id;
         $nid              = $employee->nid_number ?? $na;
         $nationality      = $employee->nationality ?? ($isBangla ? 'বাংলাদেশী' : 'Bangladeshi');
         $bloodGroup       = $employee->blood_group ?? $na;
-        $birthDate        = $employee->dob ?? $na;
+        $birthDate        = $fmtDate($employee->dob);
         $gender           = $employee->gender ?? $na;
         $religion         = $employee->religion ?? $na;
         $maritalStatus    = $employee->marital_status ?? $na;
@@ -964,7 +985,7 @@ class EmployeeReportController extends Controller
         $transport        = $salaryInfo['transport_allowance'];
         $food             = $salaryInfo['food_allowance'];
         $gross            = $salaryInfo['gross_salary'];
-        $employeeAge      = $employee->dob ? Carbon::parse($employee->dob)->age : $na;
+        $employeeAge      = ($dob = $safeDate($employee->dob)) ? $dob->age : $na;
         $qualification    = $employee->education ?? $na;
         $nomineeData      = [
             'name' => $isBangla
