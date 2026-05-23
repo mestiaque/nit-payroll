@@ -280,11 +280,11 @@ Route::put('/loan/{id}', [LoanController::class, 'update'])->name('loan.update')
 Route::delete('/loan/{id}', [LoanController::class, 'destroy'])->name('loan.destroy');
 
 // Policy
-// Route::get('/policy', [PolicyController::class, 'index'])->name('policy.index');
-// Route::get('/policy/create', [PolicyController::class, 'create'])->name('policy.create');
-// Route::post('/policy', [PolicyController::class, 'store'])->name('policy.store');
-// Route::put('/policy/{id}', [PolicyController::class, 'update'])->name('policy.update');
-// Route::delete('/policy/{id}', [PolicyController::class, 'destroy'])->name('policy.destroy');
+Route::get('/policy', [PolicyController::class, 'index'])->name('policy.index');
+Route::get('/policy/create', [PolicyController::class, 'create'])->name('policy.create');
+Route::post('/policy', [PolicyController::class, 'store'])->name('policy.store');
+Route::put('/policy/{id}', [PolicyController::class, 'update'])->name('policy.update');
+Route::delete('/policy/{id}', [PolicyController::class, 'destroy'])->name('policy.destroy');
 
 // Working Hours
 Route::get('/working-hours', [WorkingHourController::class, 'index'])->name('working-hours.index');
