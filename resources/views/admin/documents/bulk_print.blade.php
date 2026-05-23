@@ -78,12 +78,12 @@
                     <div class="form-group">
                         <label class="font-weight-semibold">Language / ভাষা</label>
                         <div>
-                            <div class="form-check form-check-inline">
+                            {{-- <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="language" id="lang_bn" value="bn" checked>
                                 <label class="form-check-label" for="lang_bn">বাংলা (Bengali)</label>
-                            </div>
+                            </div> --}}
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="language" id="lang_en" value="en">
+                                <input class="form-check-input" type="radio" name="language" id="lang_en" value="en" checked>
                                 <label class="form-check-label" for="lang_en">English</label>
                             </div>
                         </div>

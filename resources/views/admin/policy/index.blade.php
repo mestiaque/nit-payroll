@@ -9,7 +9,7 @@
         <div class="card-header">
             <div class="row">
                 <div class="col-md-6"><h5 class="mb-0">Policy Settings</h5></div>
-                <div class="col-md-6 text-end">
+                <div class="col-md-6 text-right">
                     <a href="{{ route('admin.policy.create') }}" class="btn btn-primary"><i class="fa fa-plus"></i> Add New</a>
                 </div>
             </div>
