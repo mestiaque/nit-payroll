@@ -431,15 +431,26 @@ class User extends Authenticatable
         return $this->customer == true;
     }
 
-    public function scopeFilterBy($query, $type = 'employee')
+    public function scopeNotTerminated($query)
+    {
+        return $query->whereDoesntHave('terminations', function ($q) {
+            $q->where('status', 'approved');
+        });
+    }
+
+    public function scopeFilterBy($query, $type = 'employee', $includeTerminated = false)
     {
         if ($type == 'admin') {
-            // only admin true and customer false
             return $query->where('admin', true)
                         ->where('customer', false);
         } elseif ($type == 'employee') {
-            // customer true (admin true or false both allowed)
-            return $query->where('customer', true);
+            $query->where('customer', true);
+            if (!$includeTerminated) {
+                $query->whereDoesntHave('terminations', function ($q) {
+                    $q->where('status', 'approved');
+                });
+            }
+            return $query;
         }
 
         return $query;

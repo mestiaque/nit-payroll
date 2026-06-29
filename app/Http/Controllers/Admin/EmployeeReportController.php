@@ -24,8 +24,9 @@ class EmployeeReportController extends Controller
         $departments = Attribute::where('type', 3)->where('status', 'active')->get();
         $designations = Attribute::where('type', 4)->where('status', 'active')->get();
 
+        $includeTerminated = $request->employee_status === 'terminated';
         $query = User::with(['department', 'designation'])
-            ->filterBy('employee');
+            ->filterBy('employee', $includeTerminated);
 
         // Search filters
         if ($request->search) {
@@ -101,7 +102,7 @@ class EmployeeReportController extends Controller
     {
         $departments = Attribute::where('parent', 9)->get(); // Department list
 
-        $query = User::where('customer', '=', 1)->with('department');
+        $query = User::where('customer', '=', 1)->notTerminated()->with('department');
 
         if ($request->gender) {
             $query->where('gender', '=', $request->gender);
@@ -114,9 +115,9 @@ class EmployeeReportController extends Controller
         $employees = $query->get();
 
         $stats = [
-            'male' => User::where('customer', '=', 1)->where('gender', '=', 'male')->count(),
-            'female' => User::where('customer', '=', 1)->where('gender', '=', 'female')->count(),
-            'other' => User::where('customer', '=', 1)->where('gender', '=', 'other')->count(),
+            'male' => User::where('customer', '=', 1)->notTerminated()->where('gender', '=', 'male')->count(),
+            'female' => User::where('customer', '=', 1)->notTerminated()->where('gender', '=', 'female')->count(),
+            'other' => User::where('customer', '=', 1)->notTerminated()->where('gender', '=', 'other')->count(),
         ];
 
         return view(adminTheme().'reports.employees.gender_wise', compact('employees', 'stats', 'departments'));
@@ -129,7 +130,7 @@ class EmployeeReportController extends Controller
     {
         $departments = Attribute::where('parent', 9)->get();
 
-        $query = User::where('customer', '=', 1)->with('department');
+        $query = User::where('customer', '=', 1)->notTerminated()->with('department');
 
         if ($request->status) {
             $query->where('employee_status', '=', $request->status);
@@ -142,9 +143,9 @@ class EmployeeReportController extends Controller
         $employees = $query->get();
 
         $stats = [
-            'active' => User::where('customer', '=', 1)->where('employee_status', '=', 'active')->count(),
-            'inactive' => User::where('customer', '=', 1)->where('employee_status', '=', 'inactive')->count(),
-            'retired' => User::where('customer', '=', 1)->where('employee_status', '=', 'retired')->count(),
+            'active' => User::where('customer', '=', 1)->notTerminated()->where('employee_status', '=', 'active')->count(),
+            'inactive' => User::where('customer', '=', 1)->notTerminated()->where('employee_status', '=', 'inactive')->count(),
+            'retired' => User::where('customer', '=', 1)->notTerminated()->where('employee_status', '=', 'retired')->count(),
         ];
 
         return view(adminTheme().'reports.employees.status_wise', compact('employees', 'stats', 'departments'));
@@ -159,7 +160,7 @@ class EmployeeReportController extends Controller
         $from_date = $request->from_date ?? Carbon::now()->subMonth()->format('Y-m-d');
         $to_date = $request->to_date ?? Carbon::now()->format('Y-m-d');
 
-        $query = User::where('customer', '=', 1)
+        $query = User::where('customer', '=', 1)->notTerminated()
             ->with('department')
             ->whereBetween('joining_date', [$from_date, $to_date]);
 
@@ -289,7 +290,7 @@ class EmployeeReportController extends Controller
     {
         $departments = Attribute::where('parent', 9)->get();
 
-        $query = User::where('customer', '=', 1)->with('department');
+        $query = User::where('customer', '=', 1)->notTerminated()->with('department');
 
         if ($request->department_id) {
             $query->where('department_id', '=', $request->department_id);
@@ -348,7 +349,7 @@ class EmployeeReportController extends Controller
     {
         $departments = Attribute::where('parent', 9)->get();
 
-        $query = User::where('customer', '=', 1)->with('department');
+        $query = User::where('customer', '=', 1)->notTerminated()->with('department');
 
         if ($request->department_id) {
             $query->where('department_id', '=', $request->department_id);
@@ -361,7 +362,7 @@ class EmployeeReportController extends Controller
         $employees = $query->get();
 
         // Department-wise statistics
-        $departmentStats = User::where('customer', '=', 1)
+        $departmentStats = User::where('customer', '=', 1)->notTerminated()
             ->select(
                 'department_id',
                 DB::raw('COUNT(*) as total_employees'),
@@ -382,7 +383,7 @@ class EmployeeReportController extends Controller
         $summary = $departments->map(function($dept) {
             return [
                 'department_name' => $dept->name,
-                'employee_count' => User::where('customer', '=', 1)->where('department_id', '=', $dept->id)->filterBy('employee')->count()
+                'employee_count' => User::where('customer', '=', 1)->notTerminated()->where('department_id', '=', $dept->id)->count()
             ];
         });
 

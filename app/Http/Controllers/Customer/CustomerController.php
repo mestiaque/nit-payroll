@@ -958,15 +958,27 @@ class CustomerController extends Controller
     public function conveyanceStore(Request $request)
     {
         $request->validate([
-            'type' => 'required|string|max:50',
             'amount' => 'required|numeric|min:0.01',
+            'from_location' => 'nullable|string|max:255',
+            'to_location' => 'nullable|string|max:255',
+            'travel_by' => 'nullable|string|max:100',
+            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'reason' => 'nullable|string|max:1000',
         ]);
 
+        $attachmentPath = null;
+        if ($request->hasFile('attachment')) {
+            $attachmentPath = $request->file('attachment')->store('conveyance/attachments', 'public');
+        }
+
         ConvenienceRequest::create([
             'user_id' => Auth::id(),
-            'type' => $request->type,
+            'type' => 'conveyance',
             'amount' => $request->amount,
+            'from_location' => $request->from_location,
+            'to_location' => $request->to_location,
+            'travel_by' => $request->travel_by,
+            'attachment' => $attachmentPath,
             'reason' => $request->reason,
             'status' => 'pending',
         ]);

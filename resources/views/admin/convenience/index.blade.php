@@ -89,8 +89,11 @@
                         <tr>
                             <th>#</th>
                             <th>Employee</th>
-                            <th>Type</th>
                             <th>Amount</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Travel By</th>
+                            <th>Attachment</th>
                             <th>Status</th>
                             @if($hasPaymentStatusColumn)
                                 <th>Payment</th>
@@ -107,8 +110,17 @@
                         <tr>
                             <td>{{ $requests->firstItem() + $loop->index }}</td>
                             <td>{{ $item->user->name ?? 'N/A' }}</td>
-                            <td>{{ ucfirst(str_replace('_', ' ', $item->type)) }}</td>
                             <td>{{ number_format($item->amount, 2) }}</td>
+                            <td>{{ $item->from_location ?: '--' }}</td>
+                            <td>{{ $item->to_location ?: '--' }}</td>
+                            <td>{{ $item->travel_by ?: '--' }}</td>
+                            <td>
+                                @if($item->attachment)
+                                    <a href="{{ asset('storage/'.$item->attachment) }}" target="_blank">View</a>
+                                @else
+                                    --
+                                @endif
+                            </td>
                             <td>
                                 @if($item->status == 'pending')
                                     <span class="badge badge-warning">Pending</span>
@@ -141,7 +153,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="{{ $hasPaymentStatusColumn ? 10 : 7 }}" class="text-center">No convenience request found</td>
+                            <td colspan="{{ $hasPaymentStatusColumn ? 14 : 11 }}" class="text-center">No convenience request found</td>
                         </tr>
                         @endforelse
                     </tbody>

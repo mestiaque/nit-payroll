@@ -19,8 +19,11 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Type</th>
                             <th>Amount</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Travel By</th>
+                            <th>Attachment</th>
                             <th>Status</th>
                             <th>Payment</th>
                             <th>Reason</th>
@@ -32,8 +35,17 @@
                         @forelse($requests as $request)
                             <tr>
                                 <td>{{ $requests->firstItem() + $loop->index }}</td>
-                                <td>{{ ucfirst(str_replace('_', ' ', $request->type)) }}</td>
                                 <td>{{ number_format($request->amount, 2) }}</td>
+                                <td>{{ $request->from_location ?: '--' }}</td>
+                                <td>{{ $request->to_location ?: '--' }}</td>
+                                <td>{{ $request->travel_by ?: '--' }}</td>
+                                <td>
+                                    @if($request->attachment)
+                                        <a href="{{ asset('storage/'.$request->attachment) }}" target="_blank">View</a>
+                                    @else
+                                        --
+                                    @endif
+                                </td>
                                 <td>
                                     @if($request->status === 'approved')
                                         <span class="badge badge-success">Approved</span>
@@ -58,7 +70,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center">No conveyance request found.</td>
+                                <td colspan="11" class="text-center">No conveyance request found.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -79,24 +91,41 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form action="{{ route('customer.conveyance.store') }}" method="POST">
+            <form action="{{ route('customer.conveyance.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="type">Type</label>
-                        <select name="type" id="type" class="form-control" required>
-                            <option value="conveyance">Conveyance</option>
-                            <option value="travel">Travel</option>
-                            <option value="other">Other</option>
+                        <label for="from_location">From</label>
+                        <input type="text" name="from_location" id="from_location" class="form-control" placeholder="From location">
+                    </div>
+                    <div class="form-group">
+                        <label for="to_location">To</label>
+                        <input type="text" name="to_location" id="to_location" class="form-control" placeholder="To location">
+                    </div>
+                    <div class="form-group">
+                        <label for="travel_by">Travel By</label>
+                        <select name="travel_by" id="travel_by" class="form-control">
+                            <option value="">-- Select --</option>
+                            <option value="Rikshaw">Rikshaw</option>
+                            <option value="Bus">Bus</option>
+                            <option value="Ride Sharing: Car">Ride Sharing: Car</option>
+                            <option value="Ride Sharing: Bike">Ride Sharing: Bike</option>
+                            <option value="Personal Vehicle">Personal Vehicle</option>
+                            <option value="Metro Rail">Metro Rail</option>
+                            <option value="Bus & Rikshaw">Bus & Rikshaw</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="attachment">Attachment</label>
+                        <input type="file" name="attachment" id="attachment" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="reason">Reason</label>
+                        <textarea name="reason" id="reason" class="form-control" rows="2" placeholder="Write request details"></textarea>
                     </div>
                     <div class="form-group">
                         <label for="amount">Amount</label>
                         <input type="number" name="amount" id="amount" class="form-control" step="0.01" min="0.01" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="reason">Reason</label>
-                        <textarea name="reason" id="reason" class="form-control" rows="3" placeholder="Write request details"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

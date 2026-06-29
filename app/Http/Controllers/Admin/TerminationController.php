@@ -35,7 +35,8 @@ class TerminationController extends Controller
         }
 
         $terminations = $query->paginate(20);
-        $users = User::where('status', 1)->filterBy('employee')->get();
+        // Include terminated employees in the filter dropdown so past records are searchable
+        $users = User::where('customer', true)->orderBy('name')->get();
 
         return view(adminTheme().'terminations.index', compact('terminations', 'users'));
     }
@@ -109,9 +110,12 @@ class TerminationController extends Controller
             'documents' => $request->documents,
         ]);
 
-        // Update user status to terminated
+        // Mark user as terminated and disable login
         $user = $termination->user;
-        $user->update(['employee_status' => 'terminated']);
+        $user->update([
+            'employee_status' => 'terminated',
+            'status' => 0,
+        ]);
 
         return redirect()->route('admin.terminations.index')->with('success', 'Termination approved successfully');
     }

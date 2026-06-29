@@ -25,8 +25,9 @@ class EmployeeManagementController extends Controller
      */
     public function index(Request $request)
     {
-        // Query employees directly from users table
-        $query = User::query()->filterBy('employee');
+        // Include terminated employees only when explicitly filtering by "terminated"
+        $includeTerminated = $request->employee_status === 'terminated';
+        $query = User::query()->filterBy('employee', $includeTerminated);
 
         // Filter by employee status
         if ($request->employee_status) {
