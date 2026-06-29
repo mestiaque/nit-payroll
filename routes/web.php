@@ -236,6 +236,9 @@ Route::get('/approvals/completed', [ApprovalManagementController::class, 'comple
 Route::put('/approvals/attendance/{id}/edit', [ApprovalManagementController::class, 'updateAttendanceRequest'])->name('approvals.attendance.edit');
 Route::post('/approvals/manual/{id}/send', [ApprovalManagementController::class, 'sendManualAttendanceApproval'])->name('approvals.manual.send');
 Route::put('/approvals/leave/{id}', [ApprovalManagementController::class, 'updateLeaveApproval'])->name('approvals.leave.update');
+Route::put('/approvals/overtime/{id}', [ApprovalManagementController::class, 'updateOvertimeApproval'])->name('approvals.overtime.update');
+Route::put('/approvals/salary-advance/{id}', [ApprovalManagementController::class, 'updateSalaryAdvanceApproval'])->name('approvals.salary-advance.update');
+Route::put('/approvals/loan/{id}', [ApprovalManagementController::class, 'updateLoanApproval'])->name('approvals.loan.update');
 
 // Performance
 Route::get('/performance', [PerformanceController::class, 'index'])->name('performance.index');
